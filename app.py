@@ -35,7 +35,7 @@ st.markdown(
         background-color: #F8FAFC;
     }
 
-    /* Banner Banner Superior */
+    /* Banner Superior */
     .header-banner {
         background: linear-gradient(135deg, #0E2A47 0%, #1A3E68 100%);
         padding: 24px 32px;
@@ -59,7 +59,7 @@ st.markdown(
         font-weight: 400;
     }
 
-    /* Targetas KPI Personalizadas */
+    /* Tarjetas KPI Personalizadas */
     .kpi-card {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
@@ -96,6 +96,7 @@ st.markdown(
     .b-teal { border-top: 4px solid #14B8A6; }
     .b-indigo { border-top: 4px solid #6366F1; }
     .b-gold { border-top: 4px solid #D4AF37; }
+    .b-pink { border-top: 4px solid #EC4899; }
 
     /* Estilizado de pestañas */
     .stTabs [data-baseweb="tab-list"] {
@@ -377,8 +378,14 @@ if not df.empty:
     mask_psaim = df_activos["OBSERVACIÓN"].apply(es_correccion_psaim)
     mask_pend_insp = df_activos.apply(es_pendiente_inspeccion_fn, axis=1)
 
+    # Identificación de informes pendientes de asignación
+    mask_pend_elab = df_activos[
+        "ESTADO - ELABORACIÓN DE INFORME"
+    ].apply(texto_normalizado).str.contains("PENDIENTE ELABORACION")
+
     df_psaim_det = df_activos[mask_psaim]
     df_pend_inspeccion = df_activos[mask_pend_insp]
+    df_pend_asignacion = df_activos[mask_pend_elab]
 
     df_en_proceso = df_activos[
         df_activos["ESTADO - ELABORACIÓN DE INFORME"]
@@ -389,6 +396,7 @@ if not df.empty:
 
     cnt_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
     cnt_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
+    cnt_pend_asignacion = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
 
     dict_unicos = {}
     dict_psaim_unicos = set()
@@ -465,17 +473,18 @@ if not df.empty:
     tot_pen = sum(dict_t3_pen.values())
 
     # --- TARJETAS KPI REDISEÑADAS ---
-    k1, k2, k3, k4, k5, k6, k7, k8 = st.columns(8)
+    k1, k2, k3, k4, k5, k6, k7, k8, k9 = st.columns(9)
 
     kpis = [
         (k1, "INFORMES TOTALES", tot_informes, "b-blue"),
         (k2, "PENDIENTES TOTAL", tot_pen, "b-orange"),
         (k3, "VALORIZADOS (SI)", tot_val, "b-green"),
-        (k4, "EN PROCESO", cnt_en_proceso, "b-purple"),
-        (k5, "PEND. INSPECCIÓN", cnt_pend_inspeccion, "b-red"),
-        (k6, "REV. FIABILIDAD", cnt_revision_fiabilidad, "b-teal"),
-        (k7, "REV. ESPECIALISTA", cnt_revision_especialista, "b-indigo"),
-        (k8, "CORRECCIÓN PSAIM", sum(dict_t3_psaim.values()), "b-gold"),
+        (k4, "PEND. ASIGNACIÓN", cnt_pend_asignacion, "b-pink"),
+        (k5, "EN PROCESO", cnt_en_proceso, "b-purple"),
+        (k6, "PEND. INSPECCIÓN", cnt_pend_inspeccion, "b-red"),
+        (k7, "REV. FIABILIDAD", cnt_revision_fiabilidad, "b-teal"),
+        (k8, "REV. ESPECIALISTA", cnt_revision_especialista, "b-indigo"),
+        (k9, "CORRECCIÓN PSAIM", sum(dict_t3_psaim.values()), "b-gold"),
     ]
 
     for col, titulo, valor, clase_borde in kpis:
@@ -493,6 +502,7 @@ if not df.empty:
 
     (
         tab_general,
+        tab_pend_asignacion,
         tab_en_proceso,
         tab_pend_insp,
         tab_rev_fiabilidad,
@@ -504,6 +514,7 @@ if not df.empty:
     ) = st.tabs(
         [
             "📋 Tabla General",
+            "📋 Pend. Asignación",
             "🔄 En Proceso",
             "⏳ Pend. Inspección",
             "🔍 Rev. Fiabilidad",
@@ -515,13 +526,44 @@ if not df.empty:
         ]
     )
 
-    # 1. TABLA GENERAL
+    # 1. TABLA GENERAL CON BUSCADOR DINÁMICO
     with tab_general:
         st.markdown("#### **TABLA GENERAL DE CONTROL DE INFORMES**")
 
-        # Configuración de ancho extendido para la columna OBSERVACIÓN
+        # Buscador interactivo dinámico
+        busqueda_txt = st.text_input(
+            "🔍 Buscador Dinámico (Filtra por Línea, SAP, Código de Informe o Grupo de Tuberías):",
+            value="",
+            help="Ingresa una línea o SAP para ver la fila exacta, o un Código de Informe / Grupo para listar todas las líneas asociadas.",
+        )
+
+        df_general_display = df[COLUMNAS_EXCEL].copy()
+
+        if busqueda_txt.strip():
+            query_norm = texto_normalizado(busqueda_txt)
+
+            # Máscaras directas para coincidencia término por término
+            mask_lineas = df_general_display["LINEAS"].apply(texto_normalizado).str.contains(query_norm)
+            mask_sap = df_general_display["SAP"].apply(texto_normalizado).str.contains(query_norm)
+            mask_cod = df_general_display["CODIGO DE INFORME"].apply(texto_normalizado).str.contains(query_norm)
+            mask_grupo = df_general_display["GRUPO DE TUBERÍAS"].apply(texto_normalizado).str.contains(query_norm)
+
+            # Extracción de entidades completas para filtrar por pertenencia de grupo o informe
+            codigos_coincidentes = df_general_display[mask_cod]["CODIGO DE INFORME"].unique()
+            grupos_coincidentes = df_general_display[mask_grupo]["GRUPO DE TUBERÍAS"].unique()
+
+            mask_relacional = (
+                mask_lineas
+                | mask_sap
+                | df_general_display["CODIGO DE INFORME"].isin(codigos_coincidentes)
+                | df_general_display["GRUPO DE TUBERÍAS"].isin(grupos_coincidentes)
+            )
+
+            df_general_display = df_general_display[mask_relacional]
+
+        # Edición y visualización
         edited_df = st.data_editor(
-            df[COLUMNAS_EXCEL],
+            df_general_display,
             num_rows="dynamic",
             use_container_width=True,
             key="editor_general",
@@ -529,20 +571,60 @@ if not df.empty:
                 "OBSERVACIÓN": st.column_config.TextColumn(
                     "OBSERVACIÓN",
                     help="Detalle amplio de las observaciones del informe",
-                    width="large",  # Ajuste de tamaño extendido para mejorar la lectura
+                    width="large",
                 )
             },
         )
         if st.button("💾 Guardar Cambios"):
-            cleaned_df = limpiar_estado_y_responsable(
-                edited_df[COLUMNAS_EXCEL]
-            )
+            # En caso de estar en una vista filtrada, sincronizar los registros editados con el DataFrame original
+            df_actualizado = df.copy()
+            df_actualizado.update(edited_df)
+            
+            cleaned_df = limpiar_estado_y_responsable(df_actualizado[COLUMNAS_EXCEL])
             st.session_state.df_data = cleaned_df
             guardar_datos(cleaned_df)
-            st.success("¡Datos guardados y separados correctamente!")
+            st.success("¡Datos guardados y actualizados correctamente!")
             st.rerun()
 
-    # 2. INFORMES EN PROCESO
+    # 2. INFORMES PENDIENTES DE ASIGNACIÓN DE ENCARGADO
+    with tab_pend_asignacion:
+        st.markdown("#### **DETALLE DE INFORMES PENDIENTES DE ASIGNACIÓN DE ENCARGADO**")
+        if not df_pend_asignacion.empty:
+            df_asig_grouped = df_pend_asignacion.copy()
+            df_asig_grouped["CANT. LÍNEAS"] = 1
+            tabla_asig = (
+                df_asig_grouped.groupby(
+                    [
+                        "MES",
+                        "ESTADO - ELABORACIÓN DE INFORME",
+                        "RESPONSABLE",
+                        "GRUPO DE TUBERÍAS",
+                        "CODIGO DE INFORME",
+                    ],
+                    as_index=False,
+                )
+                .agg({"CANT. LÍNEAS": "count"})
+                .rename(
+                    columns={
+                        "ESTADO - ELABORACIÓN DE INFORME": "ESTADO INFORME",
+                        "GRUPO DE TUBERÍAS": "GRUPO DE TUBERIAS",
+                        "CODIGO DE INFORME": "CODIGO(S) DE INFORME",
+                    }
+                )
+            )
+            tabla_asig["MES_CAT"] = pd.Categorical(
+                tabla_asig["MES"].str.upper(),
+                categories=ORDEN_MESES,
+                ordered=True,
+            )
+            tabla_asig = tabla_asig.sort_values("MES_CAT").drop(
+                columns=["MES_CAT"]
+            )
+            st.dataframe(tabla_asig, use_container_width=True)
+        else:
+            st.info("No hay informes pendientes a la espera de asignar encargado.")
+
+    # 3. INFORMES EN PROCESO
     with tab_en_proceso:
         st.markdown("#### **DETALLE DE INFORMES EN PROCESO**")
         if not df_en_proceso.empty:
@@ -580,7 +662,7 @@ if not df.empty:
         else:
             st.info("No hay informes registrados en proceso.")
 
-    # 3. INFORMES PENDIENTES DE COMPLETAR INSPECCIÓN
+    # 4. INFORMES PENDIENTES DE COMPLETAR INSPECCIÓN
     with tab_pend_insp:
         st.markdown(
             "#### **DETALLE DE INFORMES PENDIENTES COMPLETAR INSPECCIÓN**"
@@ -620,7 +702,7 @@ if not df.empty:
         else:
             st.info("No hay informes pendientes de completar inspección.")
 
-    # 4. REVISIÓN FIABILIDAD
+    # 5. REVISIÓN FIABILIDAD
     with tab_rev_fiabilidad:
         st.markdown("#### **DETALLE DE INFORMES EN REVISIÓN FIABILIDAD**")
         df_fiab = df_activos[
@@ -647,7 +729,7 @@ if not df.empty:
         else:
             st.info("No hay informes registrados en revisión por fiabilidad.")
 
-    # 5. REVISIÓN ESPECIALISTA
+    # 6. REVISIÓN ESPECIALISTA
     with tab_rev_especialista:
         st.markdown(
             "#### **DETALLE DE INFORMES PENDIENTES REVISIÓN ESPECIALISTA**"
@@ -679,7 +761,7 @@ if not df.empty:
                 " especialista."
             )
 
-    # 6. CORRECCIÓN PSAIM
+    # 7. CORRECCIÓN PSAIM
     with tab_psaim:
         st.markdown("#### **DETALLE DE INFORMES EN CORRECCIÓN PSAIM**")
         if not df_psaim_det.empty:
@@ -700,7 +782,7 @@ if not df.empty:
         else:
             st.info("No hay informes registrados en corrección PSAIM.")
 
-    # 7. TABLA 3: RESUMEN POR MES
+    # 8. TABLA 3: RESUMEN POR MES
     with tab_t3:
         st.markdown("#### **RESUMEN DE VALORIZACIÓN POR MES**")
         meses_unicos = list(
@@ -759,7 +841,7 @@ if not df.empty:
                 use_container_width=True,
             )
 
-    # 8. TABLA 4: PENDIENTES POR MES Y OBSERVACIÓN
+    # 9. TABLA 4: PENDIENTES POR MES Y OBSERVACIÓN
     with tab_t4:
         st.markdown("#### **DETALLE DE PENDIENTES POR MES Y OBSERVACIÓN**")
         filas_t4 = [
@@ -780,7 +862,7 @@ if not df.empty:
             ).drop(columns=["MES_CAT"])
             st.dataframe(df_t4, use_container_width=True)
 
-    # 9. TABLA 5: RESUMEN GENERAL DE OBSERVACIONES
+    # 10. TABLA 5: RESUMEN GENERAL DE OBSERVACIONES
     with tab_t5:
         st.markdown("#### **RESUMEN GENERAL DE OBSERVACIONES PENDIENTES**")
         filas_t5 = [
