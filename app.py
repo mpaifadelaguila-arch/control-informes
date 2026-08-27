@@ -64,25 +64,30 @@ st.markdown(
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
         border-radius: 10px;
-        padding: 16px;
+        padding: 12px 6px;
         text-align: center;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
         transition: transform 0.2s, box-shadow 0.2s;
+        min-height: 95px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     .kpi-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     }
     .kpi-title {
-        font-size: 11px;
+        font-size: 9.5px;
         font-weight: 700;
         color: #64748B;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 6px;
+        letter-spacing: 0.2px;
+        margin-bottom: 4px;
+        line-height: 1.2;
     }
     .kpi-value {
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 800;
         color: #0E2A47;
     }
@@ -95,23 +100,24 @@ st.markdown(
     .b-red { border-top: 4px solid #EF4444; }
     .b-teal { border-top: 4px solid #14B8A6; }
     .b-indigo { border-top: 4px solid #6366F1; }
+    .b-cyan { border-top: 4px solid #06B6D4; }
     .b-gold { border-top: 4px solid #D4AF37; }
     .b-pink { border-top: 4px solid #EC4899; }
 
     /* Estilizado de pestañas */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 4px;
         background-color: #F1F5F9;
         padding: 6px;
         border-radius: 8px;
     }
     .stTabs [data-baseweb="tab"] {
-        height: 40px;
+        height: 38px;
         border-radius: 6px;
-        font-size: 13px;
+        font-size: 11.5px;
         font-weight: 600;
         color: #475569;
-        padding: 0 16px;
+        padding: 0 10px;
     }
     .stTabs [aria-selected="true"] {
         background-color: #0E2A47 !important;
@@ -405,7 +411,8 @@ if not df.empty:
     dict_t4, dict_t5 = {}, {}
 
     cnt_revision_fiabilidad = 0
-    cnt_revision_especialista = 0
+    cnt_pend_revision_especialista = 0
+    cnt_revision_por_especialista = 0
 
     for _, row in df_activos.iterrows():
         mes = str(row["MES"]).strip()
@@ -451,11 +458,11 @@ if not df.empty:
                     ):
                         cnt_revision_fiabilidad += 1
 
-                    if (
-                        "PENDIENTE REVISION POR EL ESPECIALISTA"
-                        in obs_norm
-                    ):
-                        cnt_revision_especialista += 1
+                    if "PENDIENTE REVISION POR EL ESPECIALISTA" in obs_norm:
+                        cnt_pend_revision_especialista += 1
+
+                    if ("REV. POR EL ESPECIALISTA" in obs_norm or "REVISION POR EL ESPECIALISTA" in obs_norm) and "PENDIENTE" not in obs_norm:
+                        cnt_revision_por_especialista += 1
 
                     if "ADEMINSAC" in obs_norm:
                         dict_t3_ademinsac[mes] += 1
@@ -472,19 +479,20 @@ if not df.empty:
     tot_val = sum(dict_t3_val.values())
     tot_pen = sum(dict_t3_pen.values())
 
-    # --- TARJETAS KPI REDISEÑADAS ---
-    k1, k2, k3, k4, k5, k6, k7, k8, k9 = st.columns(9)
+    # --- TARJETAS KPI REDISEÑADAS EN 10 COLUMNAS ---
+    k1, k2, k3, k4, k5, k6, k7, k8, k9, k10 = st.columns(10)
 
     kpis = [
         (k1, "INFORMES TOTALES", tot_informes, "b-blue"),
         (k2, "PENDIENTES TOTAL", tot_pen, "b-orange"),
         (k3, "VALORIZADOS (SI)", tot_val, "b-green"),
-        (k4, "PEND. ASIGNACIÓN", cnt_pend_asignacion, "b-pink"),
+        (k4, "PEND. ASIGNAR INFORME", cnt_pend_asignacion, "b-pink"),
         (k5, "EN PROCESO", cnt_en_proceso, "b-purple"),
         (k6, "PEND. INSPECCIÓN", cnt_pend_inspeccion, "b-red"),
         (k7, "REV. FIABILIDAD", cnt_revision_fiabilidad, "b-teal"),
-        (k8, "REV. ESPECIALISTA", cnt_revision_especialista, "b-indigo"),
-        (k9, "CORRECCIÓN PSAIM", sum(dict_t3_psaim.values()), "b-gold"),
+        (k8, "PEND. REV. DEL ESPECIALISTA", cnt_pend_revision_especialista, "b-indigo"),
+        (k9, "REV. POR EL ESPECIALISTA", cnt_revision_por_especialista, "b-cyan"),
+        (k10, "CORRECCIÓN PSAIM", sum(dict_t3_psaim.values()), "b-gold"),
     ]
 
     for col, titulo, valor, clase_borde in kpis:
@@ -506,7 +514,8 @@ if not df.empty:
         tab_en_proceso,
         tab_pend_insp,
         tab_rev_fiabilidad,
-        tab_rev_especialista,
+        tab_pend_rev_especialista,
+        tab_rev_por_especialista,
         tab_psaim,
         tab_t3,
         tab_t4,
@@ -514,11 +523,12 @@ if not df.empty:
     ) = st.tabs(
         [
             "📋 Tabla General",
-            "📋 Pend. Asignación",
+            "📋 Pend. Asignar Informe",
             "🔄 En Proceso",
             "⏳ Pend. Inspección",
             "🔍 Rev. Fiabilidad",
-            "👨‍🔬 Rev. Especialista",
+            "👨‍🔬 Pend. Rev. Especialista",
+            "🔬 Rev. por Especialista",
             "🛠️ Correc. PSAIM",
             "📅 Resumen Mes (T3)",
             "📊 Pend. Mes/Obs (T4)",
@@ -530,7 +540,6 @@ if not df.empty:
     with tab_general:
         st.markdown("#### **TABLA GENERAL DE CONTROL DE INFORMES**")
 
-        # Buscador interactivo dinámico
         busqueda_txt = st.text_input(
             "🔍 Buscador Dinámico (Filtra por Línea, SAP, Código de Informe o Grupo de Tuberías):",
             value="",
@@ -542,13 +551,11 @@ if not df.empty:
         if busqueda_txt.strip():
             query_norm = texto_normalizado(busqueda_txt)
 
-            # Máscaras directas para coincidencia término por término
             mask_lineas = df_general_display["LINEAS"].apply(texto_normalizado).str.contains(query_norm)
             mask_sap = df_general_display["SAP"].apply(texto_normalizado).str.contains(query_norm)
             mask_cod = df_general_display["CODIGO DE INFORME"].apply(texto_normalizado).str.contains(query_norm)
             mask_grupo = df_general_display["GRUPO DE TUBERÍAS"].apply(texto_normalizado).str.contains(query_norm)
 
-            # Extracción de entidades completas para filtrar por pertenencia de grupo o informe
             codigos_coincidentes = df_general_display[mask_cod]["CODIGO DE INFORME"].unique()
             grupos_coincidentes = df_general_display[mask_grupo]["GRUPO DE TUBERÍAS"].unique()
 
@@ -561,7 +568,6 @@ if not df.empty:
 
             df_general_display = df_general_display[mask_relacional]
 
-        # Edición y visualización
         edited_df = st.data_editor(
             df_general_display,
             num_rows="dynamic",
@@ -576,7 +582,6 @@ if not df.empty:
             },
         )
         if st.button("💾 Guardar Cambios"):
-            # En caso de estar en una vista filtrada, sincronizar los registros editados con el DataFrame original
             df_actualizado = df.copy()
             df_actualizado.update(edited_df)
             
@@ -588,7 +593,7 @@ if not df.empty:
 
     # 2. INFORMES PENDIENTES DE ASIGNACIÓN DE ENCARGADO
     with tab_pend_asignacion:
-        st.markdown("#### **DETALLE DE INFORMES PENDIENTES DE ASIGNACIÓN DE ENCARGADO**")
+        st.markdown("#### **DETALLE DE INFORMES PENDIENTES DE ASIGNAR INFORME**")
         if not df_pend_asignacion.empty:
             df_asig_grouped = df_pend_asignacion.copy()
             df_asig_grouped["CANT. LÍNEAS"] = 1
@@ -729,10 +734,10 @@ if not df.empty:
         else:
             st.info("No hay informes registrados en revisión por fiabilidad.")
 
-    # 6. REVISIÓN ESPECIALISTA
-    with tab_rev_especialista:
+    # 6. PENDIENTE REVISIÓN ESPECIALISTA
+    with tab_pend_rev_especialista:
         st.markdown(
-            "#### **DETALLE DE INFORMES PENDIENTES REVISIÓN ESPECIALISTA**"
+            "#### **DETALLE DE INFORMES PENDIENTES REVISIÓN DEL ESPECIALISTA**"
         )
         df_esp = df_activos[
             df_activos["OBSERVACIÓN"].apply(
@@ -757,11 +762,42 @@ if not df.empty:
             st.dataframe(tabla_esp, use_container_width=True)
         else:
             st.info(
-                "No hay informes registrados pendientes de revisión por"
+                "No hay informes registrados pendientes de revisión por el"
                 " especialista."
             )
 
-    # 7. CORRECCIÓN PSAIM
+    # 7. REVISIÓN POR EL ESPECIALISTA
+    with tab_rev_por_especialista:
+        st.markdown(
+            "#### **DETALLE DE INFORMES EN REVISIÓN POR EL ESPECIALISTA**"
+        )
+        df_rev_esp = df_activos[
+            df_activos["OBSERVACIÓN"].apply(
+                lambda x: ("REV. POR EL ESPECIALISTA" in texto_normalizado(x) or "REVISION POR EL ESPECIALISTA" in texto_normalizado(x))
+                and "PENDIENTE" not in texto_normalizado(x)
+            )
+        ].copy()
+
+        if not df_rev_esp.empty:
+            df_rev_esp["CANT. LÍNEAS"] = 1
+            tabla_rev_esp = df_rev_esp.groupby(
+                [
+                    "MES",
+                    "ESTADO - ELABORACIÓN DE INFORME",
+                    "RESPONSABLE",
+                    "GRUPO DE TUBERÍAS",
+                    "CODIGO DE INFORME",
+                    "OBSERVACIÓN",
+                ],
+                as_index=False,
+            ).agg({"CANT. LÍNEAS": "count"})
+            st.dataframe(tabla_rev_esp, use_container_width=True)
+        else:
+            st.info(
+                "No hay informes registrados con la observación de revisión por el especialista."
+            )
+
+    # 8. CORRECCIÓN PSAIM
     with tab_psaim:
         st.markdown("#### **DETALLE DE INFORMES EN CORRECCIÓN PSAIM**")
         if not df_psaim_det.empty:
@@ -782,7 +818,7 @@ if not df.empty:
         else:
             st.info("No hay informes registrados en corrección PSAIM.")
 
-    # 8. TABLA 3: RESUMEN POR MES
+    # 9. TABLA 3: RESUMEN POR MES
     with tab_t3:
         st.markdown("#### **RESUMEN DE VALORIZACIÓN POR MES**")
         meses_unicos = list(
@@ -841,7 +877,7 @@ if not df.empty:
                 use_container_width=True,
             )
 
-    # 9. TABLA 4: PENDIENTES POR MES Y OBSERVACIÓN
+    # 10. TABLA 4: PENDIENTES POR MES Y OBSERVACIÓN
     with tab_t4:
         st.markdown("#### **DETALLE DE PENDIENTES POR MES Y OBSERVACIÓN**")
         filas_t4 = [
@@ -862,7 +898,7 @@ if not df.empty:
             ).drop(columns=["MES_CAT"])
             st.dataframe(df_t4, use_container_width=True)
 
-    # 10. TABLA 5: RESUMEN GENERAL DE OBSERVACIONES
+    # 11. TABLA 5: RESUMEN GENERAL DE OBSERVACIONES
     with tab_t5:
         st.markdown("#### **RESUMEN GENERAL DE OBSERVACIONES PENDIENTES**")
         filas_t5 = [
