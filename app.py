@@ -274,7 +274,7 @@ with t_admin:
         with c_down:
             st.markdown("##### 💾 Descargar Respaldo Actual")
             buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+            with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
                 df_export = df_data.copy()
                 if "CLAVE_GLOBAL" in df_export.columns:
                     df_export = df_export.drop(columns=["CLAVE_GLOBAL"])
