@@ -59,57 +59,38 @@ st.markdown(
         font-weight: 400;
     }
 
-    /* Tarjetas KPI Interactivas con Botón Transparente Supervisado */
+    /* Estilo de Botones KPI de Streamlit */
     div[data-testid="column"] div.stButton > button {
         width: 100% !important;
         background-color: #FFFFFF !important;
         border: 1px solid #E2E8F0 !important;
         border-radius: 10px !important;
-        padding: 10px 4px !important;
+        padding: 8px 4px !important;
         text-align: center !important;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
         transition: all 0.2s ease-in-out !important;
-        min-height: 95px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        align-items: center !important;
+        min-height: 90px !important;
     }
     
     div[data-testid="column"] div.stButton > button:hover {
         transform: translateY(-3px) !important;
         box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1) !important;
-    }
-
-    /* Personalización del Texto dentro del Botón KPI */
-    .kpi-title {
-        font-size: 9.5px;
-        font-weight: 700;
-        color: #64748B;
-        text-transform: uppercase;
-        letter-spacing: 0.2px;
-        margin-bottom: 4px;
-        line-height: 1.2;
-    }
-    .kpi-value {
-        font-size: 22px;
-        font-weight: 800;
-        color: #0E2A47;
+        border-color: #0E2A47 !important;
     }
 
     /* Bordes coloridos superiores en las columnas de KPIs */
-    .kpi-box-blue { border-top: 4px solid #0E2A47 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-orange { border-top: 4px solid #F59E0B !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-green { border-top: 4px solid #10B981 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-pink { border-top: 4px solid #EC4899 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-purple { border-top: 4px solid #8B5CF6 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-red { border-top: 4px solid #EF4444 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-teal { border-top: 4px solid #14B8A6 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-indigo { border-top: 4px solid #6366F1 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-cyan { border-top: 4px solid #06B6D4 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-gold { border-top: 4px solid #D4AF37 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-blue { border-top: 5px solid #0E2A47 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-orange { border-top: 5px solid #F59E0B !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-green { border-top: 5px solid #10B981 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-pink { border-top: 5px solid #EC4899 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-purple { border-top: 5px solid #8B5CF6 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-red { border-top: 5px solid #EF4444 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-teal { border-top: 5px solid #14B8A6 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-indigo { border-top: 5px solid #6366F1 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-cyan { border-top: 5px solid #06B6D4 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-gold { border-top: 5px solid #D4AF37 !important; border-radius: 10px 10px 0 0; }
 
-    /* Transformación de Radio Buttons en Pestañas (Tabs Navigables) */
+    /* Transformación de Radio Buttons en Pestañas */
     div[data-testid="stRadio"] > label {
         display: none !important;
     }
@@ -210,8 +191,8 @@ LISTA_PESTANAS = [
     "📌 Resumen Obs (T5)",
 ]
 
-# Inicialización del estado de pestaña activa
-if "active_tab" not in st.session_state:
+# Inicialización segura de la pestaña activa
+if "active_tab" not in st.session_state or st.session_state.active_tab not in LISTA_PESTANAS:
     st.session_state.active_tab = "📋 Tabla General"
 
 
@@ -329,7 +310,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- SECCIÓN SUPERIOR: GESTIÓN DE DATOS Y RESPALDOS ---
+# --- GESTIÓN DE DATOS Y RESPALDOS ---
 with st.expander(
     "⚙️ **Gestión de Datos: Cargar / Restaurar Excel & Descargar Respaldo**",
     expanded=False,
@@ -507,7 +488,7 @@ if not df.empty:
     tot_val = sum(dict_t3_val.values())
     tot_pen = sum(dict_t3_pen.values())
 
-    # --- 10 TARJETAS KPI CLICKABLES QUE REDIRIGEN A LAS PESTAÑAS ---
+    # --- TARJETAS KPI CLICKABLES QUE REDIRIGEN SIN ERRORES ---
     k1, k2, k3, k4, k5, k6, k7, k8, k9, k10 = st.columns(10)
 
     kpis = [
@@ -526,18 +507,20 @@ if not df.empty:
     for col, titulo, valor, clase_borde, target_tab in kpis:
         with col:
             st.markdown(f'<div class="{clase_borde}"></div>', unsafe_allow_html=True)
-            label_html = f'<div class="kpi-title">{titulo}</div><div class="kpi-value">{valor}</div>'
-            if st.button(label_html, key=f"btn_kpi_{titulo}"):
+            label_texto = f"{titulo}\n\n{valor}"
+            if st.button(label_texto, key=f"btn_kpi_{titulo}"):
                 st.session_state.active_tab = target_tab
                 st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- NAVEGACIÓN DE PESTAÑAS DINÁMICA MEDIANTE ST.RADIO ESTILIZADO ---
+    # --- NAVEGACIÓN DE PESTAÑAS Y CONTROL DE NAVEGACIÓN ---
+    index_actual = LISTA_PESTANAS.index(st.session_state.active_tab)
+
     selected_tab = st.radio(
         "Navegación:",
         options=LISTA_PESTANAS,
-        index=LISTA_PESTANAS.index(st.session_state.active_tab),
+        index=index_actual,
         key="radio_tabs_nav",
         horizontal=True,
     )
@@ -548,7 +531,7 @@ if not df.empty:
 
     # --- CONTENIDO DE CADA PESTAÑA SELECCIONADA ---
     
-    # 1. TABLA GENERAL CON FILTRO POR MES Y BUSCADOR DINÁMICO
+    # 1. TABLA GENERAL
     if st.session_state.active_tab == "📋 Tabla General":
         st.markdown("#### **TABLA GENERAL DE CONTROL DE INFORMES**")
 
@@ -564,25 +547,21 @@ if not df.empty:
                 "📅 Filtrar por Mes:",
                 options=meses_disponibles,
                 index=0,
-                help="Selecciona un mes específico o 'Todos los meses' para ver el consolidado.",
             )
 
         with col_busqueda:
             busqueda_txt = st.text_input(
                 "🔍 Buscador Dinámico (Línea, SAP, Código o Grupo):",
                 value="",
-                help="Ingresa una línea o SAP para ver la fila exacta, o un Código de Informe / Grupo para listar todas las líneas asociadas.",
             )
 
         df_general_display = df[COLUMNAS_EXCEL].copy()
 
-        # Aplicación del Filtro por Mes
         if mes_seleccionado != "Todos los meses":
             df_general_display = df_general_display[
                 df_general_display["MES"].astype(str).str.strip().str.upper() == mes_seleccionado
             ]
 
-        # Aplicación del Buscador Dinámico
         if busqueda_txt.strip():
             query_norm = texto_normalizado(busqueda_txt)
 
@@ -611,7 +590,6 @@ if not df.empty:
             column_config={
                 "OBSERVACIÓN": st.column_config.TextColumn(
                     "OBSERVACIÓN",
-                    help="Detalle amplio de las observaciones del informe",
                     width="large",
                 )
             },
@@ -626,7 +604,7 @@ if not df.empty:
             st.success("¡Datos guardados y actualizados correctamente!")
             st.rerun()
 
-    # 2. INFORMES PENDIENTES DE ASIGNACIÓN DE ENCARGADO
+    # 2. PENDIENTES DE ASIGNACIÓN
     elif st.session_state.active_tab == "📋 Pend. Asignar Informe":
         st.markdown("#### **DETALLE DE INFORMES PENDIENTES DE ASIGNAR INFORME**")
         if not df_pend_asignacion.empty:
@@ -702,7 +680,7 @@ if not df.empty:
         else:
             st.info("No hay informes registrados en proceso.")
 
-    # 4. INFORMES PENDIENTES DE COMPLETAR INSPECCIÓN
+    # 4. PENDIENTES DE COMPLETAR INSPECCIÓN
     elif st.session_state.active_tab == "⏳ Pend. Inspección":
         st.markdown(
             "#### **DETALLE DE INFORMES PENDIENTES COMPLETAR INSPECCIÓN**"
@@ -853,7 +831,7 @@ if not df.empty:
         else:
             st.info("No hay informes registrados en corrección PSAIM.")
 
-    # 9. TABLA 3: RESUMEN POR MES
+    # 9. RESUMEN POR MES (T3)
     elif st.session_state.active_tab == "📅 Resumen Mes (T3)":
         st.markdown("#### **RESUMEN DE VALORIZACIÓN POR MES**")
         meses_unicos = list(
@@ -912,7 +890,7 @@ if not df.empty:
                 use_container_width=True,
             )
 
-    # 10. TABLA 4: PENDIENTES POR MES Y OBSERVACIÓN
+    # 10. PENDIENTES POR MES Y OBSERVACIÓN (T4)
     elif st.session_state.active_tab == "📊 Pend. Mes/Obs (T4)":
         st.markdown("#### **DETALLE DE PENDIENTES POR MES Y OBSERVACIÓN**")
         filas_t4 = [
@@ -933,7 +911,7 @@ if not df.empty:
             ).drop(columns=["MES_CAT"])
             st.dataframe(df_t4, use_container_width=True)
 
-    # 11. TABLA 5: RESUMEN GENERAL DE OBSERVACIONES
+    # 11. RESUMEN GENERAL DE OBSERVACIONES (T5)
     elif st.session_state.active_tab == "📌 Resumen Obs (T5)":
         st.markdown("#### **RESUMEN GENERAL DE OBSERVACIONES PENDIENTES**")
         filas_t5 = [
