@@ -59,25 +59,29 @@ st.markdown(
         font-weight: 400;
     }
 
-    /* Tarjetas KPI Originales */
-    .kpi-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 10px;
-        padding: 12px 6px;
-        text-align: center;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-        transition: transform 0.2s, box-shadow 0.2s;
-        min-height: 95px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
+    /* Tarjetas KPI Interactivas con Botón Transparente Supervisado */
+    div[data-testid="column"] div.stButton > button {
+        width: 100% !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 10px !important;
+        padding: 10px 4px !important;
+        text-align: center !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+        transition: all 0.2s ease-in-out !important;
+        min-height: 95px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
     }
-    .kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    
+    div[data-testid="column"] div.stButton > button:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1) !important;
     }
+
+    /* Personalización del Texto dentro del Botón KPI */
     .kpi-title {
         font-size: 9.5px;
         font-weight: 700;
@@ -93,54 +97,58 @@ st.markdown(
         color: #0E2A47;
     }
 
-    /* Bordes coloridos exactos por cada KPI */
-    .b-blue { border-top: 4px solid #0E2A47; }
-    .b-orange { border-top: 4px solid #F59E0B; }
-    .b-green { border-top: 4px solid #10B981; }
-    .b-purple { border-top: 4px solid #8B5CF6; }
-    .b-red { border-top: 4px solid #EF4444; }
-    .b-teal { border-top: 4px solid #14B8A6; }
-    .b-indigo { border-top: 4px solid #6366F1; }
-    .b-cyan { border-top: 4px solid #06B6D4; }
-    .b-gold { border-top: 4px solid #D4AF37; }
-    .b-pink { border-top: 4px solid #EC4899; }
+    /* Bordes coloridos superiores en las columnas de KPIs */
+    .kpi-box-blue { border-top: 4px solid #0E2A47 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-orange { border-top: 4px solid #F59E0B !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-green { border-top: 4px solid #10B981 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-pink { border-top: 4px solid #EC4899 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-purple { border-top: 4px solid #8B5CF6 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-red { border-top: 4px solid #EF4444 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-teal { border-top: 4px solid #14B8A6 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-indigo { border-top: 4px solid #6366F1 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-cyan { border-top: 4px solid #06B6D4 !important; border-radius: 10px 10px 0 0; }
+    .kpi-box-gold { border-top: 4px solid #D4AF37 !important; border-radius: 10px 10px 0 0; }
 
-    /* Ajuste de Botones sutiles debajo de KPI */
-    div.kpi-btn-container div.stButton > button {
-        width: 100% !important;
-        background-color: #F1F5F9 !important;
-        color: #0E2A47 !important;
-        border: 1px solid #CBD5E1 !important;
-        border-radius: 4px !important;
-        font-size: 10px !important;
-        padding: 2px 4px !important;
-        margin-top: 4px !important;
-        font-weight: 600 !important;
+    /* Transformación de Radio Buttons en Pestañas (Tabs Navigables) */
+    div[data-testid="stRadio"] > label {
+        display: none !important;
     }
-    div.kpi-btn-container div.stButton > button:hover {
-        background-color: #0E2A47 !important;
-        color: #FFFFFF !important;
-    }
-
-    /* Estilizado de pestañas */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 4px;
+    div[data-testid="stRadio"] div[role="radiogroup"] {
+        display: flex;
+        flex-direction: row;
+        gap: 6px;
         background-color: #F1F5F9;
         padding: 6px;
         border-radius: 8px;
+        overflow-x: auto;
     }
-    .stTabs [data-baseweb="tab"] {
-        height: 38px;
-        border-radius: 6px;
-        font-size: 11.5px;
-        font-weight: 600;
-        color: #475569;
-        padding: 0 10px;
+    div[data-testid="stRadio"] div[role="radiogroup"] > label {
+        background-color: transparent !important;
+        border-radius: 6px !important;
+        padding: 8px 14px !important;
+        margin: 0 !important;
+        cursor: pointer;
+        border: none !important;
+        transition: background-color 0.2s;
     }
-    .stTabs [aria-selected="true"] {
+    div[data-testid="stRadio"] div[role="radiogroup"] > label:hover {
+        background-color: #E2E8F0 !important;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label[data-checked="true"] {
         background-color: #0E2A47 !important;
-        color: #FFFFFF !important;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label[data-checked="true"] span {
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label span {
+        font-size: 12px !important;
+        color: #475569;
+        font-weight: 600;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] > label input {
+        display: none !important;
     }
 
     /* Tabla y data editor */
@@ -187,6 +195,24 @@ ORDEN_MESES = [
     "NOVIEMBRE",
     "DICIEMBRE",
 ]
+
+LISTA_PESTANAS = [
+    "📋 Tabla General",
+    "📋 Pend. Asignar Informe",
+    "🔄 En Proceso",
+    "⏳ Pend. Inspección",
+    "🔍 Rev. Fiabilidad",
+    "👨‍🔬 Pend. Rev. Especialista",
+    "🔬 Rev. por Especialista",
+    "🛠️ Correc. PSAIM",
+    "📅 Resumen Mes (T3)",
+    "📊 Pend. Mes/Obs (T4)",
+    "📌 Resumen Obs (T5)",
+]
+
+# Inicialización del estado de pestaña activa
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = "📋 Tabla General"
 
 
 def texto_normalizado(texto):
@@ -303,7 +329,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- SECCIÓN EN PANTALLA PRINCIPAL: GESTIÓN DE DATOS Y RESPALDOS ---
+# --- SECCIÓN SUPERIOR: GESTIÓN DE DATOS Y RESPALDOS ---
 with st.expander(
     "⚙️ **Gestión de Datos: Cargar / Restaurar Excel & Descargar Respaldo**",
     expanded=False,
@@ -481,66 +507,49 @@ if not df.empty:
     tot_val = sum(dict_t3_val.values())
     tot_pen = sum(dict_t3_pen.values())
 
-    # --- RESTAURACIÓN DE LAS 10 TARJETAS KPI ORIGINALES CON SU FORMATO INTACTO ---
+    # --- 10 TARJETAS KPI CLICKABLES QUE REDIRIGEN A LAS PESTAÑAS ---
     k1, k2, k3, k4, k5, k6, k7, k8, k9, k10 = st.columns(10)
 
     kpis = [
-        (k1, "INFORMES TOTALES", tot_informes, "b-blue"),
-        (k2, "PENDIENTES TOTAL", tot_pen, "b-orange"),
-        (k3, "VALORIZADOS (SI)", tot_val, "b-green"),
-        (k4, "PEND. ASIGNAR INFORME", cnt_pend_asignacion, "b-pink"),
-        (k5, "EN PROCESO", cnt_en_proceso, "b-purple"),
-        (k6, "PEND. INSPECCIÓN", cnt_pend_inspeccion, "b-red"),
-        (k7, "REV. FIABILIDAD", cnt_revision_fiabilidad, "b-teal"),
-        (k8, "PEND. REV. DEL ESPECIALISTA", cnt_pend_revision_especialista, "b-indigo"),
-        (k9, "REV. POR EL ESPECIALISTA", cnt_revision_por_especialista, "b-cyan"),
-        (k10, "CORRECCIÓN PSAIM", sum(dict_t3_psaim.values()), "b-gold"),
+        (k1, "INFORMES TOTALES", tot_informes, "kpi-box-blue", "📋 Tabla General"),
+        (k2, "PENDIENTES TOTAL", tot_pen, "kpi-box-orange", "📋 Tabla General"),
+        (k3, "VALORIZADOS (SI)", tot_val, "kpi-box-green", "📅 Resumen Mes (T3)"),
+        (k4, "PEND. ASIGNAR INFORME", cnt_pend_asignacion, "kpi-box-pink", "📋 Pend. Asignar Informe"),
+        (k5, "EN PROCESO", cnt_en_proceso, "kpi-box-purple", "🔄 En Proceso"),
+        (k6, "PEND. INSPECCIÓN", cnt_pend_inspeccion, "kpi-box-red", "⏳ Pend. Inspección"),
+        (k7, "REV. FIABILIDAD", cnt_revision_fiabilidad, "kpi-box-teal", "🔍 Rev. Fiabilidad"),
+        (k8, "PEND. REV. DEL ESPECIALISTA", cnt_pend_revision_especialista, "kpi-box-indigo", "👨‍🔬 Pend. Rev. Especialista"),
+        (k9, "REV. POR EL ESPECIALISTA", cnt_revision_por_especialista, "kpi-box-cyan", "🔬 Rev. por Especialista"),
+        (k10, "CORRECCIÓN PSAIM", sum(dict_t3_psaim.values()), "kpi-box-gold", "🛠️ Correc. PSAIM"),
     ]
 
-    for col, titulo, valor, clase_borde in kpis:
-        col.markdown(
-            f"""
-            <div class="kpi-card {clase_borde}">
-                <div class="kpi-title">{titulo}</div>
-                <div class="kpi-value">{valor}</div>
-            </div>
-        """,
-            unsafe_allow_html=True,
-        )
+    for col, titulo, valor, clase_borde, target_tab in kpis:
+        with col:
+            st.markdown(f'<div class="{clase_borde}"></div>', unsafe_allow_html=True)
+            label_html = f'<div class="kpi-title">{titulo}</div><div class="kpi-value">{valor}</div>'
+            if st.button(label_html, key=f"btn_kpi_{titulo}"):
+                st.session_state.active_tab = target_tab
+                st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- PESTAÑAS PRINCIPALES ---
-    (
-        tab_general,
-        tab_pend_asignacion,
-        tab_en_proceso,
-        tab_pend_insp,
-        tab_rev_fiabilidad,
-        tab_pend_rev_especialista,
-        tab_rev_por_especialista,
-        tab_psaim,
-        tab_t3,
-        tab_t4,
-        tab_t5,
-    ) = st.tabs(
-        [
-            "📋 Tabla General",
-            "📋 Pend. Asignar Informe",
-            "🔄 En Proceso",
-            "⏳ Pend. Inspección",
-            "🔍 Rev. Fiabilidad",
-            "👨‍🔬 Pend. Rev. Especialista",
-            "🔬 Rev. por Especialista",
-            "🛠️ Correc. PSAIM",
-            "📅 Resumen Mes (T3)",
-            "📊 Pend. Mes/Obs (T4)",
-            "📌 Resumen Obs (T5)",
-        ]
+    # --- NAVEGACIÓN DE PESTAÑAS DINÁMICA MEDIANTE ST.RADIO ESTILIZADO ---
+    selected_tab = st.radio(
+        "Navegación:",
+        options=LISTA_PESTANAS,
+        index=LISTA_PESTANAS.index(st.session_state.active_tab),
+        key="radio_tabs_nav",
+        horizontal=True,
     )
 
+    if selected_tab != st.session_state.active_tab:
+        st.session_state.active_tab = selected_tab
+        st.rerun()
+
+    # --- CONTENIDO DE CADA PESTAÑA SELECCIONADA ---
+    
     # 1. TABLA GENERAL CON FILTRO POR MES Y BUSCADOR DINÁMICO
-    with tab_general:
+    if st.session_state.active_tab == "📋 Tabla General":
         st.markdown("#### **TABLA GENERAL DE CONTROL DE INFORMES**")
 
         col_filtro_mes, col_busqueda = st.columns([1, 3])
@@ -618,7 +627,7 @@ if not df.empty:
             st.rerun()
 
     # 2. INFORMES PENDIENTES DE ASIGNACIÓN DE ENCARGADO
-    with tab_pend_asignacion:
+    elif st.session_state.active_tab == "📋 Pend. Asignar Informe":
         st.markdown("#### **DETALLE DE INFORMES PENDIENTES DE ASIGNAR INFORME**")
         if not df_pend_asignacion.empty:
             df_asig_grouped = df_pend_asignacion.copy()
@@ -656,7 +665,7 @@ if not df.empty:
             st.info("No hay informes pendientes a la espera de asignar encargado.")
 
     # 3. INFORMES EN PROCESO
-    with tab_en_proceso:
+    elif st.session_state.active_tab == "🔄 En Proceso":
         st.markdown("#### **DETALLE DE INFORMES EN PROCESO**")
         if not df_en_proceso.empty:
             df_proceso_grouped = df_en_proceso.copy()
@@ -694,7 +703,7 @@ if not df.empty:
             st.info("No hay informes registrados en proceso.")
 
     # 4. INFORMES PENDIENTES DE COMPLETAR INSPECCIÓN
-    with tab_pend_insp:
+    elif st.session_state.active_tab == "⏳ Pend. Inspección":
         st.markdown(
             "#### **DETALLE DE INFORMES PENDIENTES COMPLETAR INSPECCIÓN**"
         )
@@ -734,7 +743,7 @@ if not df.empty:
             st.info("No hay informes pendientes de completar inspección.")
 
     # 5. REVISIÓN FIABILIDAD
-    with tab_rev_fiabilidad:
+    elif st.session_state.active_tab == "🔍 Rev. Fiabilidad":
         st.markdown("#### **DETALLE DE INFORMES EN REVISIÓN FIABILIDAD**")
         df_fiab = df_activos[
             df_activos["OBSERVACIÓN"].apply(
@@ -761,7 +770,7 @@ if not df.empty:
             st.info("No hay informes registrados en revisión por fiabilidad.")
 
     # 6. PENDIENTE REVISIÓN ESPECIALISTA
-    with tab_pend_rev_especialista:
+    elif st.session_state.active_tab == "👨‍🔬 Pend. Rev. Especialista":
         st.markdown(
             "#### **DETALLE DE INFORMES PENDIENTES REVISIÓN DEL ESPECIALISTA**"
         )
@@ -793,7 +802,7 @@ if not df.empty:
             )
 
     # 7. REVISIÓN POR EL ESPECIALISTA
-    with tab_rev_por_especialista:
+    elif st.session_state.active_tab == "🔬 Rev. por Especialista":
         st.markdown(
             "#### **DETALLE DE INFORMES EN REVISIÓN POR EL ESPECIALISTA**"
         )
@@ -824,7 +833,7 @@ if not df.empty:
             )
 
     # 8. CORRECCIÓN PSAIM
-    with tab_psaim:
+    elif st.session_state.active_tab == "🛠️ Correc. PSAIM":
         st.markdown("#### **DETALLE DE INFORMES EN CORRECCIÓN PSAIM**")
         if not df_psaim_det.empty:
             df_psaim_grouped = df_psaim_det.copy()
@@ -845,7 +854,7 @@ if not df.empty:
             st.info("No hay informes registrados en corrección PSAIM.")
 
     # 9. TABLA 3: RESUMEN POR MES
-    with tab_t3:
+    elif st.session_state.active_tab == "📅 Resumen Mes (T3)":
         st.markdown("#### **RESUMEN DE VALORIZACIÓN POR MES**")
         meses_unicos = list(
             set(list(dict_t3_val.keys()) + list(dict_t3_pen.keys()))
@@ -904,7 +913,7 @@ if not df.empty:
             )
 
     # 10. TABLA 4: PENDIENTES POR MES Y OBSERVACIÓN
-    with tab_t4:
+    elif st.session_state.active_tab == "📊 Pend. Mes/Obs (T4)":
         st.markdown("#### **DETALLE DE PENDIENTES POR MES Y OBSERVACIÓN**")
         filas_t4 = [
             {
@@ -925,7 +934,7 @@ if not df.empty:
             st.dataframe(df_t4, use_container_width=True)
 
     # 11. TABLA 5: RESUMEN GENERAL DE OBSERVACIONES
-    with tab_t5:
+    elif st.session_state.active_tab == "📌 Resumen Obs (T5)":
         st.markdown("#### **RESUMEN GENERAL DE OBSERVACIONES PENDIENTES**")
         filas_t5 = [
             {
