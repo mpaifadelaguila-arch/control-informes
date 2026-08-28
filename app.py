@@ -1,240 +1,192 @@
-import io
+import streamlit as st
+import pandas as pd
 import json
 import os
-import pandas as pd
-import streamlit as st
+import io
 
-st.set_page_config(
-    page_title="CONTROL INTERNO DE INFORMES - ADEMINSAC",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
+st.set_page_config(page_title="Control de Informes de Inspección", layout="wide")
 
-# --- ESTILOS CSS PROFESIONALES Y PALETA CORPORATIVA ORIGINAL ---
-st.markdown(
-    """
-    <style>
-    footer {visibility: hidden;}
-    .stAppDeployButton {display:none !important;}
-    header {visibility: hidden !important;}
-    
-    :root {
-        --primary-navy: #0E2A47;
-        --secondary-navy: #1A3E68;
-        --accent-gold: #D4AF37;
-        --bg-card: #FFFFFF;
-        --border-color: #E2E8F0;
-        --texto-principal: #1E293B;
-        --texto-sub: #64748B;
-    }
-    
-    .stApp { background-color: #F8FAFC; }
-    
-    .kpi-card {
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 16px;
-        text-align: center;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        border-top: 4px solid var(--primary-navy);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-    .kpi-title {
-        color: var(--texto-sub);
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        margin-bottom: 6px;
-    }
-    .kpi-value {
-        color: var(--primary-navy);
-        font-size: 1.8rem;
-        font-weight: 800;
-        line-height: 1.2;
-    }
-    .kpi-total { border-top-color: #0E2A47; }
-    .kpi-pend { border-top-color: #F59E0B; }
-    .kpi-val { border-top-color: #10B981; }
-    .kpi-asig { border-top-color: #EC4899; }
-    .kpi-proc { border-top-color: #8B5CF6; }
-    .kpi-insp { border-top-color: #EF4444; }
-    .kpi-fiab { border-top-color: #14B8A6; }
-    .kpi-pesp { border-top-color: #6366F1; }
-    .kpi-resp { border-top-color: #06B6D4; }
-    .kpi-psaim { border-top-color: #EAB308; }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+DB_FILE = "base_datos.xlsx"
+SOL_FILE = "solicitudes.json"
 
-DB_PATH = "base_de_datos_informes.json"
-SOLICITUDES_PATH = "database_solicitudes.json"
+PERSONAL_LISTA = ["INSPECTOR 1", "INSPECTOR 2", "INSPECTOR 3", "SIN ASIGNAR"]
+ESPECIALISTAS_LISTA = ["ESPECIALISTA 1", "ESPECIALISTA 2"]
+REVISORES_PSAIM_LISTA = ["REVISOR PSAIM 1", "REVISOR PSAIM 2"]
 
-PERSONAL_LISTA = ["Dante", "Ingrid", "Jesús Maguiña", "Juan José", "Julio Ponce", "Omar", "Raúl A", "Timana", "Christopher"]
-ESPECIALISTAS_LISTA = ["Luis Espinoza", "Marco Garcia"]
-REVISORES_PSAIM_LISTA = ["Bryan Solis", "Maricielo"]
-
-def texto_normalizado(texto):
-    if not isinstance(texto, str):
-        return ""
-    import unicodedata
-    s = unicodedata.normalize("NFD", texto)
-    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
-    return s.upper().strip()
-
+# --- CARGA Y GUARDADO DE DATOS ---
 def cargar_base_datos():
-    if os.path.exists(DB_PATH):
+    if os.path.exists(DB_FILE):
         try:
-            with open(DB_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                df = pd.DataFrame(data)
-                if not df.empty:
-                    cols_str = ["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN", "ESTADO - VALORIZACIÓN"]
-                    for col in cols_str:
-                        if col in df.columns:
-                            df[col] = df[col].fillna("").astype(str)
-                    if "LINEAS" in df.columns:
-                        df["LINEAS"] = pd.to_numeric(df["LINEAS"], errors="coerce").fillna(1)
-                    else:
-                        df["LINEAS"] = 1
-                    df["CLAVE_GLOBAL"] = df["CODIGO DE INFORME"].str.strip() + "_" + df["GRUPO DE TUBERÍAS"].str.strip()
-                    return df
-        except Exception:
-            pass
-    return pd.DataFrame()
+            df = pd.read_excel(DB_FILE)
+            cols_req = ["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN", "ESTADO - VALORIZACIÓN"]
+            for col in cols_req:
+                if col not in df.columns:
+                    df[col] = ""
+                else:
+                    df[col] = df[col].fillna("").astype(str)
+            if "LINEAS" in df.columns:
+                df["LINEAS"] = pd.to_numeric(df["LINEAS"], errors="coerce").fillna(1)
+            else:
+                df["LINEAS"] = 1
+            return df
+        except Exception as e:
+            st.error(f"Error al cargar la base de datos: {e}")
+            return pd.DataFrame()
+    else:
+        return pd.DataFrame()
 
 def guardar_base_datos(df):
     try:
-        df_save = df.copy()
-        if "CLAVE_GLOBAL" in df_save.columns:
-            df_save = df_save.drop(columns=["CLAVE_GLOBAL"])
-        with open(DB_PATH, "w", encoding="utf-8") as f:
-            json.dump(df_save.to_dict(orient="records"), f, ensure_ascii=False, indent=2)
+        df.to_excel(DB_FILE, index=False, engine="openpyxl")
         return True
-    except Exception:
+    except Exception as e:
+        st.error(f"Error al guardar la base de datos: {e}")
         return False
 
 def cargar_solicitudes():
-    if os.path.exists(SOLICITUDES_PATH):
-        try:
-            with open(SOLICITUDES_PATH, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
+    if os.path.exists(SOL_FILE):
+        with open(SOL_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
     return []
 
-def guardar_solicitudes(solicitudes):
-    try:
-        with open(SOLICITUDES_PATH, "w", encoding="utf-8") as f:
-            json.dump(solicitudes, f, ensure_ascii=False, indent=2)
-        return True
-    except Exception:
-        return False
+def guardar_solicitudes(sol):
+    with open(SOL_FILE, "w", encoding="utf-8") as f:
+        json.dump(sol, f, ensure_ascii=False, indent=4)
 
 def registrar_solicitud(tipo, codigo, grupo, usuario):
     solicitudes = cargar_solicitudes()
-    clave = f"{codigo.strip()}_{grupo.strip()}"
     for s in solicitudes:
-        if s["clave"] == clave and s["estado"] == "PENDIENTE":
-            return False, "Ya existe una solicitud pendiente para este grupo/código."
-    nueva = {
+        if s["codigo"] == codigo and s["grupo"] == grupo and s["estado"] == "PENDIENTE":
+            return False, "Ya existe una solicitud pendiente para este informe."
+    
+    nueva_sol = {
         "id": len(solicitudes) + 1,
         "tipo": tipo,
         "codigo": codigo,
         "grupo": grupo,
-        "clave": clave,
         "usuario": usuario,
-        "estado": "PENDIENTE",
-        "fecha": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
+        "fecha": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "estado": "PENDIENTE"
     }
-    solicitudes.append(nueva)
-    if guardar_solicitudes(solicitudes):
-        return True, "Solicitud enviada a la bandeja de Administración."
-    return False, "Error al guardar la solicitud."
+    solicitudes.append(nueva_sol)
+    guardar_solicitudes(solicitudes)
+    return True, "Solicitud enviada a Administración con éxito."
 
+# --- CARGA INICIAL ---
 df_data = cargar_base_datos()
 
 if df_data.empty:
-    st.warning("⚠️ No se encontraron datos en la base de datos local. Utiliza la pestaña '🔔 Administración' para cargar un archivo Excel.")
-    
-    cnt_totales = cnt_valorizados = cnt_pendientes_total = 0
-    cnt_pend_asignacion = cnt_en_proceso = cnt_pend_inspeccion = 0
-    cnt_revision_fiabilidad = cnt_pend_rev_especialista = 0
-    cnt_rev_por_especialista = cnt_correccion_psaim = 0
-    
-    cols_base = ["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN", "ESTADO - VALORIZACIÓN", "LINEAS", "CLAVE_GLOBAL"]
-    df_activos = pd.DataFrame(columns=cols_base)
-    df_pend_asignacion = df_en_proceso = df_pend_inspeccion = pd.DataFrame(columns=cols_base)
-    df_fiab_activos = df_pesp_det = df_resp_det = df_psaim_det = pd.DataFrame(columns=cols_base)
-else:
-    cond_anulado = df_data["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: "ANULADO" in texto_normalizado(x))
-    cond_desestimado = df_data["OBSERVACIÓN"].apply(lambda x: "DESESTIMADO" in texto_normalizado(x))
-    cond_no_corresponde = df_data["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: "NO CORRESPONDE" in texto_normalizado(x))
+    st.warning("⚠️ No se encontraron datos en la base de datos local.")
+    st.stop()
 
-    df_activos = df_data[~(cond_anulado | cond_desestimado | cond_no_corresponde)].copy()
+# --- FILTROS DE LÓGICA DE NEGOCIO CORREGIDOS ---
+df_activos = df_data[df_data["ESTADO - VALORIZACIÓN"].str.upper() != "VALORIZADO"].copy()
 
-    cnt_totales = df_activos["CLAVE_GLOBAL"].nunique()
+# 1. Pendiente Asignar: Solo ESTADO = 'PENDIENTE ELABORACIÓN' y RESPONSABLE = 'SIN ASIGNAR' (o Vacío)
+df_pend_asignacion = df_activos[
+    (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "PENDIENTE ELABORACIÓN") &
+    ((df_activos["RESPONSABLE"].str.upper() == "SIN ASIGNAR") | (df_activos["RESPONSABLE"].str.strip() == ""))
+]
 
-    df_val = df_activos[df_activos["ESTADO - VALORIZACIÓN"].apply(lambda x: texto_normalizado(x) == "SI")]
-    cnt_valorizados = df_val["CLAVE_GLOBAL"].nunique()
+# 2. En Proceso: ESTADO = 'EN PROCESO' o 'PENDIENTE ELABORACIÓN' (con responsable asignado)
+df_en_proceso = df_activos[
+    (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "EN PROCESO") |
+    ((df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "PENDIENTE ELABORACIÓN") & 
+     (df_activos["RESPONSABLE"].str.upper() != "SIN ASIGNAR") & (df_activos["RESPONSABLE"].str.strip() != ""))
+]
 
-    cnt_pendientes_total = cnt_totales - cnt_valorizados
+# 3. Pendiente Inspección: ESTADO = 'PENDIENTE INSPECCIÓN' o OBSERVACIÓN contenga 'PENDIENTE INSPECCIÓN'
+df_pend_inspeccion = df_activos[
+    (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "PENDIENTE INSPECCIÓN") |
+    (df_activos["OBSERVACIÓN"].str.upper().str.contains("PENDIENTE INSPECCI", na=False))
+]
 
-    df_pend_asignacion = df_activos[df_activos["RESPONSABLE"].apply(lambda x: texto_normalizado(x) in ["", "PENDIENTE", "SIN ASIGNAR", "POR ASIGNAR"])]
-    cnt_pend_asignacion = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
+# 4. Revisión Fiabilidad: ESTADO = 'REVISIÓN FIABILIDAD' o OBSERVACIÓN contenga 'FIABILIDAD'
+df_fiab_activos = df_activos[
+    (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "REVISIÓN FIABILIDAD") |
+    (df_activos["OBSERVACIÓN"].str.upper().str.contains("FIABILIDAD", na=False))
+]
 
-    df_en_proceso = df_activos[df_activos["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: texto_normalizado(x) in ["EN PROCESO", "ELABORACION", "EN ELABORACION"])]
-    cnt_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
+# 5. Pendiente Revisión por Especialista
+df_pesp_det = df_activos[
+    df_activos["OBSERVACIÓN"].str.upper().str.contains("PENDIENTE.*ESPECIALISTA", regex=True, na=False)
+]
 
-    df_pend_inspeccion = df_activos[df_activos["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: "PENDIENTE INSPECCION" in texto_normalizado(x))]
-    cnt_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
+# 6. Revisión por Especialista
+df_resp_det = df_activos[
+    df_activos["OBSERVACIÓN"].str.upper().str.contains("REV.*ESPECIALISTA", regex=True, na=False) &
+    ~df_activos["OBSERVACIÓN"].str.upper().str.contains("PENDIENTE", na=False)
+]
 
-    df_fiab_activos = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "ENTREGADO PARA SU REVISION" in texto_normalizado(x) and "FIABILIDAD" in texto_normalizado(x))]
-    cnt_revision_fiabilidad = df_fiab_activos["CLAVE_GLOBAL"].nunique()
+# 7. Corrección PSAIM: OBSERVACIÓN contenga 'PSAIM' o 'CORRECCION'
+df_psaim_det = df_activos[
+    df_activos["OBSERVACIÓN"].str.upper().str.contains("PSAIM", na=False)
+]
 
-    df_pesp_det = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "PENDIENTE REVISION POR EL ESPECIALISTA" in texto_normalizado(x))]
-    cnt_pend_rev_especialista = df_pesp_det["CLAVE_GLOBAL"].nunique()
+# --- CÁLCULO DE KPIS ---
+tot_informes = len(df_data["CODIGO DE INFORME"].unique())
+tot_pendientes = len(df_activos["CODIGO DE INFORME"].unique())
+tot_valorizados = len(df_data[df_data["ESTADO - VALORIZACIÓN"].str.upper() == "VALORIZADO"]["CODIGO DE INFORME"].unique())
 
-    df_resp_det = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: ("REV. POR EL ESPECIALISTA" in texto_normalizado(x) or "REVISION POR EL ESPECIALISTA" in texto_normalizado(x)) and "PENDIENTE" not in texto_normalizado(x))]
-    cnt_rev_por_especialista = df_resp_det["CLAVE_GLOBAL"].nunique()
+kpi_pasig = len(df_pend_asignacion["CODIGO DE INFORME"].unique())
+kpi_proc = len(df_en_proceso["CODIGO DE INFORME"].unique())
+kpi_pinsp = len(df_pend_inspeccion["CODIGO DE INFORME"].unique())
+kpi_rfiab = len(df_fiab_activos["CODIGO DE INFORME"].unique())
+kpi_pesp = len(df_pesp_det["CODIGO DE INFORME"].unique())
+kpi_resp = len(df_resp_det["CODIGO DE INFORME"].unique())
+kpi_psaim = len(df_psaim_det["CODIGO DE INFORME"].unique())
 
-    df_psaim_det = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "CORRECCION PSAIM" in texto_normalizado(x))]
-    cnt_correccion_psaim = df_psaim_det["CLAVE_GLOBAL"].nunique()
+# --- TITULO Y TARJETAS KPI ALINEADAS ---
+st.markdown("<h2 style='text-align: center;'>CONTROL INTERNO DE INFORMES DE INSPECCIÓN</h2>", unsafe_allow_html=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
-# --- HEADER Y KPIS ---
-st.markdown("<h2 style='text-align: center; color: #0E2A47;'>CONTROL INTERNO DE INFORMES DE INSPECCIÓN</h2>", unsafe_allow_html=True)
+kpi_cols = st.columns(10)
 
-col_k1, col_k2, col_k3, col_k4, col_k5, col_k6, col_k7, col_k8, col_k9, col_k10 = st.columns(10)
+metrics = [
+    ("INFORMES TOTALES", tot_informes, "#1e293b"),
+    ("PENDIENTES TOTAL", tot_pendientes, "#d97706"),
+    ("VALORIZADOS (SI)", tot_valorizados, "#16a34a"),
+    ("PEND. ASIGNAR INFORME", kpi_pasig, "#db2777"),
+    ("EN PROCESO", kpi_proc, "#7c3aed"),
+    ("PEND. INSPECCIÓN", kpi_pinsp, "#dc2626"),
+    ("REV. FIABILIDAD", kpi_rfiab, "#0d9488"),
+    ("PEND. REV. ESPECIALISTA", kpi_pesp, "#4f46e5"),
+    ("REV. POR ESPECIALISTA", kpi_resp, "#0284c7"),
+    ("CORRECCIÓN PSAIM", kpi_psaim, "#ca8a04"),
+]
 
-with col_k1:
-    st.markdown(f'<div class="kpi-card kpi-total"><div class="kpi-title">INFORMES TOTALES</div><div class="kpi-value">{cnt_totales}</div></div>', unsafe_allow_html=True)
-with col_k2:
-    st.markdown(f'<div class="kpi-card kpi-pend"><div class="kpi-title">PENDIENTES TOTAL</div><div class="kpi-value">{cnt_pendientes_total}</div></div>', unsafe_allow_html=True)
-with col_k3:
-    st.markdown(f'<div class="kpi-card kpi-val"><div class="kpi-title">VALORIZADOS (SI)</div><div class="kpi-value">{cnt_valorizados}</div></div>', unsafe_allow_html=True)
-with col_k4:
-    st.markdown(f'<div class="kpi-card kpi-asig"><div class="kpi-title">PEND. ASIGNAR INFORME</div><div class="kpi-value">{cnt_pend_asignacion}</div></div>', unsafe_allow_html=True)
-with col_k5:
-    st.markdown(f'<div class="kpi-card kpi-proc"><div class="kpi-title">EN PROCESO</div><div class="kpi-value">{cnt_en_proceso}</div></div>', unsafe_allow_html=True)
-with col_k6:
-    st.markdown(f'<div class="kpi-card kpi-insp"><div class="kpi-title">PEND. INSPECCIÓN</div><div class="kpi-value">{cnt_pend_inspeccion}</div></div>', unsafe_allow_html=True)
-with col_k7:
-    st.markdown(f'<div class="kpi-card kpi-fiab"><div class="kpi-title">REV. FIABILIDAD</div><div class="kpi-value">{cnt_revision_fiabilidad}</div></div>', unsafe_allow_html=True)
-with col_k8:
-    st.markdown(f'<div class="kpi-card kpi-pesp"><div class="kpi-title">PEND. REV. ESPECIALISTA</div><div class="kpi-value">{cnt_pend_rev_especialista}</div></div>', unsafe_allow_html=True)
-with col_k9:
-    st.markdown(f'<div class="kpi-card kpi-resp"><div class="kpi-title">REV. POR ESPECIALISTA</div><div class="kpi-value">{cnt_rev_por_especialista}</div></div>', unsafe_allow_html=True)
-with col_k10:
-    st.markdown(f'<div class="kpi-card kpi-psaim"><div class="kpi-title">CORRECCIÓN PSAIM</div><div class="kpi-value">{cnt_correccion_psaim}</div></div>', unsafe_allow_html=True)
+for col, (label, val, color) in zip(kpi_cols, metrics):
+    with col:
+        st.markdown(f"""
+            <div style="
+                border: 2px solid {color};
+                border-radius: 8px;
+                padding: 8px 4px;
+                text-align: center;
+                background-color: #ffffff;
+                min-height: 90px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <span style="font-size: 9px; font-weight: bold; color: #475569; text-transform: uppercase; line-height: 1.1; margin-bottom: 4px;">{label}</span>
+                <span style="font-size: 20px; font-weight: 800; color: {color};">{val}</span>
+            </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
-# --- NAVEGACIÓN DE PESTAÑAS Y TABLAS CON BÚSQUEDA DINÁMICA E ÍNDICE DESDE 1 ---
+
+# --- FILTRO DINÁMICO POR MES EN BARRA LATERAL PARA TABLA GENERAL ---
+st.sidebar.header("🔍 Filtros Globales")
+meses_disponibles = sorted([m for m in df_data["MES"].dropna().unique() if str(m).strip() != ""])
+meses_seleccionados = st.sidebar.multiselect("Filtrar Tabla General por Mes:", options=meses_disponibles, default=meses_disponibles)
+
+if meses_seleccionados:
+    df_data_filtrada = df_data[df_data["MES"].isin(meses_seleccionados)]
+else:
+    df_data_filtrada = df_data.copy()
+    # --- NAVEGACIÓN DE PESTAÑAS Y TABLAS CON BÚSQUEDA DINÁMICA E ÍNDICE DESDE 1 ---
 (
     t_admin, t_gen, t_pasig, t_proc, t_pinsp, t_rfiab, 
     t_pesp, t_resp, t_psaim, t_res_m, t_p_m, t_res_o
@@ -245,9 +197,10 @@ st.markdown("<br>", unsafe_allow_html=True)
     "📊 Pend. Mes/Obs (T4)", "📌 Resumen Obs (T5)"
 ])
 
+# --- 1. ADMINISTRACIÓN Y GESTIÓN DE BASE DE DATOS ---
 with t_admin:
     st.subheader("⚙️ Gestión de Datos: Cargar / Restaurar Excel & Descargar Respaldo")
-    with st.expander("⚙️ Gestión de Datos: Cargar / Restaurar Excel & Descargar Respaldo", expanded=True):
+    with st.expander("⚙️ Opciones de Importación y Exportación", expanded=True):
         c_up, c_down = st.columns([2, 1])
         with c_up:
             st.markdown("##### 📥 Cargar Base de Datos desde Excel")
@@ -325,11 +278,12 @@ with t_admin:
                     st.warning("Solicitud rechazada.")
                     st.rerun()
 
+# --- 2. TABLA GENERAL (Aplica filtro dinámico por mes seleccionado de la Parte 1) ---
 with t_gen:
     st.subheader("📋 Tabla General de Informes")
-    if not df_data.empty:
+    if not df_data_filtrada.empty:
         search_gen = st.text_input("🔍 Buscar en Tabla General (por Código, Responsable, Grupo, etc.):", key="search_gen")
-        df_gen_disp = df_data.copy()
+        df_gen_disp = df_data_filtrada.copy()
         if "CLAVE_GLOBAL" in df_gen_disp.columns:
             df_gen_disp = df_gen_disp.drop(columns=["CLAVE_GLOBAL"])
         
@@ -339,12 +293,15 @@ with t_gen:
 
         df_gen_disp.index = pd.RangeIndex(start=1, stop=len(df_gen_disp) + 1, step=1)
         st.dataframe(df_gen_disp, use_container_width=True)
+    else:
+        st.info("No hay datos disponibles para los meses seleccionados.")
 
+# --- 3. PENDIENTES DE ASIGNAR INFORME ---
 with t_pasig:
     st.subheader("📝 Pendientes de Asignar Informe")
     if not df_pend_asignacion.empty:
         search_pasig = st.text_input("🔍 Buscar Pendiente Asignar:", key="search_pasig")
-        res_pasig = df_pend_asignacion.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False).agg({"LINEAS": "count"})
+        res_pasig = df_pend_asignacion.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False).agg({"LINEAS": "sum"})
         
         if search_pasig:
             mask_pasig = res_pasig.astype(str).apply(lambda row: row.str.contains(search_pasig, case=False, regex=False)).any(axis=1)
@@ -352,12 +309,15 @@ with t_pasig:
 
         res_pasig.index = pd.RangeIndex(start=1, stop=len(res_pasig) + 1, step=1)
         st.dataframe(res_pasig, use_container_width=True)
+    else:
+        st.info("No hay registros pendientes de asignación.")
 
+# --- 4. EN PROCESO ---
 with t_proc:
     st.subheader("🔄 Informes En Proceso")
     if not df_en_proceso.empty:
         search_proc = st.text_input("🔍 Buscar En Proceso:", key="search_proc")
-        tg = df_en_proceso.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False).agg({"LINEAS": "count"})
+        tg = df_en_proceso.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False).agg({"LINEAS": "sum"})
         
         tg_disp = tg.copy()
         if search_proc:
@@ -375,12 +335,15 @@ with t_proc:
         if c3.button("🟢 Enviar al 100%", key="b_proc"):
             ok, m = registrar_solicitud("INFORME COMPLETADO (GABINETE)", cod_s, tg[tg["CODIGO DE INFORME"] == cod_s]["GRUPO DE TUBERÍAS"].values[0], resp_s)
             st.success(m) if ok else st.warning(m)
+    else:
+        st.info("No hay informes en proceso.")
 
+# --- 5. PENDIENTE INSPECCIÓN ---
 with t_pinsp:
     st.subheader("⏳ Pendientes de Inspección")
     if not df_pend_inspeccion.empty:
         search_pinsp = st.text_input("🔍 Buscar Pendiente Inspección:", key="search_pinsp")
-        res_pinsp = df_pend_inspeccion.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False).agg({"LINEAS": "count"})
+        res_pinsp = df_pend_inspeccion.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "sum"})
         
         if search_pinsp:
             mask_pinsp = res_pinsp.astype(str).apply(lambda row: row.str.contains(search_pinsp, case=False, regex=False)).any(axis=1)
@@ -388,12 +351,15 @@ with t_pinsp:
 
         res_pinsp.index = pd.RangeIndex(start=1, stop=len(res_pinsp) + 1, step=1)
         st.dataframe(res_pinsp, use_container_width=True)
+    else:
+        st.info("No hay registros pendientes de inspección.")
 
+# --- 6. REVISIÓN FIABILIDAD ---
 with t_rfiab:
     st.subheader("🔍 Revisión Fiabilidad")
     if not df_fiab_activos.empty:
         search_rfiab = st.text_input("🔍 Buscar en Revisión Fiabilidad:", key="search_rfiab")
-        res_fiab = df_fiab_activos.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "count"})
+        res_fiab = df_fiab_activos.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "sum"})
         
         if search_rfiab:
             mask_rfiab = res_fiab.astype(str).apply(lambda row: row.str.contains(search_rfiab, case=False, regex=False)).any(axis=1)
@@ -401,12 +367,15 @@ with t_rfiab:
 
         res_fiab.index = pd.RangeIndex(start=1, stop=len(res_fiab) + 1, step=1)
         st.dataframe(res_fiab, use_container_width=True)
+    else:
+        st.info("No hay registros en revisión por Fiabilidad.")
 
+# --- 7. PENDIENTE REVISIÓN ESPECIALISTA ---
 with t_pesp:
     st.subheader("🧑‍🔬 Pendiente Revisión por Especialista")
     if not df_pesp_det.empty:
         search_pesp = st.text_input("🔍 Buscar Pendiente Especialista:", key="search_pesp")
-        tg_e = df_pesp_det.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "count"})
+        tg_e = df_pesp_det.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "sum"})
         
         tg_e_disp = tg_e.copy()
         if search_pesp:
@@ -425,12 +394,15 @@ with t_pesp:
             grupo_sel = tg_e[tg_e["CODIGO DE INFORME"] == cod_pe]["GRUPO DE TUBERÍAS"].values[0]
             ok, m = registrar_solicitud("REVISIÓN ESPECIALISTA", cod_pe, grupo_sel, resp_pe)
             st.success(m) if ok else st.warning(m)
+    else:
+        st.info("No hay informes pendientes de revisión por Especialista.")
 
+# --- 8. REVISIÓN POR ESPECIALISTA ---
 with t_resp:
     st.subheader("🔬 Revisión por Especialista")
     if not df_resp_det.empty:
         search_resp = st.text_input("🔍 Buscar en Rev. Especialista:", key="search_resp")
-        tg_re = df_resp_det.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "count"})
+        tg_re = df_resp_det.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "sum"})
         
         tg_re_disp = tg_re.copy()
         if search_resp:
@@ -448,12 +420,15 @@ with t_resp:
         if c3.button("🟢 Liberar Especialista", key="b_esp"):
             ok, m = registrar_solicitud("REVISIÓN ESPECIALISTA", cod_se, tg_re[tg_re["CODIGO DE INFORME"] == cod_se]["GRUPO DE TUBERÍAS"].values[0], resp_se)
             st.success(m) if ok else st.warning(m)
+    else:
+        st.info("No hay informes en revisión por Especialista.")
 
+# --- 9. CORRECCIÓN PSAIM ---
 with t_psaim:
     st.subheader("🛠️ Corrección PSAIM")
     if not df_psaim_det.empty:
         search_psaim = st.text_input("🔍 Buscar en Corrección PSAIM:", key="search_psaim")
-        tg_p = df_psaim_det.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "count"})
+        tg_p = df_psaim_det.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "sum"})
         
         tg_p_disp = tg_p.copy()
         if search_psaim:
@@ -471,24 +446,27 @@ with t_psaim:
         if c3.button("🟢 PSAIM Corregido", key="b_psaim"):
             ok, m = registrar_solicitud("CORRECCIÓN PSAIM", cod_sp, tg_p[tg_p["CODIGO DE INFORME"] == cod_sp]["GRUPO DE TUBERÍAS"].values[0], resp_sp)
             st.success(m) if ok else st.warning(m)
+    else:
+        st.info("No hay informes pendientes por Corrección PSAIM.")
 
+# --- 10. TABLAS DE RESUMEN (T3, T4, T5) ---
 with t_res_m:
     st.subheader("📅 Resumen Mes (T3)")
     if not df_activos.empty:
-        piv_m = pd.pivot_table(df_activos, index="MES", columns="ESTADO - ELABORACIÓN DE INFORME", values="LINEAS", aggfunc="count", fill_value=0)
+        piv_m = pd.pivot_table(df_activos, index="MES", columns="ESTADO - ELABORACIÓN DE INFORME", values="LINEAS", aggfunc="sum", fill_value=0)
         piv_m.index = pd.RangeIndex(start=1, stop=len(piv_m) + 1, step=1)
         st.dataframe(piv_m, use_container_width=True)
 
 with t_p_m:
     st.subheader("📊 Pend. Mes/Obs (T4)")
     if not df_activos.empty:
-        piv_po = pd.pivot_table(df_activos, index="MES", columns="OBSERVACIÓN", values="LINEAS", aggfunc="count", fill_value=0)
+        piv_po = pd.pivot_table(df_activos, index="MES", columns="OBSERVACIÓN", values="LINEAS", aggfunc="sum", fill_value=0)
         piv_po.index = pd.RangeIndex(start=1, stop=len(piv_po) + 1, step=1)
         st.dataframe(piv_po, use_container_width=True)
 
 with t_res_o:
     st.subheader("📌 Resumen Obs (T5)")
     if not df_activos.empty:
-        piv_o = pd.pivot_table(df_activos, index="OBSERVACIÓN", columns="ESTADO - ELABORACIÓN DE INFORME", values="LINEAS", aggfunc="count", fill_value=0)
+        piv_o = pd.pivot_table(df_activos, index="OBSERVACIÓN", columns="ESTADO - ELABORACIÓN DE INFORME", values="LINEAS", aggfunc="sum", fill_value=0)
         piv_o.index = pd.RangeIndex(start=1, stop=len(piv_o) + 1, step=1)
         st.dataframe(piv_o, use_container_width=True)
