@@ -290,19 +290,31 @@ if not df.empty:
             for sol in solic_activas:
                 c_inf, c_app, c_rej = st.columns([4, 1, 1])
                 c_inf.markdown(f"📌 **[{sol['tipo']}]** Código: **{sol['codigo']}** | Grupo: **{sol['grupo']}** | Solicitante: **{sol['solicitante']}**")
+                
+                # APROBAR SOLICITUD
                 if c_app.button("✅ Aprobar", key=f"app_{sol['id']}"):
                     mask = (df["CODIGO DE INFORME"] == sol["codigo"]) & (df["GRUPO DE TUBERÍAS"] == sol["grupo"])
                     if sol["tipo"] == "INFORME COMPLETADO (GABINETE)": df.loc[mask, "ESTADO - ELABORACIÓN DE INFORME"] = "FINALIZADO"
                     elif sol["tipo"] == "CORRECCIÓN PSAIM": df.loc[mask, "OBSERVACIÓN"] = "PSAIM CORREGIDO"; df.loc[mask, "ESTADO - ELABORACIÓN DE INFORME"] = "EN PROCESO"
                     elif sol["tipo"] == "REVISIÓN ESPECIALISTA": df.loc[mask, "OBSERVACIÓN"] = "INFORME REVISADO POR ESPECIALISTA"
-                    sol["estado"] = "APROBADO"
-                    guardar_solicitudes(cargar_solicitudes())
+                    
+                    solicitudes = cargar_solicitudes()
+                    for s in solicitudes:
+                        if s["id"] == sol["id"]: s["estado"] = "APROBADO"
+                    guardar_solicitudes(solicitudes)
                     guardar_datos(df)
-                    st.success("Aprobado"); st.rerun()
+                    st.success("Aprobado correctamente.")
+                    st.rerun()
+                
+                # RECHAZAR SOLICITUD (Elimina la notificación guardando el estado en el JSON y recargando)
                 if c_rej.button("❌ Rechazar", key=f"rej_{sol['id']}"):
-                    sol["estado"] = "RECHAZADO"
-                    guardar_solicitudes(cargar_solicitudes())
-                    st.warning("Rechazado"); st.rerun()
+                    solicitudes = cargar_solicitudes()
+                    for s in solicitudes:
+                        if s["id"] == sol["id"]: s["estado"] = "RECHAZADO"
+                    guardar_solicitudes(solicitudes)
+                    st.warning("Rechazado correctamente.")
+                    st.rerun()
+
                 st.divider()
         else: st.success("✨ No hay solicitudes pendientes.")
 
