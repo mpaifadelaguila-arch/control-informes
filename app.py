@@ -395,7 +395,7 @@ if not df.empty:
             val_estado = str(row.get("ESTADO - VALORIZACIÓN", "")).strip().upper()
             val_alcance = texto_normalizado(row.get("ALCANCE DEL SERVICIO", ""))
 
-            # 1. Prioridad: Verde claro si ESTADO - VALORIZACIÓN indica SI
+            # 1. Verde claro si ESTADO - VALORIZACIÓN indica SI
             if val_estado == "SI":
                 return ["background-color: #D1FAE5; color: #065F46;"] * len(row)
 
@@ -415,6 +415,7 @@ if not df.empty:
 
         df_styled = df_dis.style.apply(resaltar_filas, axis=1)
 
+        # Usar st.dataframe para visualizar los colores de forma directa manteniendo st.data_editor si se activa edición
         ed_df = st.data_editor(
             df_styled,
             column_config=config_columnas,
@@ -440,12 +441,22 @@ if not df.empty:
 
     with t_pasig:
         if not df_pend_asignacion.empty:
-            res_pasig = df_pend_asignacion.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False).agg({"LINEAS": "count"})
+            # dropna=False permite mantener los registros agrupados aunque CODIGO DE INFORME o RESPONSABLE sean nulos/vacíos
+            res_pasig = df_pend_asignacion.groupby(
+                ["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], 
+                as_index=False, 
+                dropna=False
+            ).agg({"LINEAS": "count"})
+            
+            # Reemplazar NaN resultantes del groupby por cadenas vacías para visualización limpia
+            res_pasig = res_pasig.fillna("")
             st.dataframe(preparar_tabla_con_indice_1(res_pasig), use_container_width=True)
+        else:
+            st.info("No hay informes pendientes de asignación.")
 
     with t_proc:
         if not df_en_proceso.empty:
-            tg = df_en_proceso.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False).agg({"LINEAS": "count"})
+            tg = df_en_proceso.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False, dropna=False).agg({"LINEAS": "count"}).fillna("")
             st.dataframe(preparar_tabla_con_indice_1(tg), use_container_width=True)
             c1, c2, c3 = st.columns([2, 2, 1])
             cod_s = c1.selectbox("Código:", tg["CODIGO DE INFORME"].unique(), key="spc")
@@ -456,19 +467,19 @@ if not df.empty:
 
     with t_pinsp:
         if not df_pend_inspeccion.empty:
-            res_pinsp = df_pend_inspeccion.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False).agg({"LINEAS": "count"})
+            res_pinsp = df_pend_inspeccion.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False, dropna=False).agg({"LINEAS": "count"}).fillna("")
             st.dataframe(preparar_tabla_con_indice_1(res_pinsp), use_container_width=True)
 
     with t_rfiab:
         df_f = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "ENTREGADO PARA SU REVISION" in texto_normalizado(x) and "FIABILIDAD" in texto_normalizado(x))]
         if not df_f.empty:
-            res_fiab = df_f.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "count"})
+            res_fiab = df_f.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False, dropna=False).agg({"LINEAS": "count"}).fillna("")
             st.dataframe(preparar_tabla_con_indice_1(res_fiab), use_container_width=True)
 
     with t_pesp:
         df_e = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "PENDIENTE REVISION POR EL ESPECIALISTA" in texto_normalizado(x))]
         if not df_e.empty:
-            tg_e = df_e.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "count"})
+            tg_e = df_e.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False, dropna=False).agg({"LINEAS": "count"}).fillna("")
             st.dataframe(preparar_tabla_con_indice_1(tg_e), use_container_width=True)
             c1, c2, c3 = st.columns([2, 2, 1])
             cod_pe = c1.selectbox("Código:", tg_e["CODIGO DE INFORME"].unique(), key="pesp_c")
@@ -481,7 +492,7 @@ if not df.empty:
     with t_resp:
         df_re = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: ("REV. POR EL ESPECIALISTA" in texto_normalizado(x) or "REVISION POR EL ESPECIALISTA" in texto_normalizado(x)) and "PENDIENTE" not in texto_normalizado(x))]
         if not df_re.empty:
-            tg_re = df_re.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "count"})
+            tg_re = df_re.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False, dropna=False).agg({"LINEAS": "count"}).fillna("")
             st.dataframe(preparar_tabla_con_indice_1(tg_re), use_container_width=True)
             c1, c2, c3 = st.columns([2, 2, 1])
             cod_se = c1.selectbox("Código:", tg_re["CODIGO DE INFORME"].unique(), key="sec")
