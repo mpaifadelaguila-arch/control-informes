@@ -332,7 +332,8 @@ if not df.empty:
         txt_b = c_b.text_input("🔍 Buscador:")
         
         df_dis = df[COLUMNAS_EXCEL].copy()
-        if m_sel != "Todos": df_dis = df_dis[df_dis["MES"].astype(str).str.strip().str.upper() == m_sel]
+        if m_sel != "Todos": 
+            df_dis = df_dis[df_dis["MES"].astype(str).str.strip().str.upper() == m_sel]
         if txt_b.strip():
             q = texto_normalizado(txt_b)
             df_dis = df_dis[df_dis.apply(lambda r: q in texto_normalizado(r["LINEAS"]) or q in texto_normalizado(r["SAP"]) or q in texto_normalizado(r["CODIGO DE INFORME"]) or q in texto_normalizado(r["GRUPO DE TUBERÍAS"]), axis=1)]
@@ -350,15 +351,16 @@ if not df.empty:
             )
         }
 
+        # Estabilización del editor para prevenir el bug de React 'removeChild'
         ed_df = st.data_editor(
             df_dis, 
             column_config=config_columnas,
-            num_rows="dynamic", 
+            hide_index=False,
             use_container_width=True, 
-            key="ed_gen"
+            key=f"ed_gen_{m_sel}"
         )
 
-        if st.button("💾 Guardar Cambios"):
+        if st.button("💾 Guardar Cambios", key="btn_guardar_gen"):
             # Lógica para borrar la observación cuando el estado es 'SI'
             for idx in ed_df.index:
                 val_estado = str(ed_df.loc[idx, "ESTADO - VALORIZACIÓN"]).strip().upper()
