@@ -59,43 +59,68 @@ st.markdown(
         font-weight: 400;
     }
 
-    /* Estilos para Botones de KPI */
-    div[data-testid="column"] div.stButton > button {
-        width: 100% !important;
-        background-color: #FFFFFF !important;
-        color: #1E293B !important;
-        border-radius: 10px !important;
-        padding: 8px 4px !important;
-        text-align: center !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
-        transition: all 0.2s ease-in-out !important;
-        min-height: 95px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        align-items: center !important;
-        border-left: 1px solid #E2E8F0 !important;
-        border-right: 1px solid #E2E8F0 !important;
-        border-bottom: 1px solid #E2E8F0 !important;
+    /* Tarjetas KPI Originales */
+    .kpi-card {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 12px 6px;
+        text-align: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        transition: transform 0.2s, box-shadow 0.2s;
+        min-height: 95px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
     }
-    
-    div[data-testid="column"] div.stButton > button:hover {
-        transform: translateY(-3px) !important;
-        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1) !important;
-        background-color: #F8FAFC !important;
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    .kpi-title {
+        font-size: 9.5px;
+        font-weight: 700;
+        color: #64748B;
+        text-transform: uppercase;
+        letter-spacing: 0.2px;
+        margin-bottom: 4px;
+        line-height: 1.2;
+    }
+    .kpi-value {
+        font-size: 22px;
+        font-weight: 800;
+        color: #0E2A47;
     }
 
-    /* Bordes superiores coloridos para botones KPI */
-    .btn-blue div.stButton > button { border-top: 4px solid #0E2A47 !important; }
-    .btn-orange div.stButton > button { border-top: 4px solid #F59E0B !important; }
-    .btn-green div.stButton > button { border-top: 4px solid #10B981 !important; }
-    .btn-pink div.stButton > button { border-top: 4px solid #EC4899 !important; }
-    .btn-purple div.stButton > button { border-top: 4px solid #8B5CF6 !important; }
-    .btn-red div.stButton > button { border-top: 4px solid #EF4444 !important; }
-    .btn-teal div.stButton > button { border-top: 4px solid #14B8A6 !important; }
-    .btn-indigo div.stButton > button { border-top: 4px solid #6366F1 !important; }
-    .btn-cyan div.stButton > button { border-top: 4px solid #06B6D4 !important; }
-    .btn-gold div.stButton > button { border-top: 4px solid #D4AF37 !important; }
+    /* Bordes coloridos exactos por cada KPI */
+    .b-blue { border-top: 4px solid #0E2A47; }
+    .b-orange { border-top: 4px solid #F59E0B; }
+    .b-green { border-top: 4px solid #10B981; }
+    .b-purple { border-top: 4px solid #8B5CF6; }
+    .b-red { border-top: 4px solid #EF4444; }
+    .b-teal { border-top: 4px solid #14B8A6; }
+    .b-indigo { border-top: 4px solid #6366F1; }
+    .b-cyan { border-top: 4px solid #06B6D4; }
+    .b-gold { border-top: 4px solid #D4AF37; }
+    .b-pink { border-top: 4px solid #EC4899; }
+
+    /* Ajuste de Botones sutiles debajo de KPI */
+    div.kpi-btn-container div.stButton > button {
+        width: 100% !important;
+        background-color: #F1F5F9 !important;
+        color: #0E2A47 !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 4px !important;
+        font-size: 10px !important;
+        padding: 2px 4px !important;
+        margin-top: 4px !important;
+        font-weight: 600 !important;
+    }
+    div.kpi-btn-container div.stButton > button:hover {
+        background-color: #0E2A47 !important;
+        color: #FFFFFF !important;
+    }
 
     /* Estilizado de pestañas */
     .stTabs [data-baseweb="tab-list"] {
@@ -264,9 +289,6 @@ def guardar_datos(df):
 
 if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
-
-if "active_tab" not in st.session_state:
-    st.session_state.active_tab = 0
 
 df = st.session_state.df_data
 
@@ -459,62 +481,63 @@ if not df.empty:
     tot_val = sum(dict_t3_val.values())
     tot_pen = sum(dict_t3_pen.values())
 
-    # --- TARJETAS KPI NAVEGABLES DINÁMICAS ---
+    # --- RESTAURACIÓN DE LAS 10 TARJETAS KPI ORIGINALES CON SU FORMATO INTACTO ---
     k1, k2, k3, k4, k5, k6, k7, k8, k9, k10 = st.columns(10)
 
-    kpis_config = [
-        (k1, "INFORMES TOTALES", tot_informes, "btn-blue", 0),
-        (k2, "PENDIENTES TOTAL", tot_pen, "btn-orange", 0),
-        (k3, "VALORIZADOS (SI)", tot_val, "btn-green", 0),
-        (k4, "PEND. ASIGNAR INFORME", cnt_pend_asignacion, "btn-pink", 1),
-        (k5, "EN PROCESO", cnt_en_proceso, "btn-purple", 2),
-        (k6, "PEND. INSPECCIÓN", cnt_pend_inspeccion, "btn-red", 3),
-        (k7, "REV. FIABILIDAD", cnt_revision_fiabilidad, "btn-teal", 4),
-        (k8, "PEND. REV. DEL ESPECIALISTA", cnt_pend_revision_especialista, "btn-indigo", 5),
-        (k9, "REV. POR EL ESPECIALISTA", cnt_revision_por_especialista, "btn-cyan", 6),
-        (k10, "CORRECCIÓN PSAIM", sum(dict_t3_psaim.values()), "btn-gold", 7),
+    kpis = [
+        (k1, "INFORMES TOTALES", tot_informes, "b-blue"),
+        (k2, "PENDIENTES TOTAL", tot_pen, "b-orange"),
+        (k3, "VALORIZADOS (SI)", tot_val, "b-green"),
+        (k4, "PEND. ASIGNAR INFORME", cnt_pend_asignacion, "b-pink"),
+        (k5, "EN PROCESO", cnt_en_proceso, "b-purple"),
+        (k6, "PEND. INSPECCIÓN", cnt_pend_inspeccion, "b-red"),
+        (k7, "REV. FIABILIDAD", cnt_revision_fiabilidad, "b-teal"),
+        (k8, "PEND. REV. DEL ESPECIALISTA", cnt_pend_revision_especialista, "b-indigo"),
+        (k9, "REV. POR EL ESPECIALISTA", cnt_revision_por_especialista, "b-cyan"),
+        (k10, "CORRECCIÓN PSAIM", sum(dict_t3_psaim.values()), "b-gold"),
     ]
 
-    for col, titulo, valor, clase_css, tab_target in kpis_config:
-        with col:
-            st.markdown(f'<div class="{clase_css}">', unsafe_allow_html=True)
-            if st.button(f"**{titulo}**\n# {valor}", key=f"kpi_btn_{tab_target}_{titulo}"):
-                st.session_state.active_tab = tab_target
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+    for col, titulo, valor, clase_borde in kpis:
+        col.markdown(
+            f"""
+            <div class="kpi-card {clase_borde}">
+                <div class="kpi-title">{titulo}</div>
+                <div class="kpi-value">{valor}</div>
+            </div>
+        """,
+            unsafe_allow_html=True,
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
 
     # --- PESTAÑAS PRINCIPALES ---
-    pestanas = [
-        "📋 Tabla General",
-        "📋 Pend. Asignar Informe",
-        "🔄 En Proceso",
-        "⏳ Pend. Inspección",
-        "🔍 Rev. Fiabilidad",
-        "👨‍🔬 Pend. Rev. Especialista",
-        "🔬 Rev. por Especialista",
-        "🛠️ Correc. PSAIM",
-        "📅 Resumen Mes (T3)",
-        "📊 Pend. Mes/Obs (T4)",
-        "📌 Resumen Obs (T5)",
-    ]
-
-    # Renderizado dinámico manteniendo activa la pestaña elegida por clic en KPI
-    tab_containers = st.tabs(pestanas)
-    
-    # Asignación de contenedores
-    tab_general = tab_containers[0]
-    tab_pend_asignacion = tab_containers[1]
-    tab_en_proceso = tab_containers[2]
-    tab_pend_insp = tab_containers[3]
-    tab_rev_fiabilidad = tab_containers[4]
-    tab_pend_rev_especialista = tab_containers[5]
-    tab_rev_por_especialista = tab_containers[6]
-    tab_psaim = tab_containers[7]
-    tab_t3 = tab_containers[8]
-    tab_t4 = tab_containers[9]
-    tab_t5 = tab_containers[10]
+    (
+        tab_general,
+        tab_pend_asignacion,
+        tab_en_proceso,
+        tab_pend_insp,
+        tab_rev_fiabilidad,
+        tab_pend_rev_especialista,
+        tab_rev_por_especialista,
+        tab_psaim,
+        tab_t3,
+        tab_t4,
+        tab_t5,
+    ) = st.tabs(
+        [
+            "📋 Tabla General",
+            "📋 Pend. Asignar Informe",
+            "🔄 En Proceso",
+            "⏳ Pend. Inspección",
+            "🔍 Rev. Fiabilidad",
+            "👨‍🔬 Pend. Rev. Especialista",
+            "🔬 Rev. por Especialista",
+            "🛠️ Correc. PSAIM",
+            "📅 Resumen Mes (T3)",
+            "📊 Pend. Mes/Obs (T4)",
+            "📌 Resumen Obs (T5)",
+        ]
+    )
 
     # 1. TABLA GENERAL CON FILTRO POR MES Y BUSCADOR DINÁMICO
     with tab_general:
@@ -544,7 +567,7 @@ if not df.empty:
 
         df_general_display = df[COLUMNAS_EXCEL].copy()
 
-        # Aplicación del Filtro por Mes (Opcional)
+        # Aplicación del Filtro por Mes
         if mes_seleccionado != "Todos los meses":
             df_general_display = df_general_display[
                 df_general_display["MES"].astype(str).str.strip().str.upper() == mes_seleccionado
