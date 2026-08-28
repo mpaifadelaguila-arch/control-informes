@@ -345,9 +345,11 @@ if not df.empty:
         else: st.success("✨ No hay solicitudes pendientes.")
 
     with t_gen:
-        c_m, c_b = st.columns([1, 3])
+        c_m, c_alc, c_b = st.columns([1, 1, 2])
         meses_disp = ["Todos"] + sorted([m for m in df["MES"].dropna().astype(str).str.strip().str.upper().unique() if m], key=lambda x: ORDEN_MESES.index(x) if x in ORDEN_MESES else 99)
         m_sel = c_m.selectbox("Filtrar Mes:", meses_disp)
+        
+        alcance_sel = c_alc.selectbox("ALCANCE DEL SERVICIO:", ["Todos", "LINEAS", "VT-CIRCUITOS"])
         txt_b = c_b.text_input("🔍 Buscador:")
         
         # Conservar el índice original para evitar desajustes durante los filtros
@@ -359,6 +361,10 @@ if not df.empty:
 
         if m_sel != "Todos": 
             df_dis = df_dis[df_dis["MES"].astype(str).str.strip().str.upper() == m_sel]
+
+        if alcance_sel != "Todos":
+            df_dis = df_dis[df_dis["ALCANCE DEL SERVICIO"].apply(texto_normalizado).str.startswith(alcance_sel)]
+
         if txt_b.strip():
             q = texto_normalizado(txt_b)
             df_dis = df_dis[df_dis.apply(lambda r: q in texto_normalizado(r["LINEAS"]) or q in texto_normalizado(r["SAP"]) or q in texto_normalizado(r["CODIGO DE INFORME"]) or q in texto_normalizado(r["GRUPO DE TUBERÍAS"]), axis=1)]
