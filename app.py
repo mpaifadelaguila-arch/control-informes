@@ -90,7 +90,11 @@ COLUMNAS_EXCEL = [
 ]
 
 ORDEN_MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SETIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"]
-PERSONAL_LISTA = ["M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timaná", "Otro Inspector"]
+
+# Listas específicas por función
+ESPECIALISTAS_LISTA = ["Jesús Rehkoff Díaz", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
+REVISORES_PSAIM_LISTA = ["Franmary Gutierrez", "Alejandro Macury", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
+PERSONAL_LISTA_BASE = ["M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid", "Juan José", "Dante", "Jesús Rehkoff Díaz", "Franmary Gutierrez", "Alejandro Macury", "Otro Inspector"]
 
 def texto_normalizado(texto):
     if pd.isna(texto): return ""
@@ -165,6 +169,9 @@ if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
 
 df = st.session_state.df_data
+
+resp_unicos = [str(r).strip() for r in df["RESPONSABLE"].unique() if pd.notna(r) and str(r).strip() not in ["", "nan", "None"]]
+PERSONAL_LISTA = sorted(list(set(PERSONAL_LISTA_BASE + resp_unicos)))
 
 st.markdown("""
     <div class="header-banner">
@@ -340,7 +347,7 @@ if not df.empty:
             st.dataframe(tg_e, use_container_width=True)
             c1, c2, c3 = st.columns([2, 2, 1])
             cod_pe = c1.selectbox("Código:", tg_e["CODIGO DE INFORME"].unique(), key="pesp_c")
-            resp_pe = c2.selectbox("Especialista:", PERSONAL_LISTA, key="pesp_r")
+            resp_pe = c2.selectbox("Especialista:", ESPECIALISTAS_LISTA, key="pesp_r")
             if c3.button("🟢 Enviar a Revisión", key="b_pesp"):
                 grupo_sel = tg_e[tg_e["CODIGO DE INFORME"] == cod_pe]["GRUPO DE TUBERÍAS"].values[0]
                 ok, m = registrar_solicitud("REVISIÓN ESPECIALISTA", cod_pe, grupo_sel, resp_pe)
@@ -352,7 +359,7 @@ if not df.empty:
             st.dataframe(tg_re, use_container_width=True)
             c1, c2, c3 = st.columns([2, 2, 1])
             cod_se = c1.selectbox("Código:", tg_re["CODIGO DE INFORME"].unique(), key="sec")
-            resp_se = c2.selectbox("Especialista:", PERSONAL_LISTA, key="ser")
+            resp_se = c2.selectbox("Especialista:", ESPECIALISTAS_LISTA, key="ser")
             if c3.button("🟢 Liberar Especialista", key="b_esp"):
                 ok, m = registrar_solicitud("REVISIÓN ESPECIALISTA", cod_se, tg_re[tg_re["CODIGO DE INFORME"] == cod_se]["GRUPO DE TUBERÍAS"].values[0], resp_se)
                 st.success(m) if ok else st.warning(m)
@@ -362,7 +369,7 @@ if not df.empty:
             st.dataframe(tg_p, use_container_width=True)
             c1, c2, c3 = st.columns([2, 2, 1])
             cod_sp = c1.selectbox("Código:", tg_p["CODIGO DE INFORME"].unique(), key="spc_p")
-            resp_sp = c2.selectbox("Revisor PSAIM:", PERSONAL_LISTA, key="spr_p")
+            resp_sp = c2.selectbox("Revisor PSAIM:", REVISORES_PSAIM_LISTA, key="spr_p")
             if c3.button("🟢 PSAIM Corregido", key="b_psaim"):
                 ok, m = registrar_solicitud("CORRECCIÓN PSAIM", cod_sp, tg_p[tg_p["CODIGO DE INFORME"] == cod_sp]["GRUPO DE TUBERÍAS"].values[0], resp_sp)
                 st.success(m) if ok else st.warning(m)
