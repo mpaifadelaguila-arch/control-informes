@@ -161,43 +161,51 @@ def registrar_solicitud(tipo, codigo, grupo, usuario):
 df_data = cargar_base_datos()
 
 if df_data.empty:
-    st.error("No se encontraron datos en la base de datos local. Por favor carga un archivo Excel.")
-    st.stop()
+    st.warning("⚠️ No se encontraron datos en la base de datos local. Utiliza la pestaña '🔔 Administración' para cargar un archivo Excel.")
+    
+    cnt_totales = cnt_valorizados = cnt_pendientes_total = 0
+    cnt_pend_asignacion = cnt_en_proceso = cnt_pend_inspeccion = 0
+    cnt_revision_fiabilidad = cnt_pend_rev_especialista = 0
+    cnt_rev_por_especialista = cnt_correccion_psaim = 0
+    
+    cols_base = ["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN", "ESTADO - VALORIZACIÓN", "LINEAS", "CLAVE_GLOBAL"]
+    df_activos = pd.DataFrame(columns=cols_base)
+    df_pend_asignacion = df_en_proceso = df_pend_inspeccion = pd.DataFrame(columns=cols_base)
+    df_fiab_activos = df_pesp_det = df_resp_det = df_psaim_det = pd.DataFrame(columns=cols_base)
+else:
+    cond_anulado = df_data["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: "ANULADO" in texto_normalizado(x))
+    cond_desestimado = df_data["OBSERVACIÓN"].apply(lambda x: "DESESTIMADO" in texto_normalizado(x))
+    cond_no_corresponde = df_data["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: "NO CORRESPONDE" in texto_normalizado(x))
 
-# --- LÓGICA DE FILTRADO DE REPORTES Y MANTENIMIENTO ---
-cond_anulado = df_data["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: "ANULADO" in texto_normalizado(x))
-cond_desestimado = df_data["OBSERVACIÓN"].apply(lambda x: "DESESTIMADO" in texto_normalizado(x))
-cond_no_corresponde = df_data["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: "NO CORRESPONDE" in texto_normalizado(x))
+    df_activos = df_data[~(cond_anulado | cond_desestimado | cond_no_corresponde)].copy()
 
-df_activos = df_data[~(cond_anulado | cond_desestimado | cond_no_corresponde)].copy()
+    cnt_totales = df_activos["CLAVE_GLOBAL"].nunique()
 
-cnt_totales = df_activos["CLAVE_GLOBAL"].nunique()
+    df_val = df_activos[df_activos["ESTADO - VALORIZACIÓN"].apply(lambda x: texto_normalizado(x) == "SI")]
+    cnt_valorizados = df_val["CLAVE_GLOBAL"].nunique()
 
-df_val = df_activos[df_activos["ESTADO - VALORIZACIÓN"].apply(lambda x: texto_normalizado(x) == "SI")]
-cnt_valorizados = df_val["CLAVE_GLOBAL"].nunique()
+    cnt_pendientes_total = cnt_totales - cnt_valorizados
 
-cnt_pendientes_total = cnt_totales - cnt_valorizados
+    df_pend_asignacion = df_activos[df_activos["RESPONSABLE"].apply(lambda x: texto_normalizado(x) in ["", "PENDIENTE", "SIN ASIGNAR", "POR ASIGNAR"])]
+    cnt_pend_asignacion = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
 
-df_pend_asignacion = df_activos[df_activos["RESPONSABLE"].apply(lambda x: texto_normalizado(x) in ["", "PENDIENTE", "SIN ASIGNAR", "POR ASIGNAR"])]
-cnt_pend_asignacion = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
+    df_en_proceso = df_activos[df_activos["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: texto_normalizado(x) in ["EN PROCESO", "ELABORACION", "EN ELABORACION"])]
+    cnt_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
 
-df_en_proceso = df_activos[df_activos["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: texto_normalizado(x) in ["EN PROCESO", "ELABORACION", "EN ELABORACION"])]
-cnt_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
+    df_pend_inspeccion = df_activos[df_activos["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: "PENDIENTE INSPECCION" in texto_normalizado(x))]
+    cnt_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
 
-df_pend_inspeccion = df_activos[df_activos["ESTADO - ELABORACIÓN DE INFORME"].apply(lambda x: "PENDIENTE INSPECCION" in texto_normalizado(x))]
-cnt_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
+    df_fiab_activos = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "ENTREGADO PARA SU REVISION" in texto_normalizado(x) and "FIABILIDAD" in texto_normalizado(x))]
+    cnt_revision_fiabilidad = df_fiab_activos["CLAVE_GLOBAL"].nunique()
 
-df_fiab_activos = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "ENTREGADO PARA SU REVISION" in texto_normalizado(x) and "FIABILIDAD" in texto_normalizado(x))]
-cnt_revision_fiabilidad = df_fiab_activos["CLAVE_GLOBAL"].nunique()
+    df_pesp_det = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "PENDIENTE REVISION POR EL ESPECIALISTA" in texto_normalizado(x))]
+    cnt_pend_rev_especialista = df_pesp_det["CLAVE_GLOBAL"].nunique()
 
-df_pesp_det = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "PENDIENTE REVISION POR EL ESPECIALISTA" in texto_normalizado(x))]
-cnt_pend_rev_especialista = df_pesp_det["CLAVE_GLOBAL"].nunique()
+    df_resp_det = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: ("REV. POR EL ESPECIALISTA" in texto_normalizado(x) or "REVISION POR EL ESPECIALISTA" in texto_normalizado(x)) and "PENDIENTE" not in texto_normalizado(x))]
+    cnt_rev_por_especialista = df_resp_det["CLAVE_GLOBAL"].nunique()
 
-df_resp_det = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: ("REV. POR EL ESPECIALISTA" in texto_normalizado(x) or "REVISION POR EL ESPECIALISTA" in texto_normalizado(x)) and "PENDIENTE" not in texto_normalizado(x))]
-cnt_rev_por_especialista = df_resp_det["CLAVE_GLOBAL"].nunique()
-
-df_psaim_det = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "CORRECCION PSAIM" in texto_normalizado(x))]
-cnt_correccion_psaim = df_psaim_det["CLAVE_GLOBAL"].nunique()
+    df_psaim_det = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "CORRECCION PSAIM" in texto_normalizado(x))]
+    cnt_correccion_psaim = df_psaim_det["CLAVE_GLOBAL"].nunique()
 
 # --- HEADER Y KPIS ---
 st.markdown("<h2 style='text-align: center; color: #0E2A47;'>CONTROL INTERNO DE INFORMES DE INSPECCIÓN</h2>", unsafe_allow_html=True)
@@ -319,11 +327,12 @@ with t_admin:
 
 with t_gen:
     st.subheader("📋 Tabla General de Informes")
-    df_gen_disp = df_data.copy()
-    if "CLAVE_GLOBAL" in df_gen_disp.columns:
-        df_gen_disp = df_gen_disp.drop(columns=["CLAVE_GLOBAL"])
-    df_gen_disp.index = pd.RangeIndex(start=1, stop=len(df_gen_disp) + 1, step=1)
-    st.dataframe(df_gen_disp, use_container_width=True)
+    if not df_data.empty:
+        df_gen_disp = df_data.copy()
+        if "CLAVE_GLOBAL" in df_gen_disp.columns:
+            df_gen_disp = df_gen_disp.drop(columns=["CLAVE_GLOBAL"])
+        df_gen_disp.index = pd.RangeIndex(start=1, stop=len(df_gen_disp) + 1, step=1)
+        st.dataframe(df_gen_disp, use_container_width=True)
 
 with t_pasig:
     if not df_pend_asignacion.empty:
@@ -398,18 +407,21 @@ with t_psaim:
 
 with t_res_m:
     st.subheader("📅 Resumen Mes (T3)")
-    piv_m = pd.pivot_table(df_activos, index="MES", columns="ESTADO - ELABORACIÓN DE INFORME", values="LINEAS", aggfunc="count", fill_value=0)
-    piv_m.index = pd.RangeIndex(start=1, stop=len(piv_m) + 1, step=1)
-    st.dataframe(piv_m, use_container_width=True)
+    if not df_activos.empty:
+        piv_m = pd.pivot_table(df_activos, index="MES", columns="ESTADO - ELABORACIÓN DE INFORME", values="LINEAS", aggfunc="count", fill_value=0)
+        piv_m.index = pd.RangeIndex(start=1, stop=len(piv_m) + 1, step=1)
+        st.dataframe(piv_m, use_container_width=True)
 
 with t_p_m:
     st.subheader("📊 Pend. Mes/Obs (T4)")
-    piv_po = pd.pivot_table(df_activos, index="MES", columns="OBSERVACIÓN", values="LINEAS", aggfunc="count", fill_value=0)
-    piv_po.index = pd.RangeIndex(start=1, stop=len(piv_po) + 1, step=1)
-    st.dataframe(piv_po, use_container_width=True)
+    if not df_activos.empty:
+        piv_po = pd.pivot_table(df_activos, index="MES", columns="OBSERVACIÓN", values="LINEAS", aggfunc="count", fill_value=0)
+        piv_po.index = pd.RangeIndex(start=1, stop=len(piv_po) + 1, step=1)
+        st.dataframe(piv_po, use_container_width=True)
 
 with t_res_o:
     st.subheader("📌 Resumen Obs (T5)")
-    piv_o = pd.pivot_table(df_activos, index="OBSERVACIÓN", columns="ESTADO - ELABORACIÓN DE INFORME", values="LINEAS", aggfunc="count", fill_value=0)
-    piv_o.index = pd.RangeIndex(start=1, stop=len(piv_o) + 1, step=1)
-    st.dataframe(piv_o, use_container_width=True)
+    if not df_activos.empty:
+        piv_o = pd.pivot_table(df_activos, index="OBSERVACIÓN", columns="ESTADO - ELABORACIÓN DE INFORME", values="LINEAS", aggfunc="count", fill_value=0)
+        piv_o.index = pd.RangeIndex(start=1, stop=len(piv_o) + 1, step=1)
+        st.dataframe(piv_o, use_container_width=True)
