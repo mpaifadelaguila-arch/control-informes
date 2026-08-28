@@ -336,12 +336,33 @@ if not df.empty:
             q = texto_normalizado(txt_b)
             df_dis = df_dis[df_dis.apply(lambda r: q in texto_normalizado(r["LINEAS"]) or q in texto_normalizado(r["SAP"]) or q in texto_normalizado(r["CODIGO DE INFORME"]) or q in texto_normalizado(r["GRUPO DE TUBERÍAS"]), axis=1)]
         
-        # Homogeneización para evitar valores nulos o inconsistentes en la lista desplegable
+        # Homogeneización para evitar inconsistencias en el menú desplegable
         df_dis["ESTADO - VALORIZACIÓN"] = df_dis["ESTADO - VALORIZACIÓN"].apply(
             lambda x: "SI" if texto_normalizado(x) == "SI" else "Pendiente - valorización"
         )
 
         df_dis = preparar_tabla_con_indice_1(df_dis)
+
+        # -----------------------------------------------------------------------------
+        # INTERCEPTOR DE CAMBIOS EN TIEMPO REAL (Limpia OBSERVACIÓN al seleccionar "SI")
+        # -----------------------------------------------------------------------------
+        if "editor_tabla_general_select" in st.session_state:
+            cambios = st.session_state["editor_tabla_general_select"].get("edited_rows", {})
+            se_requiere_rerun = False
+            for idx_fila, dict_cols in cambios.items():
+                if "ESTADO - VALORIZACIÓN" in dict_cols:
+                    nuevo_valor = str(dict_cols["ESTADO - VALORIZACIÓN"]).strip().upper()
+                    if nuevo_valor == "SI":
+                        real_idx = df_dis.index[idx_fila]
+                        if str(df_dis.loc[real_idx, "OBSERVACIÓN"]).strip() != "":
+                            # Limpieza inmediata tanto en la sesión principal como en la vista
+                            df.loc[real_idx - 1, "OBSERVACIÓN"] = ""
+                            df_dis.loc[real_idx, "OBSERVACIÓN"] = ""
+                            se_requiere_rerun = True
+            
+            if se_requiere_rerun:
+                st.session_state.df_data = df
+                st.rerun()
 
         config_columnas = {
             "ESTADO - VALORIZACIÓN": st.column_config.SelectboxColumn(
@@ -352,7 +373,6 @@ if not df.empty:
             )
         }
 
-        # Detección y limpieza en tiempo real sobre la interacciones de la tabla
         ed_df = st.data_editor(
             df_dis,
             column_config=config_columnas,
@@ -361,17 +381,16 @@ if not df.empty:
             key="editor_tabla_general_select"
         )
 
-        # Aplicación directa del borrado de OBSERVACIÓN cuando la columna cambia a "SI"
-        for idx in ed_df.index:
-            val_estado = str(ed_df.loc[idx, "ESTADO - VALORIZACIÓN"]).strip().upper()
-            if val_estado == "SI":
-                ed_df.loc[idx, "OBSERVACIÓN"] = ""
-
         if st.button("💾 Guardar Cambios", key="btn_guardar_gen"):
-            df.update(ed_df)
+            # Mapeo de índices para no perder posiciones al guardar datos filtrados
+            for idx in ed_df.index:
+                idx_original = idx - 1
+                for col in COLUMNAS_EXCEL:
+                    df.at[idx_original, col] = ed_df.at[idx, col]
+
             st.session_state.df_data = limpiar_estado_y_responsable(df[COLUMNAS_EXCEL])
             guardar_datos(st.session_state.df_data)
-            st.success("Cambios guardados con éxito.")
+            st.success("Cambios guardados con éxito en la base de datos.")
             st.rerun()
 
     with t_pasig:
