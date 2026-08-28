@@ -91,7 +91,6 @@ COLUMNAS_EXCEL = [
 
 ORDEN_MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SETIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"]
 
-# Listas específicas por función
 ESPECIALISTAS_LISTA = ["Jesús Rehkoff Díaz", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
 REVISORES_PSAIM_LISTA = ["Franmary Gutierrez", "Alejandro Macury", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
 PERSONAL_LISTA_BASE = ["M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid", "Juan José", "Dante", "Jesús Rehkoff Díaz", "Franmary Gutierrez", "Alejandro Macury", "Otro Inspector"]
@@ -132,7 +131,6 @@ def es_pendiente_inspeccion_fn(row):
             "COMPLETAR INSPECCION" in obs or "COMPLETAR INSPECCIÓN" in obs)
 
 def preparar_tabla_con_indice_1(df_input):
-    """Resetea el índice para que siempre comience ordenadamente desde 1."""
     if df_input.empty:
         return df_input
     df_res = df_input.reset_index(drop=True)
@@ -338,10 +336,13 @@ if not df.empty:
             q = texto_normalizado(txt_b)
             df_dis = df_dis[df_dis.apply(lambda r: q in texto_normalizado(r["LINEAS"]) or q in texto_normalizado(r["SAP"]) or q in texto_normalizado(r["CODIGO DE INFORME"]) or q in texto_normalizado(r["GRUPO DE TUBERÍAS"]), axis=1)]
         
-        # Corrección de índice consecutivo 1, 2, 3...
+        # Homogeneización para evitar valores nulos o inconsistentes en la lista desplegable
+        df_dis["ESTADO - VALORIZACIÓN"] = df_dis["ESTADO - VALORIZACIÓN"].apply(
+            lambda x: "SI" if texto_normalizado(x) == "SI" else "Pendiente - valorización"
+        )
+
         df_dis = preparar_tabla_con_indice_1(df_dis)
 
-        # Configuración de columna con menú desplegable Selectbox
         config_columnas = {
             "ESTADO - VALORIZACIÓN": st.column_config.SelectboxColumn(
                 "ESTADO - VALORIZACIÓN",
@@ -351,22 +352,22 @@ if not df.empty:
             )
         }
 
-        # Estabilización del editor para prevenir el bug de React 'removeChild'
+        # Detección y limpieza en tiempo real sobre la interacciones de la tabla
         ed_df = st.data_editor(
-            df_dis, 
+            df_dis,
             column_config=config_columnas,
             hide_index=False,
             use_container_width=True, 
-            key=f"ed_gen_{m_sel}"
+            key="editor_tabla_general_select"
         )
 
-        if st.button("💾 Guardar Cambios", key="btn_guardar_gen"):
-            # Lógica para borrar la observación cuando el estado es 'SI'
-            for idx in ed_df.index:
-                val_estado = str(ed_df.loc[idx, "ESTADO - VALORIZACIÓN"]).strip().upper()
-                if val_estado == "SI":
-                    ed_df.loc[idx, "OBSERVACIÓN"] = ""
+        # Aplicación directa del borrado de OBSERVACIÓN cuando la columna cambia a "SI"
+        for idx in ed_df.index:
+            val_estado = str(ed_df.loc[idx, "ESTADO - VALORIZACIÓN"]).strip().upper()
+            if val_estado == "SI":
+                ed_df.loc[idx, "OBSERVACIÓN"] = ""
 
+        if st.button("💾 Guardar Cambios", key="btn_guardar_gen"):
             df.update(ed_df)
             st.session_state.df_data = limpiar_estado_y_responsable(df[COLUMNAS_EXCEL])
             guardar_datos(st.session_state.df_data)
