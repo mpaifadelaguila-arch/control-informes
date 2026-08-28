@@ -38,99 +38,67 @@ st.markdown(
     /* Banner Superior */
     .header-banner {
         background: linear-gradient(135deg, #0E2A47 0%, #1A3E68 100%);
-        padding: 24px 32px;
+        padding: 20px 28px;
         border-radius: 12px;
         color: white;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
         box-shadow: 0 4px 12px rgba(14, 42, 71, 0.15);
         border-left: 6px solid #D4AF37;
     }
     .header-title {
-        font-size: 26px;
+        font-size: 24px;
         font-weight: 700;
         letter-spacing: 0.5px;
         margin: 0;
         color: #FFFFFF;
     }
     .header-subtitle {
-        font-size: 14px;
+        font-size: 13px;
         color: #CBD5E1;
         margin-top: 4px;
         font-weight: 400;
     }
 
-    /* Estilo de Botones KPI de Streamlit */
+    /* Estilo de Tarjetas KPI / Botones de Navegación Superior */
     div[data-testid="column"] div.stButton > button {
         width: 100% !important;
         background-color: #FFFFFF !important;
         border: 1px solid #E2E8F0 !important;
-        border-radius: 10px !important;
-        padding: 8px 4px !important;
+        border-radius: 8px !important;
+        padding: 6px 2px !important;
         text-align: center !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03) !important;
         transition: all 0.2s ease-in-out !important;
-        min-height: 90px !important;
+        min-height: 82px !important;
+        white-space: pre-wrap !important;
+        line-height: 1.2 !important;
     }
     
     div[data-testid="column"] div.stButton > button:hover {
-        transform: translateY(-3px) !important;
-        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+        border-color: #0E2A47 !important;
+    }
+
+    /* Estilo activo para el botón de la pestaña seleccionada */
+    div[data-testid="column"] div.stButton > button:focus,
+    div[data-testid="column"] div.stButton > button:active {
+        background-color: #F1F5F9 !important;
         border-color: #0E2A47 !important;
     }
 
     /* Bordes coloridos superiores en las columnas de KPIs */
-    .kpi-box-blue { border-top: 5px solid #0E2A47 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-orange { border-top: 5px solid #F59E0B !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-green { border-top: 5px solid #10B981 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-pink { border-top: 5px solid #EC4899 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-purple { border-top: 5px solid #8B5CF6 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-red { border-top: 5px solid #EF4444 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-teal { border-top: 5px solid #14B8A6 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-indigo { border-top: 5px solid #6366F1 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-cyan { border-top: 5px solid #06B6D4 !important; border-radius: 10px 10px 0 0; }
-    .kpi-box-gold { border-top: 5px solid #D4AF37 !important; border-radius: 10px 10px 0 0; }
-
-    /* Transformación de Radio Buttons en Pestañas */
-    div[data-testid="stRadio"] > label {
-        display: none !important;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"] {
-        display: flex;
-        flex-direction: row;
-        gap: 6px;
-        background-color: #F1F5F9;
-        padding: 6px;
-        border-radius: 8px;
-        overflow-x: auto;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"] > label {
-        background-color: transparent !important;
-        border-radius: 6px !important;
-        padding: 8px 14px !important;
-        margin: 0 !important;
-        cursor: pointer;
-        border: none !important;
-        transition: background-color 0.2s;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"] > label:hover {
-        background-color: #E2E8F0 !important;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"] > label[data-checked="true"] {
-        background-color: #0E2A47 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"] > label[data-checked="true"] span {
-        color: #FFFFFF !important;
-        font-weight: 700 !important;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"] > label span {
-        font-size: 12px !important;
-        color: #475569;
-        font-weight: 600;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"] > label input {
-        display: none !important;
-    }
+    .kpi-box-blue { border-top: 4px solid #0E2A47 !important; border-radius: 8px 8px 0 0; }
+    .kpi-box-orange { border-top: 4px solid #F59E0B !important; border-radius: 8px 8px 0 0; }
+    .kpi-box-green { border-top: 4px solid #10B981 !important; border-radius: 8px 8px 0 0; }
+    .kpi-box-pink { border-top: 4px solid #EC4899 !important; border-radius: 8px 8px 0 0; }
+    .kpi-box-purple { border-top: 4px solid #8B5CF6 !important; border-radius: 8px 8px 0 0; }
+    .kpi-box-red { border-top: 4px solid #EF4444 !important; border-radius: 8px 8px 0 0; }
+    .kpi-box-teal { border-top: 4px solid #14B8A6 !important; border-radius: 8px 8px 0 0; }
+    .kpi-box-indigo { border-top: 4px solid #6366F1 !important; border-radius: 8px 8px 0 0; }
+    .kpi-box-cyan { border-top: 4px solid #06B6D4 !important; border-radius: 8px 8px 0 0; }
+    .kpi-box-gold { border-top: 4px solid #D4AF37 !important; border-radius: 8px 8px 0 0; }
+    .kpi-box-slate { border-top: 4px solid #64748B !important; border-radius: 8px 8px 0 0; }
 
     /* Tabla y data editor */
     .stDataFrame, div[data-testid="stDataEditor"] {
@@ -177,22 +145,8 @@ ORDEN_MESES = [
     "DICIEMBRE",
 ]
 
-LISTA_PESTANAS = [
-    "📋 Tabla General",
-    "📋 Pend. Asignar Informe",
-    "🔄 En Proceso",
-    "⏳ Pend. Inspección",
-    "🔍 Rev. Fiabilidad",
-    "👨‍🔬 Pend. Rev. Especialista",
-    "🔬 Rev. por Especialista",
-    "🛠️ Correc. PSAIM",
-    "📅 Resumen Mes (T3)",
-    "📊 Pend. Mes/Obs (T4)",
-    "📌 Resumen Obs (T5)",
-]
-
-# Inicialización segura de la pestaña activa
-if "active_tab" not in st.session_state or st.session_state.active_tab not in LISTA_PESTANAS:
+# Estado de pestaña activa por defecto
+if "active_tab" not in st.session_state:
     st.session_state.active_tab = "📋 Tabla General"
 
 
@@ -352,9 +306,7 @@ with st.expander(
                     df_cargado = limpiar_estado_y_responsable(df_cargado)
                     st.session_state.df_data = df_cargado[COLUMNAS_EXCEL]
                     guardar_datos(st.session_state.df_data)
-                    st.success(
-                        "¡Base de datos cargada y guardada correctamente!"
-                    )
+                    st.success("¡Base de datos cargada correctamente!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Error al procesar el archivo Excel: {e}")
@@ -488,46 +440,33 @@ if not df.empty:
     tot_val = sum(dict_t3_val.values())
     tot_pen = sum(dict_t3_pen.values())
 
-    # --- TARJETAS KPI CLICKABLES QUE REDIRIGEN SIN ERRORES ---
-    k1, k2, k3, k4, k5, k6, k7, k8, k9, k10 = st.columns(10)
+    # --- BARRA NAVEGADORA ÚNICA DE 11 TARJETAS KPIS SUPERIORES ---
+    cols = st.columns(11)
 
     kpis = [
-        (k1, "INFORMES TOTALES", tot_informes, "kpi-box-blue", "📋 Tabla General"),
-        (k2, "PENDIENTES TOTAL", tot_pen, "kpi-box-orange", "📋 Tabla General"),
-        (k3, "VALORIZADOS (SI)", tot_val, "kpi-box-green", "📅 Resumen Mes (T3)"),
-        (k4, "PEND. ASIGNAR INFORME", cnt_pend_asignacion, "kpi-box-pink", "📋 Pend. Asignar Informe"),
-        (k5, "EN PROCESO", cnt_en_proceso, "kpi-box-purple", "🔄 En Proceso"),
-        (k6, "PEND. INSPECCIÓN", cnt_pend_inspeccion, "kpi-box-red", "⏳ Pend. Inspección"),
-        (k7, "REV. FIABILIDAD", cnt_revision_fiabilidad, "kpi-box-teal", "🔍 Rev. Fiabilidad"),
-        (k8, "PEND. REV. DEL ESPECIALISTA", cnt_pend_revision_especialista, "kpi-box-indigo", "👨‍🔬 Pend. Rev. Especialista"),
-        (k9, "REV. POR EL ESPECIALISTA", cnt_revision_por_especialista, "kpi-box-cyan", "🔬 Rev. por Especialista"),
-        (k10, "CORRECCIÓN PSAIM", sum(dict_t3_psaim.values()), "kpi-box-gold", "🛠️ Correc. PSAIM"),
+        (cols[0], "📋 TABLA GENERAL", tot_informes, "kpi-box-blue", "📋 Tabla General"),
+        (cols[1], "PEND. TOTALES", tot_pen, "kpi-box-orange", "📋 Tabla General"),
+        (cols[2], "PEND. ASIGNAR", cnt_pend_asignacion, "kpi-box-pink", "📋 Pend. Asignar Informe"),
+        (cols[3], "EN PROCESO", cnt_en_proceso, "kpi-box-purple", "🔄 En Proceso"),
+        (cols[4], "PEND. INSPECCIÓN", cnt_pend_inspeccion, "kpi-box-red", "⏳ Pend. Inspección"),
+        (cols[5], "REV. FIABILIDAD", cnt_revision_fiabilidad, "kpi-box-teal", "🔍 Rev. Fiabilidad"),
+        (cols[6], "PEND. REV. ESP.", cnt_pend_revision_especialista, "kpi-box-indigo", "👨‍🔬 Pend. Rev. Especialista"),
+        (cols[7], "REV. POR ESP.", cnt_revision_por_especialista, "kpi-box-cyan", "🔬 Rev. por Especialista"),
+        (cols[8], "CORREC. PSAIM", sum(dict_t3_psaim.values()), "kpi-box-gold", "🛠️ Correc. PSAIM"),
+        (cols[9], "VALORIZADOS (SI)", tot_val, "kpi-box-green", "📅 Resumen Mes (T3)"),
+        (cols[10], "RESUMEN OBS (T5)", len(dict_t5), "kpi-box-slate", "📌 Resumen Obs (T5)"),
     ]
 
     for col, titulo, valor, clase_borde, target_tab in kpis:
         with col:
             st.markdown(f'<div class="{clase_borde}"></div>', unsafe_allow_html=True)
-            label_texto = f"{titulo}\n\n{valor}"
-            if st.button(label_texto, key=f"btn_kpi_{titulo}"):
+            # Formato de etiqueta claro y limpio sin etiquetas HTML expuestas
+            label_texto = f"{titulo}\n{valor}"
+            if st.button(label_texto, key=f"nav_btn_{titulo}"):
                 st.session_state.active_tab = target_tab
                 st.rerun()
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # --- NAVEGACIÓN DE PESTAÑAS Y CONTROL DE NAVEGACIÓN ---
-    index_actual = LISTA_PESTANAS.index(st.session_state.active_tab)
-
-    selected_tab = st.radio(
-        "Navegación:",
-        options=LISTA_PESTANAS,
-        index=index_actual,
-        key="radio_tabs_nav",
-        horizontal=True,
-    )
-
-    if selected_tab != st.session_state.active_tab:
-        st.session_state.active_tab = selected_tab
-        st.rerun()
+    st.markdown("---")
 
     # --- CONTENIDO DE CADA PESTAÑA SELECCIONADA ---
     
@@ -601,7 +540,7 @@ if not df.empty:
             cleaned_df = limpiar_estado_y_responsable(df_actualizado[COLUMNAS_EXCEL])
             st.session_state.df_data = cleaned_df
             guardar_datos(cleaned_df)
-            st.success("¡Datos guardados y actualizados correctamente!")
+            st.success("¡Datos guardados correctamente!")
             st.rerun()
 
     # 2. PENDIENTES DE ASIGNACIÓN
@@ -890,28 +829,7 @@ if not df.empty:
                 use_container_width=True,
             )
 
-    # 10. PENDIENTES POR MES Y OBSERVACIÓN (T4)
-    elif st.session_state.active_tab == "📊 Pend. Mes/Obs (T4)":
-        st.markdown("#### **DETALLE DE PENDIENTES POR MES Y OBSERVACIÓN**")
-        filas_t4 = [
-            {
-                "MES": k.split("|", 1)[0],
-                "OBSERVACIÓN PENDIENTE": k.split("|", 1)[1],
-                "CANTIDAD": v,
-            }
-            for k, v in dict_t4.items()
-        ]
-        df_t4 = pd.DataFrame(filas_t4)
-        if not df_t4.empty:
-            df_t4["MES_CAT"] = pd.Categorical(
-                df_t4["MES"].str.upper(), categories=ORDEN_MESES, ordered=True
-            )
-            df_t4 = df_t4.sort_values(
-                ["MES_CAT", "CANTIDAD"], ascending=[True, False]
-            ).drop(columns=["MES_CAT"])
-            st.dataframe(df_t4, use_container_width=True)
-
-    # 11. RESUMEN GENERAL DE OBSERVACIONES (T5)
+    # 10. RESUMEN GENERAL DE OBSERVACIONES (T5)
     elif st.session_state.active_tab == "📌 Resumen Obs (T5)":
         st.markdown("#### **RESUMEN GENERAL DE OBSERVACIONES PENDIENTES**")
         filas_t5 = [
