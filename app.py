@@ -1,66 +1,48 @@
 import streamlit as st
 import pandas as pd
-import json
-import os
 import io
 
 st.set_page_config(page_title="Control de Informes de Inspección", layout="wide")
-
-DB_FILE = "base_datos.xlsx"
-SOL_FILE = "solicitudes.json"
 
 PERSONAL_LISTA = ["INSPECTOR 1", "INSPECTOR 2", "INSPECTOR 3", "SIN ASIGNAR"]
 ESPECIALISTAS_LISTA = ["ESPECIALISTA 1", "ESPECIALISTA 2"]
 REVISORES_PSAIM_LISTA = ["REVISOR PSAIM 1", "REVISOR PSAIM 2"]
 
-# --- CARGA Y GUARDADO DE DATOS ---
-def cargar_base_datos():
-    if os.path.exists(DB_FILE):
-        try:
-            df = pd.read_excel(DB_FILE)
-            cols_req = ["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN", "ESTADO - VALORIZACIÓN"]
-            for col in cols_req:
-                if col not in df.columns:
-                    df[col] = ""
-                else:
-                    df[col] = df[col].fillna("").astype(str)
-            if "LINEAS" in df.columns:
-                df["LINEAS"] = pd.to_numeric(df["LINEAS"], errors="coerce").fillna(1)
-            else:
-                df["LINEAS"] = 1
-            return df
-        except Exception as e:
-            st.error(f"Error al cargar la base de datos: {e}")
-            return pd.DataFrame()
-    else:
-        return pd.DataFrame()
+COLUMN_DEFAULTS = [
+    "MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", 
+    "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN", 
+    "ESTADO - VALORIZACIÓN", "LINEAS"
+]
 
-def guardar_base_datos(df):
+# --- GESTIÓN DE MEMORIA EN SESIÓN (SIN ARCHIVOS LOCALES) ---
+if "df_data" not in st.session_state:
+    st.session_state.df_data = pd.DataFrame(columns=COLUMN_DEFAULTS)
+
+if "solicitudes" not in st.session_state:
+    st.session_state.solicitudes = []
+
+def procesar_excel_cargado(file):
     try:
-        df.to_excel(DB_FILE, index=False, engine="openpyxl")
-        return True
+        df = pd.read_excel(file)
+        for col in COLUMN_DEFAULTS:
+            if col not in df.columns:
+                df[col] = "" if col != "LINEAS" else 1
+            elif col != "LINEAS":
+                df[col] = df[col].fillna("").astype(str)
+        
+        df["LINEAS"] = pd.to_numeric(df["LINEAS"], errors="coerce").fillna(1)
+        st.session_state.df_data = df
+        return True, "Base de datos cargada correctamente en la aplicación."
     except Exception as e:
-        st.error(f"Error al guardar la base de datos: {e}")
-        return False
-
-def cargar_solicitudes():
-    if os.path.exists(SOL_FILE):
-        with open(SOL_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
-
-def guardar_solicitudes(sol):
-    with open(SOL_FILE, "w", encoding="utf-8") as f:
-        json.dump(sol, f, ensure_ascii=False, indent=4)
+        return False, f"Error al leer el archivo Excel: {e}"
 
 def registrar_solicitud(tipo, codigo, grupo, usuario):
-    solicitudes = cargar_solicitudes()
-    for s in solicitudes:
+    for s in st.session_state.solicitudes:
         if s["codigo"] == codigo and s["grupo"] == grupo and s["estado"] == "PENDIENTE":
             return False, "Ya existe una solicitud pendiente para este informe."
     
     nueva_sol = {
-        "id": len(solicitudes) + 1,
+        "id": len(st.session_state.solicitudes) + 1,
         "tipo": tipo,
         "codigo": codigo,
         "grupo": grupo,
@@ -68,78 +50,92 @@ def registrar_solicitud(tipo, codigo, grupo, usuario):
         "fecha": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
         "estado": "PENDIENTE"
     }
-    solicitudes.append(nueva_sol)
-    guardar_solicitudes(solicitudes)
+    st.session_state.solicitudes.append(nueva_sol)
     return True, "Solicitud enviada a Administración con éxito."
 
-# --- CARGA INICIAL ---
-df_data = cargar_base_datos()
-
-if df_data.empty:
-    st.warning("⚠️ No se encontraron datos en la base de datos local.")
-    st.stop()
-
-# --- FILTROS DE LÓGICA DE NEGOCIO CORREGIDOS ---
-df_activos = df_data[df_data["ESTADO - VALORIZACIÓN"].str.upper() != "VALORIZADO"].copy()
-
-# 1. Pendiente Asignar: Solo ESTADO = 'PENDIENTE ELABORACIÓN' y RESPONSABLE = 'SIN ASIGNAR' (o Vacío)
-df_pend_asignacion = df_activos[
-    (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "PENDIENTE ELABORACIÓN") &
-    ((df_activos["RESPONSABLE"].str.upper() == "SIN ASIGNAR") | (df_activos["RESPONSABLE"].str.strip() == ""))
-]
-
-# 2. En Proceso: ESTADO = 'EN PROCESO' o 'PENDIENTE ELABORACIÓN' (con responsable asignado)
-df_en_proceso = df_activos[
-    (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "EN PROCESO") |
-    ((df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "PENDIENTE ELABORACIÓN") & 
-     (df_activos["RESPONSABLE"].str.upper() != "SIN ASIGNAR") & (df_activos["RESPONSABLE"].str.strip() != ""))
-]
-
-# 3. Pendiente Inspección: ESTADO = 'PENDIENTE INSPECCIÓN' o OBSERVACIÓN contenga 'PENDIENTE INSPECCIÓN'
-df_pend_inspeccion = df_activos[
-    (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "PENDIENTE INSPECCIÓN") |
-    (df_activos["OBSERVACIÓN"].str.upper().str.contains("PENDIENTE INSPECCI", na=False))
-]
-
-# 4. Revisión Fiabilidad: ESTADO = 'REVISIÓN FIABILIDAD' o OBSERVACIÓN contenga 'FIABILIDAD'
-df_fiab_activos = df_activos[
-    (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "REVISIÓN FIABILIDAD") |
-    (df_activos["OBSERVACIÓN"].str.upper().str.contains("FIABILIDAD", na=False))
-]
-
-# 5. Pendiente Revisión por Especialista
-df_pesp_det = df_activos[
-    df_activos["OBSERVACIÓN"].str.upper().str.contains("PENDIENTE.*ESPECIALISTA", regex=True, na=False)
-]
-
-# 6. Revisión por Especialista
-df_resp_det = df_activos[
-    df_activos["OBSERVACIÓN"].str.upper().str.contains("REV.*ESPECIALISTA", regex=True, na=False) &
-    ~df_activos["OBSERVACIÓN"].str.upper().str.contains("PENDIENTE", na=False)
-]
-
-# 7. Corrección PSAIM: OBSERVACIÓN contenga 'PSAIM' o 'CORRECCION'
-df_psaim_det = df_activos[
-    df_activos["OBSERVACIÓN"].str.upper().str.contains("PSAIM", na=False)
-]
-
-# --- CÁLCULO DE KPIS ---
-tot_informes = len(df_data["CODIGO DE INFORME"].unique())
-tot_pendientes = len(df_activos["CODIGO DE INFORME"].unique())
-tot_valorizados = len(df_data[df_data["ESTADO - VALORIZACIÓN"].str.upper() == "VALORIZADO"]["CODIGO DE INFORME"].unique())
-
-kpi_pasig = len(df_pend_asignacion["CODIGO DE INFORME"].unique())
-kpi_proc = len(df_en_proceso["CODIGO DE INFORME"].unique())
-kpi_pinsp = len(df_pend_inspeccion["CODIGO DE INFORME"].unique())
-kpi_rfiab = len(df_fiab_activos["CODIGO DE INFORME"].unique())
-kpi_pesp = len(df_pesp_det["CODIGO DE INFORME"].unique())
-kpi_resp = len(df_resp_det["CODIGO DE INFORME"].unique())
-kpi_psaim = len(df_psaim_det["CODIGO DE INFORME"].unique())
-
-# --- TITULO Y TARJETAS KPI ALINEADAS ---
+# --- INTERFAZ PRINCIPAL Y CARGA DE EXCEL ---
 st.markdown("<h2 style='text-align: center;'>CONTROL INTERNO DE INFORMES DE INSPECCIÓN</h2>", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
+# CARGA PRINCIPAL SI NO HAY DATOS
+if st.session_state.df_data.empty:
+    st.warning("⚠️ No hay datos cargados en la sesión. Sube tu archivo Excel para comenzar a trabajar.")
+    uploaded_file = st.file_uploader("📂 Seleccionar y Cargar Archivo Excel (.xlsx / .xlsm):", type=["xlsx", "xlsm"], key="main_upload")
+    if uploaded_file is not None:
+        ok, msg = procesar_excel_cargado(uploaded_file)
+        if ok:
+            st.success(msg)
+            st.rerun()
+        else:
+            st.error(msg)
+
+df_data = st.session_state.df_data
+
+# --- FILTROS DE LÓGICA DE NEGOCIO ---
+if not df_data.empty:
+    df_activos = df_data[df_data["ESTADO - VALORIZACIÓN"].str.upper() != "VALORIZADO"].copy()
+
+    # 1. Pendiente Asignar
+    df_pend_asignacion = df_activos[
+        (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "PENDIENTE ELABORACIÓN") &
+        ((df_activos["RESPONSABLE"].str.upper() == "SIN ASIGNAR") | (df_activos["RESPONSABLE"].str.strip() == ""))
+    ]
+
+    # 2. En Proceso
+    df_en_proceso = df_activos[
+        (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "EN PROCESO") |
+        ((df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "PENDIENTE ELABORACIÓN") & 
+         (df_activos["RESPONSABLE"].str.upper() != "SIN ASIGNAR") & (df_activos["RESPONSABLE"].str.strip() != ""))
+    ]
+
+    # 3. Pendiente Inspección
+    df_pend_inspeccion = df_activos[
+        (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "PENDIENTE INSPECCIÓN") |
+        (df_activos["OBSERVACIÓN"].str.upper().str.contains("PENDIENTE INSPECCI", na=False))
+    ]
+
+    # 4. Revisión Fiabilidad
+    df_fiab_activos = df_activos[
+        (df_activos["ESTADO - ELABORACIÓN DE INFORME"].str.upper() == "REVISIÓN FIABILIDAD") |
+        (df_activos["OBSERVACIÓN"].str.upper().str.contains("FIABILIDAD", na=False))
+    ]
+
+    # 5. Pendiente Revisión por Especialista
+    df_pesp_det = df_activos[
+        df_activos["OBSERVACIÓN"].str.upper().str.contains("PENDIENTE.*ESPECIALISTA", regex=True, na=False)
+    ]
+
+    # 6. Revisión por Especialista
+    df_resp_det = df_activos[
+        df_activos["OBSERVACIÓN"].str.upper().str.contains("REV.*ESPECIALISTA", regex=True, na=False) &
+        ~df_activos["OBSERVACIÓN"].str.upper().str.contains("PENDIENTE", na=False)
+    ]
+
+    # 7. Corrección PSAIM
+    df_psaim_det = df_activos[
+        df_activos["OBSERVACIÓN"].str.upper().str.contains("PSAIM", na=False)
+    ]
+
+    # KPIS
+    tot_informes = len(df_data["CODIGO DE INFORME"].unique())
+    tot_pendientes = len(df_activos["CODIGO DE INFORME"].unique())
+    tot_valorizados = len(df_data[df_data["ESTADO - VALORIZACIÓN"].str.upper() == "VALORIZADO"]["CODIGO DE INFORME"].unique())
+
+    kpi_pasig = len(df_pend_asignacion["CODIGO DE INFORME"].unique())
+    kpi_proc = len(df_en_proceso["CODIGO DE INFORME"].unique())
+    kpi_pinsp = len(df_pend_inspeccion["CODIGO DE INFORME"].unique())
+    kpi_rfiab = len(df_fiab_activos["CODIGO DE INFORME"].unique())
+    kpi_pesp = len(df_pesp_det["CODIGO DE INFORME"].unique())
+    kpi_resp = len(df_resp_det["CODIGO DE INFORME"].unique())
+    kpi_psaim = len(df_psaim_det["CODIGO DE INFORME"].unique())
+else:
+    df_activos = pd.DataFrame(columns=COLUMN_DEFAULTS)
+    df_pend_asignacion = df_en_proceso = df_pend_inspeccion = df_fiab_activos = pd.DataFrame(columns=COLUMN_DEFAULTS)
+    df_pesp_det = df_resp_det = df_psaim_det = pd.DataFrame(columns=COLUMN_DEFAULTS)
+    tot_informes = tot_pendientes = tot_valorizados = 0
+    kpi_pasig = kpi_proc = kpi_pinsp = kpi_rfiab = kpi_pesp = kpi_resp = kpi_psaim = 0
+
+# --- TARJETAS KPI ALINEADAS ---
 kpi_cols = st.columns(10)
 
 metrics = [
@@ -177,82 +173,72 @@ for col, (label, val, color) in zip(kpi_cols, metrics):
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- FILTRO DINÁMICO POR MES EN BARRA LATERAL PARA TABLA GENERAL ---
+# --- FILTRO DINÁMICO POR MES ---
 st.sidebar.header("🔍 Filtros Globales")
-meses_disponibles = sorted([m for m in df_data["MES"].dropna().unique() if str(m).strip() != ""])
-meses_seleccionados = st.sidebar.multiselect("Filtrar Tabla General por Mes:", options=meses_disponibles, default=meses_disponibles)
+if not df_data.empty:
+    meses_disponibles = sorted([m for m in df_data["MES"].dropna().unique() if str(m).strip() != ""])
+    meses_seleccionados = st.sidebar.multiselect("Filtrar Tabla General por Mes:", options=meses_disponibles, default=meses_disponibles)
 
-if meses_seleccionados:
-    df_data_filtrada = df_data[df_data["MES"].isin(meses_seleccionados)]
+    if meses_seleccionados:
+        df_data_filtrada = df_data[df_data["MES"].isin(meses_seleccionados)]
+    else:
+        df_data_filtrada = df_data.copy()
 else:
-    df_data_filtrada = df_data.copy()
-    # --- NAVEGACIÓN DE PESTAÑAS Y TABLAS CON BÚSQUEDA DINÁMICA E ÍNDICE DESDE 1 ---
+    df_data_filtrada = pd.DataFrame(columns=COLUMN_DEFAULTS)
+    # --- NAVEGACIÓN Y OPERACIONES EN MEMORIA ---
 (
     t_admin, t_gen, t_pasig, t_proc, t_pinsp, t_rfiab, 
     t_pesp, t_resp, t_psaim, t_res_m, t_p_m, t_res_o
 ) = st.tabs([
-    "🔔 Administración", "📋 Tabla General", "📝 Pend. Asignar", "🔄 En Proceso", 
+    "🔔 Administración / Cargar", "📋 Tabla General", "📝 Pend. Asignar", "🔄 En Proceso", 
     "⏳ Pend. Inspección", "🔍 Rev. Fiabilidad", "🧑‍🔬 Pend. Rev. Especialista", 
     "🔬 Rev. por Especialista", "🛠️ Correc. PSAIM", "📅 Resumen Mes (T3)", 
     "📊 Pend. Mes/Obs (T4)", "📌 Resumen Obs (T5)"
 ])
 
-# --- 1. ADMINISTRACIÓN Y GESTIÓN DE BASE DE DATOS ---
+# --- 1. ADMINISTRACIÓN: CARGA / DESCARGA ---
 with t_admin:
-    st.subheader("⚙️ Gestión de Datos: Cargar / Restaurar Excel & Descargar Respaldo")
-    with st.expander("⚙️ Opciones de Importación y Exportación", expanded=True):
-        c_up, c_down = st.columns([2, 1])
-        with c_up:
-            st.markdown("##### 📥 Cargar Base de Datos desde Excel")
-            file_excel = st.file_uploader("Seleccionar archivo Excel:", type=["xlsx", "xlsm"], key="up_excel")
-            if file_excel is not None:
-                if st.button("🔄 Reemplazar Base de Datos"):
-                    try:
-                        df_new = pd.read_excel(file_excel)
-                        cols_req = ["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN", "ESTADO - VALORIZACIÓN"]
-                        for cr in cols_req:
-                            if cr not in df_new.columns:
-                                df_new[cr] = ""
-                            else:
-                                df_new[cr] = df_new[cr].fillna("").astype(str)
-                        if "LINEAS" in df_new.columns:
-                            df_new["LINEAS"] = pd.to_numeric(df_new["LINEAS"], errors="coerce").fillna(1)
-                        else:
-                            df_new["LINEAS"] = 1
-                        if guardar_base_datos(df_new):
-                            st.success("¡Base de datos actualizada con éxito!")
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"Error al procesar el archivo: {e}")
-        with c_down:
-            st.markdown("##### 💾 Descargar Respaldo Actual")
+    st.subheader("⚙️ Cargar Nuevo Archivo o Exportar Datos Modificados")
+    c_up, c_down = st.columns([2, 1])
+    
+    with c_up:
+        st.markdown("##### 📂 Cargar / Reemplazar Excel")
+        file_excel = st.file_uploader("Subir dataset a la sesión:", type=["xlsx", "xlsm"], key="admin_upload")
+        if file_excel is not None:
+            if st.button("🔄 Procesar Archivo Cargado"):
+                ok, msg = procesar_excel_cargado(file_excel)
+                if ok:
+                    st.success(msg)
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+    with c_down:
+        st.markdown("##### 💾 Descargar Estado Actual")
+        if not st.session_state.df_data.empty:
             buffer = io.BytesIO()
             with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-                df_export = df_data.copy()
-                if "CLAVE_GLOBAL" in df_export.columns:
-                    df_export = df_export.drop(columns=["CLAVE_GLOBAL"])
-                df_export.to_excel(writer, index=False, sheet_name="BaseDatos")
+                st.session_state.df_data.to_excel(writer, index=False, sheet_name="BaseDatos")
             st.download_button(
-                label="💾 Descargar Copia en Excel (.xlsx)",
+                label="💾 Descargar Excel Actualizado",
                 data=buffer.getvalue(),
-                file_name="RESPALDO_BASE_DE_DATOS.xlsx",
+                file_name="INFORMES_INSPECCION_ACTUALIZADO.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
     st.markdown("---")
     st.subheader("🔔 Solicitudes Pendientes de Modificación")
-    solicitudes = cargar_solicitudes()
-    pendientes = [s for s in solicitudes if s["estado"] == "PENDIENTE"]
+    pendientes = [s for s in st.session_state.solicitudes if s["estado"] == "PENDIENTE"]
     
     if not pendientes:
-        st.info("No hay solicitudes pendientes en este momento.")
+        st.info("No hay solicitudes pendientes en la sesión actual.")
     else:
         for sol in pendientes:
             with st.container():
                 c_info, c_acc1, c_acc2 = st.columns([3, 1, 1])
                 c_info.markdown(f"**[{sol['tipo']}]** Código: `{sol['codigo']}` | Grupo: `{sol['grupo']}` | Solicitado por: **{sol['usuario']}** ({sol['fecha']})")
                 if c_acc1.button("🟢 Aceptar", key=f"ac_{sol['id']}"):
-                    df_mod = cargar_base_datos()
+                    df_mod = st.session_state.df_data
                     mask = (df_mod["CODIGO DE INFORME"].str.strip() == sol["codigo"].strip()) & (df_mod["GRUPO DE TUBERÍAS"].str.strip() == sol["grupo"].strip())
                     
                     if sol["tipo"] == "INFORME COMPLETADO (GABINETE)":
@@ -266,26 +252,22 @@ with t_admin:
                         df_mod.loc[mask, "ESTADO - ELABORACIÓN DE INFORME"] = "Finalizado"
                         df_mod.loc[mask, "OBSERVACIÓN"] = "Informe (Carta) entregado para su revisión - Fiabilidad"
                     
-                    guardar_base_datos(df_mod)
+                    st.session_state.df_data = df_mod
                     sol["estado"] = "APROBADO"
-                    guardar_solicitudes(solicitudes)
-                    st.success("Solicitud aprobada y datos actualizados.")
+                    st.success("Solicitud aprobada y memoria actualizada.")
                     st.rerun()
 
                 if c_acc2.button("🔴 Rechazar", key=f"rc_{sol['id']}"):
                     sol["estado"] = "RECHAZADO"
-                    guardar_solicitudes(solicitudes)
                     st.warning("Solicitud rechazada.")
                     st.rerun()
 
-# --- 2. TABLA GENERAL (Aplica filtro dinámico por mes seleccionado de la Parte 1) ---
+# --- 2. TABLA GENERAL ---
 with t_gen:
     st.subheader("📋 Tabla General de Informes")
     if not df_data_filtrada.empty:
-        search_gen = st.text_input("🔍 Buscar en Tabla General (por Código, Responsable, Grupo, etc.):", key="search_gen")
+        search_gen = st.text_input("🔍 Buscar en Tabla General:", key="search_gen")
         df_gen_disp = df_data_filtrada.copy()
-        if "CLAVE_GLOBAL" in df_gen_disp.columns:
-            df_gen_disp = df_gen_disp.drop(columns=["CLAVE_GLOBAL"])
         
         if search_gen:
             mask_gen = df_gen_disp.astype(str).apply(lambda row: row.str.contains(search_gen, case=False, regex=False)).any(axis=1)
@@ -294,9 +276,9 @@ with t_gen:
         df_gen_disp.index = pd.RangeIndex(start=1, stop=len(df_gen_disp) + 1, step=1)
         st.dataframe(df_gen_disp, use_container_width=True)
     else:
-        st.info("No hay datos disponibles para los meses seleccionados.")
+        st.info("No hay datos cargados en la sesión.")
 
-# --- 3. PENDIENTES DE ASIGNAR INFORME ---
+# --- 3. PENDIENTES DE ASIGNAR ---
 with t_pasig:
     st.subheader("📝 Pendientes de Asignar Informe")
     if not df_pend_asignacion.empty:
@@ -449,7 +431,7 @@ with t_psaim:
     else:
         st.info("No hay informes pendientes por Corrección PSAIM.")
 
-# --- 10. TABLAS DE RESUMEN (T3, T4, T5) ---
+# --- 10. RESÚMENES (T3, T4, T5) ---
 with t_res_m:
     st.subheader("📅 Resumen Mes (T3)")
     if not df_activos.empty:
