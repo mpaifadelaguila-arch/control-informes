@@ -10,7 +10,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# --- ESTILOS CSS CORREGIDOS (ALINEACIÓN EXACTA DE BOTONES Y BORDES) ---
+# --- ESTILOS CSS GENERALES Y PERSONALIZACIÓN DE TARJETAS/BOTONES ---
 st.markdown(
     """
     <style>
@@ -23,9 +23,9 @@ st.markdown(
         background-color: #F8FAFC;
     }
 
-    /* Reducir espacio entre columnas para un aspecto compacto */
+    /* Ajuste de márgenes entre columnas */
     div[data-testid="column"] {
-        padding: 0px 2px !important;
+        padding: 0px 3px !important;
     }
 
     /* Banner Superior */
@@ -52,54 +52,78 @@ st.markdown(
         font-weight: 400;
     }
 
-    /* BASE DE BOTONES / TARJETAS SUPERIORES */
+    /* ESTILO BASE DE LAS TARJETAS / BOTONES */
     div[data-testid="column"] div.stButton > button {
         width: 100% !important;
-        height: 75px !important;
-        min-height: 75px !important;
-        max-height: 75px !important;
-        background-color: #FFFFFF !important;
-        border-left: 1px solid #CBD5E1 !important;
-        border-right: 1px solid #CBD5E1 !important;
-        border-bottom: 1px solid #CBD5E1 !important;
-        border-radius: 6px !important;
-        padding: 6px 2px !important;
+        height: 85px !important;
+        min-height: 85px !important;
+        max-height: 85px !important;
+        border-radius: 8px !important;
+        padding: 8px 4px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
         align-items: center !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
-        transition: all 0.2s ease-in-out !important;
-        overflow: hidden !important;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06) !important;
+        transition: all 0.25s ease-in-out !important;
         white-space: pre-wrap !important;
+        font-weight: 600 !important;
+        font-size: 12px !important;
+        border-bottom: 1px solid #E2E8F0 !important;
+        border-left: 1px solid #E2E8F0 !important;
+        border-right: 1px solid #E2E8F0 !important;
     }
     
     div[data-testid="column"] div.stButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+        transform: translateY(-3px) !important;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12) !important;
     }
 
-    /* BORDES DE COLOR DENTRO DE LA MISMA ESTRUCTURA DEL BOTÓN */
-    .kpi-btn-blue div.stButton > button { border-top: 5px solid #0E2A47 !important; }
-    .kpi-btn-orange div.stButton > button { border-top: 5px solid #F59E0B !important; }
-    .kpi-btn-green div.stButton > button { border-top: 5px solid #10B981 !important; }
-    .kpi-btn-pink div.stButton > button { border-top: 5px solid #EC4899 !important; }
-    .kpi-btn-purple div.stButton > button { border-top: 5px solid #8B5CF6 !important; }
-    .kpi-btn-red div.stButton > button { border-top: 5px solid #EF4444 !important; }
-    .kpi-btn-teal div.stButton > button { border-top: 5px solid #14B8A6 !important; }
-    .kpi-btn-indigo div.stButton > button { border-top: 5px solid #6366F1 !important; }
-    .kpi-btn-cyan div.stButton > button { border-top: 5px solid #06B6D4 !important; }
-    .kpi-btn-gold div.stButton > button { border-top: 5px solid #D4AF37 !important; }
-    .kpi-btn-slate div.stButton > button { border-top: 5px solid #64748B !important; }
+    /* ESTILOS ESPECÍFICOS POR CADA BOTÓN (INACTIVO vs ACTIVO) */
+    
+    /* 1. Tabla General */
+    div.st-key-nav_TABLA_GENERAL > button { border-top: 5px solid #0E2A47 !important; background-color: #FFFFFF !important; color: #0E2A47 !important; }
+    div.st-key-nav_TABLA_GENERAL.kpi-active > button { background-color: #0E2A47 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(14, 42, 71, 0.4) !important; transform: translateY(-2px) !important; }
 
-    /* ESTADO ACTIVO / SELECCIONADO */
-    .kpi-active div.stButton > button {
-        background-color: #F1F5F9 !important;
-        border-left: 2px solid #0E2A47 !important;
-        border-right: 2px solid #0E2A47 !important;
-        border-bottom: 2px solid #0E2A47 !important;
-        box-shadow: 0 0 10px rgba(14, 42, 71, 0.3) !important;
-    }
+    /* 2. Pend. Totales */
+    div.st-key-nav_PEND_TOTALES > button { border-top: 5px solid #F59E0B !important; background-color: #FFFBEB !important; color: #B45309 !important; }
+    div.st-key-nav_PEND_TOTALES.kpi-active > button { background-color: #F59E0B !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important; transform: translateY(-2px) !important; }
+
+    /* 3. Pend. Asignar */
+    div.st-key-nav_PEND_ASIGNAR > button { border-top: 5px solid #EC4899 !important; background-color: #FDF2F8 !important; color: #BE185D !important; }
+    div.st-key-nav_PEND_ASIGNAR.kpi-active > button { background-color: #EC4899 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4) !important; transform: translateY(-2px) !important; }
+
+    /* 4. En Proceso */
+    div.st-key-nav_EN_PROCESO > button { border-top: 5px solid #8B5CF6 !important; background-color: #F5F3FF !important; color: #6D28D9 !important; }
+    div.st-key-nav_EN_PROCESO.kpi-active > button { background-color: #8B5CF6 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4) !important; transform: translateY(-2px) !important; }
+
+    /* 5. Pend. Inspección */
+    div.st-key-nav_PEND_INSPECCION > button { border-top: 5px solid #EF4444 !important; background-color: #FEF2F2 !important; color: #B91C1C !important; }
+    div.st-key-nav_PEND_INSPECCION.kpi-active > button { background-color: #EF4444 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4) !important; transform: translateY(-2px) !important; }
+
+    /* 6. Rev. Fiabilidad */
+    div.st-key-nav_REV_FIABILIDAD > button { border-top: 5px solid #14B8A6 !important; background-color: #F0FDFA !important; color: #0F766E !important; }
+    div.st-key-nav_REV_FIABILIDAD.kpi-active > button { background-color: #14B8A6 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(20, 184, 166, 0.4) !important; transform: translateY(-2px) !important; }
+
+    /* 7. Pend. Rev. Esp. */
+    div.st-key-nav_PEND_REV_ESP > button { border-top: 5px solid #6366F1 !important; background-color: #EEF2FF !important; color: #4338CA !important; }
+    div.st-key-nav_PEND_REV_ESP.kpi-active > button { background-color: #6366F1 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important; transform: translateY(-2px) !important; }
+
+    /* 8. Rev. Por Esp. */
+    div.st-key-nav_REV_POR_ESP > button { border-top: 5px solid #06B6D4 !important; background-color: #ECFEFF !important; color: #0E7490 !important; }
+    div.st-key-nav_REV_POR_ESP.kpi-active > button { background-color: #06B6D4 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(6, 182, 212, 0.4) !important; transform: translateY(-2px) !important; }
+
+    /* 9. Correc. PSAIM */
+    div.st-key-nav_CORREC_PSAIM > button { border-top: 5px solid #D4AF37 !important; background-color: #FEFCE8 !important; color: #854D0E !important; }
+    div.st-key-nav_CORREC_PSAIM.kpi-active > button { background-color: #D4AF37 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4) !important; transform: translateY(-2px) !important; }
+
+    /* 10. Valorizados (SI) */
+    div.st-key-nav_VALORIZADOS > button { border-top: 5px solid #10B981 !important; background-color: #ECFDF5 !important; color: #047857 !important; }
+    div.st-key-nav_VALORIZADOS.kpi-active > button { background-color: #10B981 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4) !important; transform: translateY(-2px) !important; }
+
+    /* 11. Resumen Obs (T5) */
+    div.st-key-nav_RESUMEN_OBS > button { border-top: 5px solid #64748B !important; background-color: #F8FAFC !important; color: #334155 !important; }
+    div.st-key-nav_RESUMEN_OBS.kpi-active > button { background-color: #64748B !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(100, 116, 139, 0.4) !important; transform: translateY(-2px) !important; }
 
     /* Tabla y data editor */
     .stDataFrame, div[data-testid="stDataEditor"] {
@@ -434,31 +458,31 @@ if not df.empty:
     tot_val = sum(dict_t3_val.values())
     tot_pen = sum(dict_t3_pen.values())
 
-    # --- BARRA SUPERIOR PERFECTAMENTE ALINEADA ---
+    # --- NAVEGACIÓN DE BOTONES / KPI CON RESALTADO ACTIVO ---
     cols = st.columns(11)
 
     kpis = [
-        (cols[0], "TABLA GENERAL", tot_informes, "kpi-btn-blue", "📋 Tabla General"),
-        (cols[1], "PEND. TOTALES", tot_pen, "kpi-btn-orange", "📋 Tabla General"),
-        (cols[2], "PEND. ASIGNAR", cnt_pend_asignacion, "kpi-btn-pink", "📋 Pend. Asignar Informe"),
-        (cols[3], "EN PROCESO", cnt_en_proceso, "kpi-btn-purple", "🔄 En Proceso"),
-        (cols[4], "PEND. INSPECCIÓN", cnt_pend_inspeccion, "kpi-btn-red", "⏳ Pend. Inspección"),
-        (cols[5], "REV. FIABILIDAD", cnt_revision_fiabilidad, "kpi-btn-teal", "🔍 Rev. Fiabilidad"),
-        (cols[6], "PEND. REV. ESP.", cnt_pend_revision_especialista, "kpi-btn-indigo", "👨‍🔬 Pend. Rev. Especialista"),
-        (cols[7], "REV. POR ESP.", cnt_revision_por_especialista, "kpi-btn-cyan", "🔬 Rev. por Especialista"),
-        (cols[8], "CORREC. PSAIM", sum(dict_t3_psaim.values()), "kpi-btn-gold", "🛠️ Correc. PSAIM"),
-        (cols[9], "VALORIZADOS (SI)", tot_val, "kpi-btn-green", "📅 Resumen Mes (T3)"),
-        (cols[10], "RESUMEN OBS (T5)", len(dict_t5), "kpi-btn-slate", "📌 Resumen Obs (T5)"),
+        (cols[0], "📋 TABLA GENERAL", tot_informes, "nav_TABLA_GENERAL", "📋 Tabla General"),
+        (cols[1], "📊 PEND. TOTALES", tot_pen, "nav_PEND_TOTALES", "📋 Tabla General"),
+        (cols[2], "📋 PEND. ASIGNAR", cnt_pend_asignacion, "nav_PEND_ASIGNAR", "📋 Pend. Asignar Informe"),
+        (cols[3], "🔄 EN PROCESO", cnt_en_proceso, "nav_EN_PROCESO", "🔄 En Proceso"),
+        (cols[4], "⏳ PEND. INSPECCIÓN", cnt_pend_inspeccion, "nav_PEND_INSPECCION", "⏳ Pend. Inspección"),
+        (cols[5], "🔍 REV. FIABILIDAD", cnt_revision_fiabilidad, "nav_REV_FIABILIDAD", "🔍 Rev. Fiabilidad"),
+        (cols[6], "👨‍🔬 PEND. REV. ESP.", cnt_pend_revision_especialista, "nav_PEND_REV_ESP", "👨‍🔬 Pend. Rev. Especialista"),
+        (cols[7], "🔬 REV. POR ESP.", cnt_revision_por_especialista, "nav_REV_POR_ESP", "🔬 Rev. por Especialista"),
+        (cols[8], "🛠️ CORREC. PSAIM", sum(dict_t3_psaim.values()), "nav_CORREC_PSAIM", "🛠️ Correc. PSAIM"),
+        (cols[9], "📅 VALORIZADOS (SI)", tot_val, "nav_VALORIZADOS", "📅 Resumen Mes (T3)"),
+        (cols[10], "📌 RESUMEN OBS (T5)", len(dict_t5), "nav_RESUMEN_OBS", "📌 Resumen Obs (T5)"),
     ]
 
-    for col, titulo, valor, clase_color, target_tab in kpis:
+    for col, titulo, valor, key_btn, target_tab in kpis:
         is_active = (st.session_state.active_tab == target_tab)
-        clase_activa = "kpi-active" if is_active else ""
+        # Inyectamos la clase de estado activo dinámicamente según la pestaña actual
+        active_class = "kpi-active" if is_active else ""
         
         with col:
-            # Contenedor envolvente con clase de color y estado activo directos al botón
-            st.markdown(f'<div class="{clase_color} {clase_activa}">', unsafe_allow_html=True)
-            if st.button(f"{titulo}\n\n{valor}", key=f"nav_btn_{titulo}"):
+            st.markdown(f'<div class="st-key-{key_btn} {active_class}">', unsafe_allow_html=True)
+            if st.button(f"{titulo}\n\n{valor}", key=key_btn):
                 st.session_state.active_tab = target_tab
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
