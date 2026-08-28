@@ -330,6 +330,11 @@ if not df.empty:
         txt_b = c_b.text_input("🔍 Buscador:")
         
         df_dis = df[COLUMNAS_EXCEL].copy()
+        
+        # Garantizar que todas las columnas sean tratadas como string para prevenir errores de tipo en Streamlit
+        for column in df_dis.columns:
+            df_dis[column] = df_dis[column].fillna("").astype(str)
+
         if m_sel != "Todos": 
             df_dis = df_dis[df_dis["MES"].astype(str).str.strip().str.upper() == m_sel]
         if txt_b.strip():
@@ -353,7 +358,7 @@ if not df.empty:
                         real_idx = df_dis.index[idx_fila] - 1
                         st.session_state.df_data.at[real_idx, "OBSERVACIÓN"] = ""
 
-        # Configuración optimizada de anchos de columna para legibilidad y balance de espacios
+        # Configuración de anchos con tipos 100% seguros
         config_columnas = {
             "ITEM POR MES": st.column_config.TextColumn("ITEM POR MES", width="small"),
             "IT2": st.column_config.TextColumn("IT2", width="small"),
@@ -450,7 +455,6 @@ if not df.empty:
 
     with t_psaim:
         if not df_psaim_det.empty:
-            # Filtrar estrictamente solo por los registros cuyo ALCANCE DEL SERVICIO sea exactamente "LINEAS"
             df_psaim_lineas = df_psaim_det[
                 df_psaim_det["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == "LINEAS"
             ].copy()
