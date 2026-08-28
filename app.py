@@ -353,12 +353,26 @@ if not df.empty:
                         real_idx = df_dis.index[idx_fila] - 1
                         st.session_state.df_data.at[real_idx, "OBSERVACIÓN"] = ""
 
+        # Configuración optimizada de anchos de columna para legibilidad y balance de espacios
         config_columnas = {
+            "ITEM POR MES": st.column_config.TextColumn("ITEM POR MES", width="small"),
+            "IT2": st.column_config.TextColumn("IT2", width="small"),
+            "UNIDAD": st.column_config.TextColumn("UNIDAD", width="small"),
+            "MES": st.column_config.TextColumn("MES", width="small"),
+            "LINEAS": st.column_config.TextColumn("LINEAS", width="large"),
+            "CODIGO DE INFORME": st.column_config.TextColumn("CODIGO DE INFORME", width="medium"),
+            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("GRUPO DE TUBERÍAS", width="medium"),
+            "SAP": st.column_config.TextColumn("SAP", width="small"),
+            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("ALCANCE DEL SERVICIO", width="large"),
+            "ESTADO - ELABORACIÓN DE INFORME": st.column_config.TextColumn("ESTADO - ELABORACIÓN DE INFORME", width="medium"),
+            "RESPONSABLE": st.column_config.TextColumn("RESPONSABLE", width="medium"),
+            "OBSERVACIÓN": st.column_config.TextColumn("OBSERVACIÓN", width="large"),
             "ESTADO - VALORIZACIÓN": st.column_config.SelectboxColumn(
                 "ESTADO - VALORIZACIÓN",
                 help="Seleccione el estado de valorización",
                 options=["Pendiente - valorización", "SI"],
                 required=True,
+                width="medium"
             )
         }
 
