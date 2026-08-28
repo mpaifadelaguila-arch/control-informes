@@ -390,8 +390,33 @@ if not df.empty:
             )
         }
 
+        # Función para aplicar estilos condicionales por fila
+        def resaltar_filas(row):
+            val_estado = str(row.get("ESTADO - VALORIZACIÓN", "")).strip().upper()
+            val_alcance = texto_normalizado(row.get("ALCANCE DEL SERVICIO", ""))
+
+            # 1. Prioridad: Verde claro si ESTADO - VALORIZACIÓN indica SI
+            if val_estado == "SI":
+                return ["background-color: #D1FAE5; color: #065F46;"] * len(row)
+
+            # 2. Amarillo claro para estados específicos de ALCANCE DEL SERVICIO
+            if val_alcance in [
+                "VT-CIRCUITOS - PENDIENTE INSPECCION",
+                "VT-CIRCUITOS - FALTA CARPETA",
+                "LINEAS - PENDIENTE INSPECCION"
+            ]:
+                return ["background-color: #FEF08A; color: #713F12;"] * len(row)
+
+            # 3. Celeste claro para inspección complementaria
+            if val_alcance == "VT-CIRCUITOS - INSPECCION COMPLEMENTARIA":
+                return ["background-color: #BAE6FD; color: #0C4A6E;"] * len(row)
+
+            return [""] * len(row)
+
+        df_styled = df_dis.style.apply(resaltar_filas, axis=1)
+
         ed_df = st.data_editor(
-            df_dis,
+            df_styled,
             column_config=config_columnas,
             hide_index=True,
             use_container_width=True, 
