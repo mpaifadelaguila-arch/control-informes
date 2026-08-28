@@ -350,6 +350,7 @@ if not df.empty:
         m_sel = c_m.selectbox("Filtrar Mes:", meses_disp)
         txt_b = c_b.text_input("🔍 Buscador:")
         
+        # Conservar el índice original para evitar desajustes durante los filtros
         df_dis = df[COLUMNAS_EXCEL].copy()
         
         # Convierte todos los campos a texto limpio formateado
@@ -365,19 +366,6 @@ if not df.empty:
         df_dis["ESTADO - VALORIZACIÓN"] = df_dis["ESTADO - VALORIZACIÓN"].apply(
             lambda x: "SI" if texto_normalizado(x) == "SI" else "Pendiente - valorización"
         )
-
-        df_dis = preparar_tabla_con_indice_1(df_dis)
-
-        def procesar_cambios_tabla():
-            estado_editor = st.session_state.get("editor_tabla_general_select", {})
-            filas_editadas = estado_editor.get("edited_rows", {})
-            
-            for idx_fila, dict_cols in filas_editadas.items():
-                if "ESTADO - VALORIZACIÓN" in dict_cols:
-                    nuevo_val = str(dict_cols["ESTADO - VALORIZACIÓN"]).strip().upper()
-                    if nuevo_val == "SI":
-                        real_idx = df_dis.index[idx_fila] - 1
-                        st.session_state.df_data.at[real_idx, "OBSERVACIÓN"] = ""
 
         # Configuración de columnas con tipos 100% seguros
         config_columnas = {
@@ -405,17 +393,20 @@ if not df.empty:
         ed_df = st.data_editor(
             df_dis,
             column_config=config_columnas,
-            hide_index=False,
+            hide_index=True,
             use_container_width=True, 
-            key="editor_tabla_general_select",
-            on_change=procesar_cambios_tabla
+            key="editor_tabla_general_select"
         )
 
         if st.button("💾 Guardar Cambios", key="btn_guardar_gen"):
-            for idx in ed_df.index:
-                idx_original = idx - 1
+            # Mapeo exacto por índice original para evitar duplicaciones al guardar grupos filtrados
+            for real_idx, row in ed_df.iterrows():
                 for col in COLUMNAS_EXCEL:
-                    st.session_state.df_data.at[idx_original, col] = ed_df.at[idx, col]
+                    st.session_state.df_data.at[real_idx, col] = row[col]
+
+                # Limpieza automatizada de la observación si cambia a SI
+                if str(row["ESTADO - VALORIZACIÓN"]).strip().upper() == "SI":
+                    st.session_state.df_data.at[real_idx, "OBSERVACIÓN"] = ""
 
             st.session_state.df_data = limpiar_estado_y_responsable(st.session_state.df_data[COLUMNAS_EXCEL])
             guardar_datos(st.session_state.df_data)
