@@ -25,7 +25,7 @@ st.markdown(
         --secondary-navy: #1A3E68;
         --gold-accent: #D4AF37;
         --bg-card: #FFFFFF;
-        --border-color: #E2E8F0;
+        --border-color: #CBD5E1;
         --text-main: #1E293B;
         --text-sub: #64748B;
     }
@@ -38,15 +38,15 @@ st.markdown(
     /* Banner Superior */
     .header-banner {
         background: linear-gradient(135deg, #0E2A47 0%, #1A3E68 100%);
-        padding: 20px 28px;
-        border-radius: 12px;
+        padding: 18px 25px;
+        border-radius: 10px;
         color: white;
         margin-bottom: 20px;
         box-shadow: 0 4px 12px rgba(14, 42, 71, 0.15);
         border-left: 6px solid #D4AF37;
     }
     .header-title {
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 700;
         letter-spacing: 0.5px;
         margin: 0;
@@ -59,35 +59,50 @@ st.markdown(
         font-weight: 400;
     }
 
-    /* Estilo de Tarjetas KPI / Botones de Navegación Superior */
+    /* ESTILO UNIFICADO DE BOTONES / TARJETAS SUPERIORES */
     div[data-testid="column"] div.stButton > button {
         width: 100% !important;
+        height: 78px !important;
+        min-height: 78px !important;
+        max-height: 78px !important;
         background-color: #FFFFFF !important;
-        border: 1px solid #E2E8F0 !important;
+        border: 1px solid #CBD5E1 !important;
         border-radius: 8px !important;
-        padding: 6px 2px !important;
-        text-align: center !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03) !important;
+        padding: 4px 2px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
         transition: all 0.2s ease-in-out !important;
-        min-height: 82px !important;
-        white-space: pre-wrap !important;
-        line-height: 1.2 !important;
+        overflow: hidden !important;
     }
     
     div[data-testid="column"] div.stButton > button:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
         border-color: #0E2A47 !important;
     }
 
-    /* Estilo activo para el botón de la pestaña seleccionada */
-    div[data-testid="column"] div.stButton > button:focus,
-    div[data-testid="column"] div.stButton > button:active {
-        background-color: #F1F5F9 !important;
-        border-color: #0E2A47 !important;
+    /* Formato del texto interno de la tarjeta */
+    .kpi-title {
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        color: #475569 !important;
+        text-transform: uppercase;
+        line-height: 1.1 !important;
+        text-align: center;
+        margin-bottom: 2px;
+    }
+    .kpi-value {
+        font-size: 17px !important;
+        font-weight: 700 !important;
+        color: #0F172A !important;
+        line-height: 1.1 !important;
+        text-align: center;
     }
 
-    /* Bordes coloridos superiores en las columnas de KPIs */
+    /* Bordes coloridos superiores de KPIs */
     .kpi-box-blue { border-top: 4px solid #0E2A47 !important; border-radius: 8px 8px 0 0; }
     .kpi-box-orange { border-top: 4px solid #F59E0B !important; border-radius: 8px 8px 0 0; }
     .kpi-box-green { border-top: 4px solid #10B981 !important; border-radius: 8px 8px 0 0; }
@@ -99,6 +114,20 @@ st.markdown(
     .kpi-box-cyan { border-top: 4px solid #06B6D4 !important; border-radius: 8px 8px 0 0; }
     .kpi-box-gold { border-top: 4px solid #D4AF37 !important; border-radius: 8px 8px 0 0; }
     .kpi-box-slate { border-top: 4px solid #64748B !important; border-radius: 8px 8px 0 0; }
+
+    /* ESTILO DINÁMICO DE SELECCIÓN ACTIVA */
+    div.active-card div.stButton > button {
+        background-color: #F1F5F9 !important;
+        border: 2px solid #0E2A47 !important;
+        box-shadow: 0 0 8px rgba(14, 42, 71, 0.25) !important;
+    }
+    div.active-card .kpi-title {
+        color: #0E2A47 !important;
+        font-weight: 700 !important;
+    }
+    div.active-card .kpi-value {
+        color: #0E2A47 !important;
+    }
 
     /* Tabla y data editor */
     .stDataFrame, div[data-testid="stDataEditor"] {
@@ -145,7 +174,6 @@ ORDEN_MESES = [
     "DICIEMBRE",
 ]
 
-# Estado de pestaña activa por defecto
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "📋 Tabla General"
 
@@ -162,12 +190,6 @@ def texto_normalizado(texto):
         "Ú": "U",
         "Ü": "U",
         "Ñ": "N",
-        "Ã\x81": "A",
-        "Ã\x89": "E",
-        "Ã\x8d": "I",
-        "Ã\x93": "O",
-        "Ã\x9a": "U",
-        "Ã\x91": "N",
     }
     for orig, repl in replacements.items():
         t = t.replace(orig, repl)
@@ -264,7 +286,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- GESTIÓN DE DATOS Y RESPALDOS ---
+# --- GESTIÓN DE DATOS ---
 with st.expander(
     "⚙️ **Gestión de Datos: Cargar / Restaurar Excel & Descargar Respaldo**",
     expanded=False,
@@ -440,7 +462,7 @@ if not df.empty:
     tot_val = sum(dict_t3_val.values())
     tot_pen = sum(dict_t3_pen.values())
 
-    # --- BARRA NAVEGADORA ÚNICA DE 11 TARJETAS KPIS SUPERIORES ---
+    # --- NAVEGACIÓN SUPERIOR CON HOMOGENEIDAD Y ESTADO ACTIVO ---
     cols = st.columns(11)
 
     kpis = [
@@ -458,19 +480,24 @@ if not df.empty:
     ]
 
     for col, titulo, valor, clase_borde, target_tab in kpis:
+        is_active = (st.session_state.active_tab == target_tab)
+        active_class = "active-card" if is_active else ""
+        
         with col:
-            st.markdown(f'<div class="{clase_borde}"></div>', unsafe_allow_html=True)
-            # Formato de etiqueta claro y limpio sin etiquetas HTML expuestas
-            label_texto = f"{titulo}\n{valor}"
-            if st.button(label_texto, key=f"nav_btn_{titulo}"):
+            st.markdown(f'<div class="{active_class}"><div class="{clase_borde}"></div></div>', unsafe_allow_html=True)
+            if is_active:
+                st.markdown('<div class="active-card">', unsafe_allow_html=True)
+                
+            if st.button(f"{titulo}\n\n{valor}", key=f"nav_btn_{titulo}"):
                 st.session_state.active_tab = target_tab
                 st.rerun()
+                
+            if is_active:
+                st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
-    # --- CONTENIDO DE CADA PESTAÑA SELECCIONADA ---
-    
-    # 1. TABLA GENERAL
+    # --- PESTAÑAS Y SECCIONES ---
     if st.session_state.active_tab == "📋 Tabla General":
         st.markdown("#### **TABLA GENERAL DE CONTROL DE INFORMES**")
 
@@ -543,7 +570,6 @@ if not df.empty:
             st.success("¡Datos guardados correctamente!")
             st.rerun()
 
-    # 2. PENDIENTES DE ASIGNACIÓN
     elif st.session_state.active_tab == "📋 Pend. Asignar Informe":
         st.markdown("#### **DETALLE DE INFORMES PENDIENTES DE ASIGNAR INFORME**")
         if not df_pend_asignacion.empty:
@@ -581,7 +607,6 @@ if not df.empty:
         else:
             st.info("No hay informes pendientes a la espera de asignar encargado.")
 
-    # 3. INFORMES EN PROCESO
     elif st.session_state.active_tab == "🔄 En Proceso":
         st.markdown("#### **DETALLE DE INFORMES EN PROCESO**")
         if not df_en_proceso.empty:
@@ -619,7 +644,6 @@ if not df.empty:
         else:
             st.info("No hay informes registrados en proceso.")
 
-    # 4. PENDIENTES DE COMPLETAR INSPECCIÓN
     elif st.session_state.active_tab == "⏳ Pend. Inspección":
         st.markdown(
             "#### **DETALLE DE INFORMES PENDIENTES COMPLETAR INSPECCIÓN**"
@@ -659,7 +683,6 @@ if not df.empty:
         else:
             st.info("No hay informes pendientes de completar inspección.")
 
-    # 5. REVISIÓN FIABILIDAD
     elif st.session_state.active_tab == "🔍 Rev. Fiabilidad":
         st.markdown("#### **DETALLE DE INFORMES EN REVISIÓN FIABILIDAD**")
         df_fiab = df_activos[
@@ -686,7 +709,6 @@ if not df.empty:
         else:
             st.info("No hay informes registrados en revisión por fiabilidad.")
 
-    # 6. PENDIENTE REVISIÓN ESPECIALISTA
     elif st.session_state.active_tab == "👨‍🔬 Pend. Rev. Especialista":
         st.markdown(
             "#### **DETALLE DE INFORMES PENDIENTES REVISIÓN DEL ESPECIALISTA**"
@@ -718,7 +740,6 @@ if not df.empty:
                 " especialista."
             )
 
-    # 7. REVISIÓN POR EL ESPECIALISTA
     elif st.session_state.active_tab == "🔬 Rev. por Especialista":
         st.markdown(
             "#### **DETALLE DE INFORMES EN REVISIÓN POR EL ESPECIALISTA**"
@@ -749,7 +770,6 @@ if not df.empty:
                 "No hay informes registrados con la observación de revisión por el especialista."
             )
 
-    # 8. CORRECCIÓN PSAIM
     elif st.session_state.active_tab == "🛠️ Correc. PSAIM":
         st.markdown("#### **DETALLE DE INFORMES EN CORRECCIÓN PSAIM**")
         if not df_psaim_det.empty:
@@ -770,7 +790,6 @@ if not df.empty:
         else:
             st.info("No hay informes registrados en corrección PSAIM.")
 
-    # 9. RESUMEN POR MES (T3)
     elif st.session_state.active_tab == "📅 Resumen Mes (T3)":
         st.markdown("#### **RESUMEN DE VALORIZACIÓN POR MES**")
         meses_unicos = list(
@@ -829,7 +848,6 @@ if not df.empty:
                 use_container_width=True,
             )
 
-    # 10. RESUMEN GENERAL DE OBSERVACIONES (T5)
     elif st.session_state.active_tab == "📌 Resumen Obs (T5)":
         st.markdown("#### **RESUMEN GENERAL DE OBSERVACIONES PENDIENTES**")
         filas_t5 = [
