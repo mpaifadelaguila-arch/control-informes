@@ -19,12 +19,14 @@ ORDEN_MESES = [
 
 # --- FUNCIONES AUXILIARES DE LIMPIEZA Y FORMATEO ---
 def texto_normalizado(val):
+    """ Normaliza texto para ignorar tildes, mayúsculas y espacios extra """
     if pd.isna(val):
         return ""
     txt = str(val).strip().upper()
     return ''.join(c for c in unicodedata.normalize('NFD', txt) if unicodedata.category(c) != 'Mn')
 
 def formatear_entero_limpio(val):
+    """ Formatea valores numéricos eliminando decimales innecesarios (ej. 10044162.0 -> 10044162) """
     if pd.isna(val):
         return ""
     try:
@@ -36,6 +38,7 @@ def formatear_entero_limpio(val):
         return str(val).strip()
 
 def limpiar_estado_y_responsable(df):
+    """ Aplica reglas de negocio al cambiar el estado de valorización """
     df_clean = df.copy()
     for idx, row in df_clean.iterrows():
         est_val = str(row["ESTADO - VALORIZACIÓN"]).strip().upper()
@@ -45,31 +48,31 @@ def limpiar_estado_y_responsable(df):
             df_clean.at[idx, "OBSERVACIÓN"] = ""
     return df_clean
 
-# --- GESTIÓN DE DATOS Y ENTORNO ---
+# --- MANEJO DE ESTADO PERSISTENTE (SESSION STATE) ---
 def cargar_datos():
     if "df_data" not in st.session_state:
-        # Estructura inicial de ejemplo (reemplazar con lectura desde tu Excel o BD)
+        # Estructura inicial de prueba. Reemplazar por lectura de Excel (pd.read_excel) o DB
         datos_ejemplo = {
-            "ITEM POR MES": [1, 2, 3],
-            "IT2": [101, 102, 103],
-            "UNIDAD": ["U-01", "U-01", "U-02"],
-            "MES": ["ENERO", "ENERO", "FEBRERO"],
-            "LINEAS": ["48-AMINA_POBRE-GT-001", "48-AMINA_POBRE-GT-001", "32-GAS-002"],
-            "CODIGO DE INFORME": ["ADEMINSAC-FIAB-RLP-379-2026", "ADEMINSAC-FIAB-RLP-379-2026", "ADEMINSAC-FIAB-RLP-380-2026"],
-            "GRUPO DE TUBERÍAS": ["48-AMINA_POBRE-GT-001", "48-AMINA_POBRE-GT-001", "32-GAS-002"],
-            "SAP": [10044162, 10044164, 10044234],
-            "ALCANCE DEL SERVICIO": ["LINEAS", "VT-CIRCUITOS - PENDIENTE INSPECCION", "VT-CIRCUITOS - INSPECCION COMPLEMENTARIA"],
-            "ESTADO - ELABORACIÓN DE INFORME": ["Finalizado", "En proceso", "Pendiente"],
-            "RESPONSABLE": ["Julio Ponce / Omar", "Julio Ponce / Omar", "Sin Asignar"],
-            "OBSERVACIÓN": ["", "Revisión técnica", ""],
-            "ESTADO - VALORIZACIÓN": ["SI", "Pendiente - valorización", "Pendiente - valorización"]
+            "ITEM POR MES": [1, 2, 3, 4],
+            "IT2": [101, 102, 103, 104],
+            "UNIDAD": ["U-01", "U-01", "U-02", "U-02"],
+            "MES": ["ENERO", "ENERO", "FEBRERO", "FEBRERO"],
+            "LINEAS": ["48-AMINA_POBRE-GT-001", "48-AMINA_POBRE-GT-001", "32-GAS-002", "32-GAS-003"],
+            "CODIGO DE INFORME": ["ADEMINSAC-FIAB-RLP-379-2026", "ADEMINSAC-FIAB-RLP-379-2026", "ADEMINSAC-FIAB-RLP-380-2026", "ADEMINSAC-FIAB-RLP-381-2026"],
+            "GRUPO DE TUBERÍAS": ["48-AMINA_POBRE-GT-001", "48-AMINA_POBRE-GT-001", "32-GAS-002", "32-GAS-003"],
+            "SAP": [10044162, 10044164, 10044234, 10044235],
+            "ALCANCE DEL SERVICIO": ["LINEAS", "VT-CIRCUITOS - PENDIENTE INSPECCION", "VT-CIRCUITOS - INSPECCION COMPLEMENTARIA", "VT-CIRCUITOS"],
+            "ESTADO - ELABORACIÓN DE INFORME": ["Finalizado", "En proceso", "Pendiente", "Finalizado"],
+            "RESPONSABLE": ["Julio Ponce / Omar", "Julio Ponce / Omar", "Sin Asignar", "Julio Ponce / Omar"],
+            "OBSERVACIÓN": ["", "Revisión técnica", "", ""],
+            "ESTADO - VALORIZACIÓN": ["SI", "Pendiente - valorización", "Pendiente - valorización", "SI"]
         }
         st.session_state.df_data = pd.DataFrame(datos_ejemplo)
 
 def guardar_datos(df):
     st.session_state.df_data = df
 
-# Carga de datos
+# Inicializar datos en la aplicación
 cargar_datos()
 df = st.session_state.df_data
 # --- INTERFAZ DE USUARIO CON PESTAÑAS ---
@@ -103,7 +106,7 @@ with t_gen:
     # Copia de trabajo para la vista
     df_dis = df[COLUMNAS_EXCEL].copy()
     
-    # Formateo de números enteros
+    # Formateo de números enteros en la visualización
     for column in df_dis.columns:
         df_dis[column] = df_dis[column].apply(formatear_entero_limpio)
 
@@ -141,7 +144,7 @@ with t_gen:
         )
     }
 
-    # Lógica de colores según condiciones
+    # Lógica de asignación de colores por fila según los criterios requeridos
     def resaltar_filas(row):
         val_estado = str(row.get("ESTADO - VALORIZACIÓN", "")).strip().upper()
         val_alcance = texto_normalizado(row.get("ALCANCE DEL SERVICIO", ""))
@@ -164,11 +167,11 @@ with t_gen:
 
         return [""] * len(row)
 
-    # Objeto Styler para aplicar estilos
+    # Objeto Styler para aplicar el coloreado condicional
     df_styled = df_dis.style.apply(resaltar_filas, axis=1)
 
     if modo_edicion:
-        # VISTA 1: Editor de datos sin visualización de colores
+        # VISTA 1: Editor interactivo (Desactiva el estilo CSS visual para habilitar la edición de celdas)
         ed_df = st.data_editor(
             df_dis,
             column_config=config_columnas,
@@ -190,7 +193,7 @@ with t_gen:
             st.success("Cambios guardados con éxito en la base de datos.")
             st.rerun()
     else:
-        # VISTA 2: Renderizador visual con resaltado de colores garantizado
+        # VISTA 2: Vista de reporte con resaltado de colores garantizado mediante st.dataframe y Pandas Styler
         st.dataframe(
             df_styled,
             column_config=config_columnas,
