@@ -436,14 +436,47 @@ if not df.empty:
 
     with t_psaim:
         if not df_psaim_det.empty:
-            tg_p = df_psaim_det.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False).agg({"LINEAS": "count"})
-            st.dataframe(preparar_tabla_con_indice_1(tg_p), use_container_width=True)
-            c1, c2, c3 = st.columns([2, 2, 1])
-            cod_sp = c1.selectbox("Código:", tg_p["CODIGO DE INFORME"].unique(), key="spc_p")
-            resp_sp = c2.selectbox("Revisor PSAIM:", REVISORES_PSAIM_LISTA, key="spr_p")
-            if c3.button("🟢 PSAIM Corregido", key="b_psaim"):
-                ok, m = registrar_solicitud("CORRECCIÓN PSAIM", cod_sp, tg_p[tg_p["CODIGO DE INFORME"] == cod_sp]["GRUPO DE TUBERÍAS"].values[0], resp_sp)
-                st.success(m) if ok else st.warning(m)
+            # Filtrar estrictamente solo por los registros cuyo ALCANCE DEL SERVICIO sea exactamente "LINEAS"
+            df_psaim_lineas = df_psaim_det[
+                df_psaim_det["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == "LINEAS"
+            ].copy()
+
+            if not df_psaim_lineas.empty:
+                cols_psaim = [
+                    "MES", 
+                    "ESTADO - ELABORACIÓN DE INFORME", 
+                    "RESPONSABLE", 
+                    "ITEM POR MES", 
+                    "IT2", 
+                    "LINEAS", 
+                    "GRUPO DE TUBERÍAS", 
+                    "CODIGO DE INFORME", 
+                    "OBSERVACIÓN"
+                ]
+                
+                cols_disponibles = [c for c in cols_psaim if c in df_psaim_lineas.columns]
+                df_psaim_vista = df_psaim_lineas[cols_disponibles]
+
+                st.dataframe(preparar_tabla_con_indice_1(df_psaim_vista), use_container_width=True)
+
+                c1, c2, c3 = st.columns([2, 2, 1])
+                codigos_unicos = [c for c in df_psaim_vista["CODIGO DE INFORME"].dropna().unique() if str(c).strip()]
+                
+                if codigos_unicos:
+                    cod_sp = c1.selectbox("Código:", codigos_unicos, key="spc_p")
+                    resp_sp = c2.selectbox("Revisor PSAIM:", REVISORES_PSAIM_LISTA, key="spr_p")
+                    
+                    if c3.button("🟢 PSAIM Corregido", key="b_psaim"):
+                        grupo_asociado = df_psaim_vista[df_psaim_vista["CODIGO DE INFORME"] == cod_sp]["GRUPO DE TUBERÍAS"].values[0]
+                        ok, m = registrar_solicitud("CORRECCIÓN PSAIM", cod_sp, grupo_asociado, resp_sp)
+                        if ok:
+                            st.success(m)
+                        else:
+                            st.warning(m)
+            else:
+                st.info("No hay registros pendientes de corrección PSAIM con alcance 'LINEAS'.")
+        else:
+            st.info("No hay informes pendientes de corrección PSAIM.")
 
     with t_t3:
         m_u = list(set(list(dict_t3_val.keys()) + list(dict_t3_pen.keys())))
