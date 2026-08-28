@@ -336,33 +336,22 @@ if not df.empty:
             q = texto_normalizado(txt_b)
             df_dis = df_dis[df_dis.apply(lambda r: q in texto_normalizado(r["LINEAS"]) or q in texto_normalizado(r["SAP"]) or q in texto_normalizado(r["CODIGO DE INFORME"]) or q in texto_normalizado(r["GRUPO DE TUBERÍAS"]), axis=1)]
         
-        # Homogeneización para evitar inconsistencias en el menú desplegable
         df_dis["ESTADO - VALORIZACIÓN"] = df_dis["ESTADO - VALORIZACIÓN"].apply(
             lambda x: "SI" if texto_normalizado(x) == "SI" else "Pendiente - valorización"
         )
 
         df_dis = preparar_tabla_con_indice_1(df_dis)
 
-        # -----------------------------------------------------------------------------
-        # INTERCEPTOR DE CAMBIOS EN TIEMPO REAL (Limpia OBSERVACIÓN al seleccionar "SI")
-        # -----------------------------------------------------------------------------
-        if "editor_tabla_general_select" in st.session_state:
-            cambios = st.session_state["editor_tabla_general_select"].get("edited_rows", {})
-            se_requiere_rerun = False
-            for idx_fila, dict_cols in cambios.items():
-                if "ESTADO - VALORIZACIÓN" in dict_cols:
-                    nuevo_valor = str(dict_cols["ESTADO - VALORIZACIÓN"]).strip().upper()
-                    if nuevo_valor == "SI":
-                        real_idx = df_dis.index[idx_fila]
-                        if str(df_dis.loc[real_idx, "OBSERVACIÓN"]).strip() != "":
-                            # Limpieza inmediata tanto en la sesión principal como en la vista
-                            df.loc[real_idx - 1, "OBSERVACIÓN"] = ""
-                            df_dis.loc[real_idx, "OBSERVACIÓN"] = ""
-                            se_requiere_rerun = True
+        def procesar_cambios_tabla():
+            estado_editor = st.session_state.get("editor_tabla_general_select", {})
+            filas_editadas = estado_editor.get("edited_rows", {})
             
-            if se_requiere_rerun:
-                st.session_state.df_data = df
-                st.rerun()
+            for idx_fila, dict_cols in filas_editadas.items():
+                if "ESTADO - VALORIZACIÓN" in dict_cols:
+                    nuevo_val = str(dict_cols["ESTADO - VALORIZACIÓN"]).strip().upper()
+                    if nuevo_val == "SI":
+                        real_idx = df_dis.index[idx_fila] - 1
+                        st.session_state.df_data.at[real_idx, "OBSERVACIÓN"] = ""
 
         config_columnas = {
             "ESTADO - VALORIZACIÓN": st.column_config.SelectboxColumn(
@@ -378,17 +367,17 @@ if not df.empty:
             column_config=config_columnas,
             hide_index=False,
             use_container_width=True, 
-            key="editor_tabla_general_select"
+            key="editor_tabla_general_select",
+            on_change=procesar_cambios_tabla
         )
 
         if st.button("💾 Guardar Cambios", key="btn_guardar_gen"):
-            # Mapeo de índices para no perder posiciones al guardar datos filtrados
             for idx in ed_df.index:
                 idx_original = idx - 1
                 for col in COLUMNAS_EXCEL:
-                    df.at[idx_original, col] = ed_df.at[idx, col]
+                    st.session_state.df_data.at[idx_original, col] = ed_df.at[idx, col]
 
-            st.session_state.df_data = limpiar_estado_y_responsable(df[COLUMNAS_EXCEL])
+            st.session_state.df_data = limpiar_estado_y_responsable(st.session_state.df_data[COLUMNAS_EXCEL])
             guardar_datos(st.session_state.df_data)
             st.success("Cambios guardados con éxito en la base de datos.")
             st.rerun()
