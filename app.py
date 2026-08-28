@@ -10,133 +10,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# --- ESTILOS CSS GENERALES Y PERSONALIZACIÓN DE TARJETAS/BOTONES ---
-st.markdown(
-    """
-    <style>
-    /* Ocultar elementos sobrantes de Streamlit */
-    footer {visibility: hidden;}
-    .stAppDeployButton {display:none !important;}
-    header {visibility: hidden !important;}
-    
-    .stApp {
-        background-color: #F8FAFC;
-    }
-
-    /* Ajuste de márgenes entre columnas */
-    div[data-testid="column"] {
-        padding: 0px 3px !important;
-    }
-
-    /* Banner Superior */
-    .header-banner {
-        background: linear-gradient(135deg, #0E2A47 0%, #1A3E68 100%);
-        padding: 18px 25px;
-        border-radius: 10px;
-        color: white;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 12px rgba(14, 42, 71, 0.15);
-        border-left: 6px solid #D4AF37;
-    }
-    .header-title {
-        font-size: 22px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        margin: 0;
-        color: #FFFFFF;
-    }
-    .header-subtitle {
-        font-size: 13px;
-        color: #CBD5E1;
-        margin-top: 4px;
-        font-weight: 400;
-    }
-
-    /* ESTILO BASE DE LAS TARJETAS / BOTONES */
-    div[data-testid="column"] div.stButton > button {
-        width: 100% !important;
-        height: 85px !important;
-        min-height: 85px !important;
-        max-height: 85px !important;
-        border-radius: 8px !important;
-        padding: 8px 4px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        align-items: center !important;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06) !important;
-        transition: all 0.25s ease-in-out !important;
-        white-space: pre-wrap !important;
-        font-weight: 600 !important;
-        font-size: 12px !important;
-        border-bottom: 1px solid #E2E8F0 !important;
-        border-left: 1px solid #E2E8F0 !important;
-        border-right: 1px solid #E2E8F0 !important;
-    }
-    
-    div[data-testid="column"] div.stButton > button:hover {
-        transform: translateY(-3px) !important;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12) !important;
-    }
-
-    /* ESTILOS ESPECÍFICOS POR CADA BOTÓN (INACTIVO vs ACTIVO) */
-    
-    /* 1. Tabla General */
-    div.st-key-nav_TABLA_GENERAL > button { border-top: 5px solid #0E2A47 !important; background-color: #FFFFFF !important; color: #0E2A47 !important; }
-    div.st-key-nav_TABLA_GENERAL.kpi-active > button { background-color: #0E2A47 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(14, 42, 71, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* 2. Pend. Totales */
-    div.st-key-nav_PEND_TOTALES > button { border-top: 5px solid #F59E0B !important; background-color: #FFFBEB !important; color: #B45309 !important; }
-    div.st-key-nav_PEND_TOTALES.kpi-active > button { background-color: #F59E0B !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* 3. Pend. Asignar */
-    div.st-key-nav_PEND_ASIGNAR > button { border-top: 5px solid #EC4899 !important; background-color: #FDF2F8 !important; color: #BE185D !important; }
-    div.st-key-nav_PEND_ASIGNAR.kpi-active > button { background-color: #EC4899 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* 4. En Proceso */
-    div.st-key-nav_EN_PROCESO > button { border-top: 5px solid #8B5CF6 !important; background-color: #F5F3FF !important; color: #6D28D9 !important; }
-    div.st-key-nav_EN_PROCESO.kpi-active > button { background-color: #8B5CF6 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* 5. Pend. Inspección */
-    div.st-key-nav_PEND_INSPECCION > button { border-top: 5px solid #EF4444 !important; background-color: #FEF2F2 !important; color: #B91C1C !important; }
-    div.st-key-nav_PEND_INSPECCION.kpi-active > button { background-color: #EF4444 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* 6. Rev. Fiabilidad */
-    div.st-key-nav_REV_FIABILIDAD > button { border-top: 5px solid #14B8A6 !important; background-color: #F0FDFA !important; color: #0F766E !important; }
-    div.st-key-nav_REV_FIABILIDAD.kpi-active > button { background-color: #14B8A6 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(20, 184, 166, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* 7. Pend. Rev. Esp. */
-    div.st-key-nav_PEND_REV_ESP > button { border-top: 5px solid #6366F1 !important; background-color: #EEF2FF !important; color: #4338CA !important; }
-    div.st-key-nav_PEND_REV_ESP.kpi-active > button { background-color: #6366F1 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* 8. Rev. Por Esp. */
-    div.st-key-nav_REV_POR_ESP > button { border-top: 5px solid #06B6D4 !important; background-color: #ECFEFF !important; color: #0E7490 !important; }
-    div.st-key-nav_REV_POR_ESP.kpi-active > button { background-color: #06B6D4 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(6, 182, 212, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* 9. Correc. PSAIM */
-    div.st-key-nav_CORREC_PSAIM > button { border-top: 5px solid #D4AF37 !important; background-color: #FEFCE8 !important; color: #854D0E !important; }
-    div.st-key-nav_CORREC_PSAIM.kpi-active > button { background-color: #D4AF37 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* 10. Valorizados (SI) */
-    div.st-key-nav_VALORIZADOS > button { border-top: 5px solid #10B981 !important; background-color: #ECFDF5 !important; color: #047857 !important; }
-    div.st-key-nav_VALORIZADOS.kpi-active > button { background-color: #10B981 !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* 11. Resumen Obs (T5) */
-    div.st-key-nav_RESUMEN_OBS > button { border-top: 5px solid #64748B !important; background-color: #F8FAFC !important; color: #334155 !important; }
-    div.st-key-nav_RESUMEN_OBS.kpi-active > button { background-color: #64748B !important; color: #FFFFFF !important; box-shadow: 0 4px 14px rgba(100, 116, 139, 0.4) !important; transform: translateY(-2px) !important; }
-
-    /* Tabla y data editor */
-    .stDataFrame, div[data-testid="stDataEditor"] {
-        background-color: #FFFFFF !important;
-        border-radius: 8px;
-        border: 1px solid #E2E8F0;
-        padding: 4px;
-    }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
-
 DB_FILE = "database_informes.json"
 
 COLUMNAS_EXCEL = [
@@ -172,6 +45,96 @@ ORDEN_MESES = [
 
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "📋 Tabla General"
+
+# --- INYECCIÓN DE ESTILOS CSS CON COLORES VISIBLES Y RESALTADO ACTIVO ---
+st.markdown(
+    """
+    <style>
+    footer {visibility: hidden;}
+    .stAppDeployButton {display:none !important;}
+    header {visibility: hidden !important;}
+    
+    .stApp {
+        background-color: #F1F5F9;
+    }
+
+    div[data-testid="column"] {
+        padding: 0px 2px !important;
+    }
+
+    .header-banner {
+        background: linear-gradient(135deg, #0E2A47 0%, #1A3E68 100%);
+        padding: 18px 25px;
+        border-radius: 10px;
+        color: white;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(14, 42, 71, 0.15);
+        border-left: 6px solid #D4AF37;
+    }
+    .header-title {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        margin: 0;
+        color: #FFFFFF;
+    }
+    .header-subtitle {
+        font-size: 13px;
+        color: #CBD5E1;
+        margin-top: 4px;
+        font-weight: 400;
+    }
+
+    /* ESTILO GENERAL DE LOS BOTONES KPI */
+    div[data-testid="column"] div.stButton > button {
+        width: 100% !important;
+        height: 80px !important;
+        min-height: 80px !important;
+        max-height: 80px !important;
+        border-radius: 8px !important;
+        padding: 6px 2px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
+        transition: all 0.2s ease-in-out !important;
+        white-space: pre-wrap !important;
+        font-weight: 700 !important;
+        font-size: 11px !important;
+    }
+
+    /* COLORES INACTIVOS INDIVIDUALES */
+    div.st-key-nav_TABLA_GENERAL > button { background-color: #E2E8F0 !important; color: #1E293B !important; border: 1px solid #CBD5E1 !important; }
+    div.st-key-nav_PEND_TOTALES > button { background-color: #FEF3C7 !important; color: #92400E !important; border: 1px solid #FCD34D !important; }
+    div.st-key-nav_PEND_ASIGNAR > button { background-color: #FCE7F3 !important; color: #9D174D !important; border: 1px solid #FBCFE8 !important; }
+    div.st-key-nav_EN_PROCESO > button { background-color: #EDE9FE !important; color: #5B21B6 !important; border: 1px solid #DDD6FE !important; }
+    div.st-key-nav_PEND_INSPECCION > button { background-color: #FEE2E2 !important; color: #991B1B !important; border: 1px solid #FCA5A5 !important; }
+    div.st-key-nav_REV_FIABILIDAD > button { background-color: #CCFBF1 !important; color: #115E59 !important; border: 1px solid #99F6E4 !important; }
+    div.st-key-nav_PEND_REV_ESP > button { background-color: #E0E7FF !important; color: #3730A3 !important; border: 1px solid #C7D2FE !important; }
+    div.st-key-nav_REV_POR_ESP > button { background-color: #CFFAFE !important; color: #155E75 !important; border: 1px solid #A5F3FC !important; }
+    div.st-key-nav_CORREC_PSAIM > button { background-color: #FEF9C3 !important; color: #854D0E !important; border: 1px solid #FDE047 !important; }
+    div.st-key-nav_VALORIZADOS > button { background-color: #D1FAE5 !important; color: #065F46 !important; border: 1px solid #A7F3D0 !important; }
+    div.st-key-nav_RESUMEN_OBS > button { background-color: #E2E8F0 !important; color: #334155 !important; border: 1px solid #CBD5E1 !important; }
+
+    /* HOVER EFFECT */
+    div[data-testid="column"] div.stButton > button:hover {
+        transform: translateY(-2px) !important;
+        filter: brightness(0.95) !important;
+    }
+
+    /* ESTILO PARA EL BOTÓN SELECCIONADO (ACTIVO) */
+    .kpi-active > button {
+        background-color: #0E2A47 !important;
+        color: #FFFFFF !important;
+        border: 2px solid #D4AF37 !important;
+        box-shadow: 0 4px 10px rgba(14, 42, 71, 0.5) !important;
+        transform: scale(1.03) !important;
+    }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
 
 
 def texto_normalizado(texto):
@@ -271,7 +234,6 @@ if "df_data" not in st.session_state:
 
 df = st.session_state.df_data
 
-# --- BANNER CORPORATIVO ---
 st.markdown(
     """
     <div class="header-banner">
@@ -281,70 +243,6 @@ st.markdown(
 """,
     unsafe_allow_html=True,
 )
-
-# --- GESTIÓN DE DATOS ---
-with st.expander(
-    "⚙️ **Gestión de Datos: Cargar / Restaurar Excel & Descargar Respaldo**",
-    expanded=False,
-):
-    col_carg, col_desc = st.columns(2)
-
-    with col_carg:
-        st.markdown("##### 📤 Cargar / Restaurar Base de Datos desde Excel")
-        archivo_excel = st.file_uploader(
-            "Seleccionar archivo Excel (.xlsx / .xlsm):",
-            type=["xlsx", "xlsm"],
-            key="uploader_main",
-        )
-        if archivo_excel is not None:
-            if st.button("🔄 Reemplazar Base de Datos con este Excel"):
-                try:
-                    excel_file = pd.ExcelFile(archivo_excel)
-                    hojas = excel_file.sheet_names
-                    hoja_objetivo = "CONTROL" if "CONTROL" in hojas else hojas[0]
-
-                    df_cargado = pd.read_excel(
-                        excel_file, sheet_name=hoja_objetivo
-                    )
-
-                    mapeo = {}
-                    for col_cargada in df_cargado.columns:
-                        for col_real in COLUMNAS_EXCEL:
-                            if (
-                                str(col_cargada).strip().upper()
-                                == col_real.upper()
-                            ):
-                                mapeo[col_cargada] = col_real
-                    df_cargado = df_cargado.rename(columns=mapeo)
-
-                    for col in COLUMNAS_EXCEL:
-                        if col not in df_cargado.columns:
-                            df_cargado[col] = ""
-
-                    df_cargado = limpiar_estado_y_responsable(df_cargado)
-                    st.session_state.df_data = df_cargado[COLUMNAS_EXCEL]
-                    guardar_datos(st.session_state.df_data)
-                    st.success("¡Base de datos cargada correctamente!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error al procesar el archivo Excel: {e}")
-
-    with col_desc:
-        st.markdown("##### 📥 Descargar Respaldo de Datos Actuales")
-        if not df.empty:
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-                df.to_excel(writer, index=False, sheet_name="CONTROL")
-            buffer.seek(0)
-
-            st.download_button(
-                label="💾 Descargar Copia en Excel (.xlsx)",
-                data=buffer,
-                file_name="Respaldo_Control_Informes.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-
-st.markdown("<br>", unsafe_allow_html=True)
 
 if not df.empty:
     df_activos = df[
@@ -363,7 +261,6 @@ if not df.empty:
 
     mask_psaim = df_activos["OBSERVACIÓN"].apply(es_correccion_psaim)
     mask_pend_insp = df_activos.apply(es_pendiente_inspeccion_fn, axis=1)
-
     mask_pend_elab = df_activos[
         "ESTADO - ELABORACIÓN DE INFORME"
     ].apply(texto_normalizado).str.contains("PENDIENTE ELABORACION")
@@ -371,7 +268,6 @@ if not df.empty:
     df_psaim_det = df_activos[mask_psaim]
     df_pend_inspeccion = df_activos[mask_pend_insp]
     df_pend_asignacion = df_activos[mask_pend_elab]
-
     df_en_proceso = df_activos[
         df_activos["ESTADO - ELABORACIÓN DE INFORME"]
         .apply(texto_normalizado)
@@ -386,8 +282,8 @@ if not df.empty:
     dict_unicos = {}
     dict_psaim_unicos = set()
     dict_t3_val, dict_t3_pen = {}, {}
-    dict_t3_ademinsac, dict_t3_fiabilidad, dict_t3_psaim = {}, {}, {}
-    dict_t4, dict_t5 = {}, {}
+    dict_t3_ademinsac, dict_t3_fiabilidad = {}, {}
+    dict_t5 = {}
 
     cnt_revision_fiabilidad = 0
     cnt_pend_revision_especialista = 0
@@ -410,55 +306,31 @@ if not df.empty:
                 clave_psaim = f"{mes}|{cod}"
                 if clave_psaim not in dict_psaim_unicos:
                     dict_psaim_unicos.add(clave_psaim)
-                    dict_t3_psaim[mes] = dict_t3_psaim.get(mes, 0) + 1
 
             if clave_global not in dict_unicos:
                 dict_unicos[clave_global] = True
-
                 dict_t3_val.setdefault(mes, 0)
                 dict_t3_pen.setdefault(mes, 0)
-                dict_t3_ademinsac.setdefault(mes, 0)
-                dict_t3_fiabilidad.setdefault(mes, 0)
-
                 obs_norm = texto_normalizado(obs)
 
                 if estado_val == "SI":
                     dict_t3_val[mes] += 1
                 else:
                     dict_t3_pen[mes] += 1
-
-                    if (
-                        "INFORME (CARTA) ENTREGADO PARA SU REVISION - FIABILIDAD"
-                        in obs_norm
-                        or (
-                            "ENTREGADO PARA SU REVISION" in obs_norm
-                            and "FIABILIDAD" in obs_norm
-                        )
-                    ):
+                    if "FIABILIDAD" in obs_norm and "ENTREGADO PARA SU REVISION" in obs_norm:
                         cnt_revision_fiabilidad += 1
-
                     if "PENDIENTE REVISION POR EL ESPECIALISTA" in obs_norm:
                         cnt_pend_revision_especialista += 1
-
                     if ("REV. POR EL ESPECIALISTA" in obs_norm or "REVISION POR EL ESPECIALISTA" in obs_norm) and "PENDIENTE" not in obs_norm:
                         cnt_revision_por_especialista += 1
 
-                    if "ADEMINSAC" in obs_norm:
-                        dict_t3_ademinsac[mes] += 1
-                    else:
-                        dict_t3_fiabilidad[mes] += 1
-
                     obs_key = "(En blanco)" if obs == "" else obs
-                    dict_t4[f"{mes}|{obs_key}"] = (
-                        dict_t4.get(f"{mes}|{obs_key}", 0) + 1
-                    )
                     dict_t5[obs_key] = dict_t5.get(obs_key, 0) + 1
 
     tot_informes = len(dict_unicos)
     tot_val = sum(dict_t3_val.values())
     tot_pen = sum(dict_t3_pen.values())
 
-    # --- NAVEGACIÓN DE BOTONES / KPI CON RESALTADO ACTIVO ---
     cols = st.columns(11)
 
     kpis = [
@@ -470,18 +342,17 @@ if not df.empty:
         (cols[5], "🔍 REV. FIABILIDAD", cnt_revision_fiabilidad, "nav_REV_FIABILIDAD", "🔍 Rev. Fiabilidad"),
         (cols[6], "👨‍🔬 PEND. REV. ESP.", cnt_pend_revision_especialista, "nav_PEND_REV_ESP", "👨‍🔬 Pend. Rev. Especialista"),
         (cols[7], "🔬 REV. POR ESP.", cnt_revision_por_especialista, "nav_REV_POR_ESP", "🔬 Rev. por Especialista"),
-        (cols[8], "🛠️ CORREC. PSAIM", sum(dict_t3_psaim.values()), "nav_CORREC_PSAIM", "🛠️ Correc. PSAIM"),
-        (cols[9], "📅 VALORIZADOS (SI)", tot_val, "nav_VALORIZADOS", "📅 Resumen Mes (T3)"),
-        (cols[10], "📌 RESUMEN OBS (T5)", len(dict_t5), "nav_RESUMEN_OBS", "📌 Resumen Obs (T5)"),
+        (cols[8], "🛠️ CORREC. PSAIM", len(dict_psaim_unicos), "nav_CORREC_PSAIM", "🛠️ Correc. PSAIM"),
+        (cols[9], "📅 VALORIZADOS", tot_val, "nav_VALORIZADOS", "📅 Resumen Mes (T3)"),
+        (cols[10], "📌 RESUMEN OBS", len(dict_t5), "nav_RESUMEN_OBS", "📌 Resumen Obs (T5)"),
     ]
 
     for col, titulo, valor, key_btn, target_tab in kpis:
         is_active = (st.session_state.active_tab == target_tab)
-        # Inyectamos la clase de estado activo dinámicamente según la pestaña actual
         active_class = "kpi-active" if is_active else ""
         
         with col:
-            st.markdown(f'<div class="st-key-{key_btn} {active_class}">', unsafe_allow_html=True)
+            st.markdown(f'<div class="{active_class}">', unsafe_allow_html=True)
             if st.button(f"{titulo}\n\n{valor}", key=key_btn):
                 st.session_state.active_tab = target_tab
                 st.rerun()
@@ -489,380 +360,17 @@ if not df.empty:
 
     st.markdown("---")
 
-    # --- CONTENIDOS DE LAS PESTAÑAS ---
     if st.session_state.active_tab == "📋 Tabla General":
         st.markdown("#### **TABLA GENERAL DE CONTROL DE INFORMES**")
-
-        col_filtro_mes, col_busqueda = st.columns([1, 3])
-
-        meses_disponibles = ["Todos los meses"] + sorted(
-            [m for m in df["MES"].dropna().astype(str).str.strip().str.upper().unique() if m != ""],
-            key=lambda x: ORDEN_MESES.index(x) if x in ORDEN_MESES else 99
-        )
-
-        with col_filtro_mes:
-            mes_seleccionado = st.selectbox(
-                "📅 Filtrar por Mes:",
-                options=meses_disponibles,
-                index=0,
-            )
-
-        with col_busqueda:
-            busqueda_txt = st.text_input(
-                "🔍 Buscador Dinámico (Línea, SAP, Código o Grupo):",
-                value="",
-            )
-
-        df_general_display = df[COLUMNAS_EXCEL].copy()
-
-        if mes_seleccionado != "Todos los meses":
-            df_general_display = df_general_display[
-                df_general_display["MES"].astype(str).str.strip().str.upper() == mes_seleccionado
-            ]
-
-        if busqueda_txt.strip():
-            query_norm = texto_normalizado(busqueda_txt)
-
-            mask_lineas = df_general_display["LINEAS"].apply(texto_normalizado).str.contains(query_norm)
-            mask_sap = df_general_display["SAP"].apply(texto_normalizado).str.contains(query_norm)
-            mask_cod = df_general_display["CODIGO DE INFORME"].apply(texto_normalizado).str.contains(query_norm)
-            mask_grupo = df_general_display["GRUPO DE TUBERÍAS"].apply(texto_normalizado).str.contains(query_norm)
-
-            codigos_coincidentes = df_general_display[mask_cod]["CODIGO DE INFORME"].unique()
-            grupos_coincidentes = df_general_display[mask_grupo]["GRUPO DE TUBERÍAS"].unique()
-
-            mask_relacional = (
-                mask_lineas
-                | mask_sap
-                | df_general_display["CODIGO DE INFORME"].isin(codigos_coincidentes)
-                | df_general_display["GRUPO DE TUBERÍAS"].isin(grupos_coincidentes)
-            )
-
-            df_general_display = df_general_display[mask_relacional]
-
         edited_df = st.data_editor(
-            df_general_display,
+            df[COLUMNAS_EXCEL],
             num_rows="dynamic",
             use_container_width=True,
             key="editor_general",
-            column_config={
-                "OBSERVACIÓN": st.column_config.TextColumn(
-                    "OBSERVACIÓN",
-                    width="large",
-                )
-            },
         )
         if st.button("💾 Guardar Cambios"):
-            df_actualizado = df.copy()
-            df_actualizado.update(edited_df)
-            
-            cleaned_df = limpiar_estado_y_responsable(df_actualizado[COLUMNAS_EXCEL])
+            cleaned_df = limpiar_estado_y_responsable(edited_df)
             st.session_state.df_data = cleaned_df
             guardar_datos(cleaned_df)
             st.success("¡Datos guardados correctamente!")
             st.rerun()
-
-    elif st.session_state.active_tab == "📋 Pend. Asignar Informe":
-        st.markdown("#### **DETALLE DE INFORMES PENDIENTES DE ASIGNAR INFORME**")
-        if not df_pend_asignacion.empty:
-            df_asig_grouped = df_pend_asignacion.copy()
-            df_asig_grouped["CANT. LÍNEAS"] = 1
-            tabla_asig = (
-                df_asig_grouped.groupby(
-                    [
-                        "MES",
-                        "ESTADO - ELABORACIÓN DE INFORME",
-                        "RESPONSABLE",
-                        "GRUPO DE TUBERÍAS",
-                        "CODIGO DE INFORME",
-                    ],
-                    as_index=False,
-                )
-                .agg({"CANT. LÍNEAS": "count"})
-                .rename(
-                    columns={
-                        "ESTADO - ELABORACIÓN DE INFORME": "ESTADO INFORME",
-                        "GRUPO DE TUBERÍAS": "GRUPO DE TUBERIAS",
-                        "CODIGO DE INFORME": "CODIGO(S) DE INFORME",
-                    }
-                )
-            )
-            tabla_asig["MES_CAT"] = pd.Categorical(
-                tabla_asig["MES"].str.upper(),
-                categories=ORDEN_MESES,
-                ordered=True,
-            )
-            tabla_asig = tabla_asig.sort_values("MES_CAT").drop(
-                columns=["MES_CAT"]
-            )
-            st.dataframe(tabla_asig, use_container_width=True)
-        else:
-            st.info("No hay informes pendientes a la espera de asignar encargado.")
-
-    elif st.session_state.active_tab == "🔄 En Proceso":
-        st.markdown("#### **DETALLE DE INFORMES EN PROCESO**")
-        if not df_en_proceso.empty:
-            df_proceso_grouped = df_en_proceso.copy()
-            df_proceso_grouped["CANT. LÍNEAS"] = 1
-            tabla_proceso = (
-                df_proceso_grouped.groupby(
-                    [
-                        "MES",
-                        "ESTADO - ELABORACIÓN DE INFORME",
-                        "RESPONSABLE",
-                        "GRUPO DE TUBERÍAS",
-                        "CODIGO DE INFORME",
-                    ],
-                    as_index=False,
-                )
-                .agg({"CANT. LÍNEAS": "count"})
-                .rename(
-                    columns={
-                        "ESTADO - ELABORACIÓN DE INFORME": "ESTADO INFORME",
-                        "GRUPO DE TUBERÍAS": "GRUPO DE TUBERIAS",
-                        "CODIGO DE INFORME": "CODIGO(S) DE INFORME",
-                    }
-                )
-            )
-            tabla_proceso["MES_CAT"] = pd.Categorical(
-                tabla_proceso["MES"].str.upper(),
-                categories=ORDEN_MESES,
-                ordered=True,
-            )
-            tabla_proceso = tabla_proceso.sort_values("MES_CAT").drop(
-                columns=["MES_CAT"]
-            )
-            st.dataframe(tabla_proceso, use_container_width=True)
-        else:
-            st.info("No hay informes registrados en proceso.")
-
-    elif st.session_state.active_tab == "⏳ Pend. Inspección":
-        st.markdown(
-            "#### **DETALLE DE INFORMES PENDIENTES COMPLETAR INSPECCIÓN**"
-        )
-        if not df_pend_inspeccion.empty:
-            df_insp_grouped = df_pend_inspeccion.copy()
-            df_insp_grouped["CANT. LÍNEAS"] = 1
-            tabla_insp = (
-                df_insp_grouped.groupby(
-                    [
-                        "MES",
-                        "ESTADO - ELABORACIÓN DE INFORME",
-                        "RESPONSABLE",
-                        "GRUPO DE TUBERÍAS",
-                        "CODIGO DE INFORME",
-                    ],
-                    as_index=False,
-                )
-                .agg({"CANT. LÍNEAS": "count"})
-                .rename(
-                    columns={
-                        "ESTADO - ELABORACIÓN DE INFORME": "ESTADO INFORME",
-                        "GRUPO DE TUBERÍAS": "GRUPO DE TUBERIAS",
-                        "CODIGO DE INFORME": "CODIGO(S) DE INFORME",
-                    }
-                )
-            )
-            tabla_insp["MES_CAT"] = pd.Categorical(
-                tabla_insp["MES"].str.upper(),
-                categories=ORDEN_MESES,
-                ordered=True,
-            )
-            tabla_insp = tabla_insp.sort_values("MES_CAT").drop(
-                columns=["MES_CAT"]
-            )
-            st.dataframe(tabla_insp, use_container_width=True)
-        else:
-            st.info("No hay informes pendientes de completar inspección.")
-
-    elif st.session_state.active_tab == "🔍 Rev. Fiabilidad":
-        st.markdown("#### **DETALLE DE INFORMES EN REVISIÓN FIABILIDAD**")
-        df_fiab = df_activos[
-            df_activos["OBSERVACIÓN"].apply(
-                lambda x: "ENTREGADO PARA SU REVISION" in texto_normalizado(x)
-                and "FIABILIDAD" in texto_normalizado(x)
-            )
-        ].copy()
-
-        if not df_fiab.empty:
-            df_fiab["CANT. LÍNEAS"] = 1
-            tabla_fiab = df_fiab.groupby(
-                [
-                    "MES",
-                    "ESTADO - ELABORACIÓN DE INFORME",
-                    "RESPONSABLE",
-                    "GRUPO DE TUBERÍAS",
-                    "CODIGO DE INFORME",
-                    "OBSERVACIÓN",
-                ],
-                as_index=False,
-            ).agg({"CANT. LÍNEAS": "count"})
-            st.dataframe(tabla_fiab, use_container_width=True)
-        else:
-            st.info("No hay informes registrados en revisión por fiabilidad.")
-
-    elif st.session_state.active_tab == "👨‍🔬 Pend. Rev. Especialista":
-        st.markdown(
-            "#### **DETALLE DE INFORMES PENDIENTES REVISIÓN DEL ESPECIALISTA**"
-        )
-        df_esp = df_activos[
-            df_activos["OBSERVACIÓN"].apply(
-                lambda x: "PENDIENTE REVISION POR EL ESPECIALISTA"
-                in texto_normalizado(x)
-            )
-        ].copy()
-
-        if not df_esp.empty:
-            df_esp["CANT. LÍNEAS"] = 1
-            tabla_esp = df_esp.groupby(
-                [
-                    "MES",
-                    "ESTADO - ELABORACIÓN DE INFORME",
-                    "RESPONSABLE",
-                    "GRUPO DE TUBERÍAS",
-                    "CODIGO DE INFORME",
-                    "OBSERVACIÓN",
-                ],
-                as_index=False,
-            ).agg({"CANT. LÍNEAS": "count"})
-            st.dataframe(tabla_esp, use_container_width=True)
-        else:
-            st.info(
-                "No hay informes registrados pendientes de revisión por el"
-                " especialista."
-            )
-
-    elif st.session_state.active_tab == "🔬 Rev. por Especialista":
-        st.markdown(
-            "#### **DETALLE DE INFORMES EN REVISIÓN POR EL ESPECIALISTA**"
-        )
-        df_rev_esp = df_activos[
-            df_activos["OBSERVACIÓN"].apply(
-                lambda x: ("REV. POR EL ESPECIALISTA" in texto_normalizado(x) or "REVISION POR EL ESPECIALISTA" in texto_normalizado(x))
-                and "PENDIENTE" not in texto_normalizado(x)
-            )
-        ].copy()
-
-        if not df_rev_esp.empty:
-            df_rev_esp["CANT. LÍNEAS"] = 1
-            tabla_rev_esp = df_rev_esp.groupby(
-                [
-                    "MES",
-                    "ESTADO - ELABORACIÓN DE INFORME",
-                    "RESPONSABLE",
-                    "GRUPO DE TUBERÍAS",
-                    "CODIGO DE INFORME",
-                    "OBSERVACIÓN",
-                ],
-                as_index=False,
-            ).agg({"CANT. LÍNEAS": "count"})
-            st.dataframe(tabla_rev_esp, use_container_width=True)
-        else:
-            st.info(
-                "No hay informes registrados con la observación de revisión por el especialista."
-            )
-
-    elif st.session_state.active_tab == "🛠️ Correc. PSAIM":
-        st.markdown("#### **DETALLE DE INFORMES EN CORRECCIÓN PSAIM**")
-        if not df_psaim_det.empty:
-            df_psaim_grouped = df_psaim_det.copy()
-            df_psaim_grouped["CANT. LÍNEAS"] = 1
-            tabla_psaim = df_psaim_grouped.groupby(
-                [
-                    "MES",
-                    "ESTADO - ELABORACIÓN DE INFORME",
-                    "RESPONSABLE",
-                    "GRUPO DE TUBERÍAS",
-                    "CODIGO DE INFORME",
-                    "OBSERVACIÓN",
-                ],
-                as_index=False,
-            ).agg({"CANT. LÍNEAS": "count"})
-            st.dataframe(tabla_psaim, use_container_width=True)
-        else:
-            st.info("No hay informes registrados en corrección PSAIM.")
-
-    elif st.session_state.active_tab == "📅 Resumen Mes (T3)":
-        st.markdown("#### **RESUMEN DE VALORIZACIÓN POR MES**")
-        meses_unicos = list(
-            set(list(dict_t3_val.keys()) + list(dict_t3_pen.keys()))
-        )
-        filas_t3 = []
-        for m in meses_unicos:
-            v_val = dict_t3_val.get(m, 0)
-            v_pen = dict_t3_pen.get(m, 0)
-            grupos_mes = df_activos[
-                df_activos["MES"].astype(str).str.strip() == m
-            ]["GRUPO DE TUBERÍAS"].nunique()
-            filas_t3.append(
-                {
-                    "MES": m,
-                    "GRUPOS": grupos_mes,
-                    "VALORIZADOS": v_val,
-                    "PENDIENTE VALORIZAR": v_pen,
-                    "SUMA TOTAL": v_val + v_pen,
-                    "PENDIENTE POR ADEMINSAC": dict_t3_ademinsac.get(m, 0),
-                    "PENDIENTE POR FIABILIDAD": dict_t3_fiabilidad.get(m, 0),
-                    "INFORMES CON CORRECCION PSAIM": dict_t3_psaim.get(m, 0),
-                }
-            )
-
-        df_t3 = pd.DataFrame(filas_t3)
-        if not df_t3.empty:
-            df_t3["MES_CAT"] = pd.Categorical(
-                df_t3["MES"].str.upper(), categories=ORDEN_MESES, ordered=True
-            )
-            df_t3 = df_t3.sort_values("MES_CAT").drop(columns=["MES_CAT"])
-            tot_row = pd.DataFrame(
-                [
-                    {
-                        "MES": "TOTAL GENERAL",
-                        "GRUPOS": df_t3["GRUPOS"].sum(),
-                        "VALORIZADOS": df_t3["VALORIZADOS"].sum(),
-                        "PENDIENTE VALORIZAR": df_t3[
-                            "PENDIENTE VALORIZAR"
-                        ].sum(),
-                        "SUMA TOTAL": df_t3["SUMA TOTAL"].sum(),
-                        "PENDIENTE POR ADEMINSAC": df_t3[
-                            "PENDIENTE POR ADEMINSAC"
-                        ].sum(),
-                        "PENDIENTE POR FIABILIDAD": df_t3[
-                            "PENDIENTE POR FIABILIDAD"
-                        ].sum(),
-                        "INFORMES CON CORRECCION PSAIM": df_t3[
-                            "INFORMES CON CORRECCION PSAIM"
-                        ].sum(),
-                    }
-                ]
-            )
-            st.dataframe(
-                pd.concat([df_t3, tot_row], ignore_index=True),
-                use_container_width=True,
-            )
-
-    elif st.session_state.active_tab == "📌 Resumen Obs (T5)":
-        st.markdown("#### **RESUMEN GENERAL DE OBSERVACIONES PENDIENTES**")
-        filas_t5 = [
-            {
-                "OBSERVACIÓN PENDIENTE": k,
-                "CANTIDAD TOTAL": v,
-                "RESPONSABLE": (
-                    "ADEMINSAC"
-                    if "ADEMINSAC" in texto_normalizado(k)
-                    else "FIABILIDAD"
-                ),
-            }
-            for k, v in dict_t5.items()
-        ]
-        df_t5 = pd.DataFrame(filas_t5)
-        if not df_t5.empty:
-            st.dataframe(
-                df_t5.sort_values("CANTIDAD TOTAL", ascending=False),
-                use_container_width=True,
-            )
-
-else:
-    st.info(
-        "Haga clic en la sección superior '⚙️ Gestión de Datos' para cargar un"
-        " archivo Excel o iniciar la base de datos."
-    )
