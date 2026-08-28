@@ -85,7 +85,7 @@ SOLICITUDES_FILE = "database_solicitudes.json"
 
 COLUMNAS_EXCEL = [
     "ITEM POR MES", "IT2", "UNIDAD", "MES", "LINEAS", "CODIGO DE INFORME",
-    "GRUPO DE TUBERÍAS", "SAP", "ALCANCE DEL SERVICIO",
+    "GRUPO DE TUBERÍAS", "SAP", "ALCANCE DEL SERVICIO", "NOTAS",
     "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "OBSERVACIÓN", "ESTADO - VALORIZACIÓN"
 ]
 
@@ -384,6 +384,7 @@ if not df.empty:
             "GRUPO DE TUBERÍAS": st.column_config.TextColumn("GRUPO DE TUBERÍAS", width="medium"),
             "SAP": st.column_config.TextColumn("SAP", width="small"),
             "ALCANCE DEL SERVICIO": st.column_config.TextColumn("ALCANCE DEL SERVICIO", width="large"),
+            "NOTAS": st.column_config.TextColumn("NOTAS", width="medium"),
             "ESTADO - ELABORACIÓN DE INFORME": st.column_config.TextColumn("ESTADO - ELABORACIÓN DE INFORME", width="medium"),
             "RESPONSABLE": st.column_config.TextColumn("RESPONSABLE", width="medium"),
             "OBSERVACIÓN": st.column_config.TextColumn("OBSERVACIÓN", width="large"),
