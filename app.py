@@ -1,7 +1,6 @@
 import io
 import json
 import os
-import re
 import pandas as pd
 import streamlit as st
 
@@ -114,6 +113,12 @@ def texto_normalizado(texto):
 
 def limpiar_estado_y_responsable(df_input):
     df_clean = df_input.copy()
+    
+    # Garantizar que las columnas numéricas sean tratadas como tipo objeto/texto antes de asignar valores
+    for col in ["ITEM POR MES", "IT2", "SAP"]:
+        if col in df_clean.columns:
+            df_clean[col] = df_clean[col].astype(object)
+
     for idx, row in df_clean.iterrows():
         val_estado = str(row["ESTADO - ELABORACIÓN DE INFORME"]).strip()
         val_resp = str(row["RESPONSABLE"]).strip()
@@ -123,10 +128,11 @@ def limpiar_estado_y_responsable(df_input):
             if val_resp in ["", "nan", "None"]:
                 df_clean.at[idx, "RESPONSABLE"] = partes[1].strip()
         
-        # Limpieza estricta de items numéricos para remover decimales flotantes (.0)
+        # Limpieza de valores numéricos para remover .0 sin conflicto de tipos
         df_clean.at[idx, "ITEM POR MES"] = formatear_entero_limpio(row["ITEM POR MES"])
         df_clean.at[idx, "IT2"] = formatear_entero_limpio(row["IT2"])
         df_clean.at[idx, "SAP"] = formatear_entero_limpio(row["SAP"])
+        
     return df_clean
 
 def es_codigo_provisional(codigo):
@@ -346,7 +352,7 @@ if not df.empty:
         
         df_dis = df[COLUMNAS_EXCEL].copy()
         
-        # Formateo estricto a cadena limpia para prevenir tipos decimales flotantes y errores de tipo
+        # Convierte todos los campos a texto limpio formateado
         for column in df_dis.columns:
             df_dis[column] = df_dis[column].apply(formatear_entero_limpio)
 
@@ -373,7 +379,7 @@ if not df.empty:
                         real_idx = df_dis.index[idx_fila] - 1
                         st.session_state.df_data.at[real_idx, "OBSERVACIÓN"] = ""
 
-        # Configuración de columnas con tipos seguros
+        # Configuración de columnas con tipos 100% seguros
         config_columnas = {
             "ITEM POR MES": st.column_config.TextColumn("ITEM POR MES", width="small"),
             "IT2": st.column_config.TextColumn("IT2", width="small"),
