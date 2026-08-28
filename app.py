@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import re
 import pandas as pd
 import streamlit as st
 
@@ -95,6 +96,15 @@ ESPECIALISTAS_LISTA = ["Jesús Rehkoff Díaz", "M. Paifa", "Julio Ponce", "Omar"
 REVISORES_PSAIM_LISTA = ["Franmary Gutierrez", "Alejandro Macury", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
 PERSONAL_LISTA_BASE = ["M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid", "Juan José", "Dante", "Jesús Rehkoff Díaz", "Franmary Gutierrez", "Alejandro Macury", "Otro Inspector"]
 
+def formatear_entero_limpio(valor):
+    """Limpia cadenas o números eliminando la terminación decimal .0 provocada por Pandas."""
+    if pd.isna(valor) or valor is None:
+        return ""
+    val_str = str(valor).strip()
+    if val_str.endswith(".0"):
+        return val_str[:-2]
+    return val_str
+
 def texto_normalizado(texto):
     if pd.isna(texto): return ""
     t = str(texto).strip().upper()
@@ -112,6 +122,11 @@ def limpiar_estado_y_responsable(df_input):
             df_clean.at[idx, "ESTADO - ELABORACIÓN DE INFORME"] = partes[0].strip()
             if val_resp in ["", "nan", "None"]:
                 df_clean.at[idx, "RESPONSABLE"] = partes[1].strip()
+        
+        # Limpieza estricta de items numéricos para remover decimales flotantes (.0)
+        df_clean.at[idx, "ITEM POR MES"] = formatear_entero_limpio(row["ITEM POR MES"])
+        df_clean.at[idx, "IT2"] = formatear_entero_limpio(row["IT2"])
+        df_clean.at[idx, "SAP"] = formatear_entero_limpio(row["SAP"])
     return df_clean
 
 def es_codigo_provisional(codigo):
@@ -331,9 +346,9 @@ if not df.empty:
         
         df_dis = df[COLUMNAS_EXCEL].copy()
         
-        # Garantizar que todas las columnas sean tratadas como string para prevenir errores de tipo en Streamlit
+        # Formateo estricto a cadena limpia para prevenir tipos decimales flotantes y errores de tipo
         for column in df_dis.columns:
-            df_dis[column] = df_dis[column].fillna("").astype(str)
+            df_dis[column] = df_dis[column].apply(formatear_entero_limpio)
 
         if m_sel != "Todos": 
             df_dis = df_dis[df_dis["MES"].astype(str).str.strip().str.upper() == m_sel]
@@ -358,7 +373,7 @@ if not df.empty:
                         real_idx = df_dis.index[idx_fila] - 1
                         st.session_state.df_data.at[real_idx, "OBSERVACIÓN"] = ""
 
-        # Configuración de anchos con tipos 100% seguros
+        # Configuración de columnas con tipos seguros
         config_columnas = {
             "ITEM POR MES": st.column_config.TextColumn("ITEM POR MES", width="small"),
             "IT2": st.column_config.TextColumn("IT2", width="small"),
