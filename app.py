@@ -243,6 +243,21 @@ def estilo_tabla_general(fila):
     return estilos
 
 
+def senal_visual(fila):
+    """Etiqueta visible para reconocer criterios dentro de la tabla editable."""
+    notas = texto_normalizado(fila.get("NOTAS", ""))
+    observacion = texto_normalizado(fila.get("OBSERVACIÓN", ""))
+    if "RETIRADO" in notas or "RETIRADO" in observacion:
+        return "⚫ Retirado"
+    if texto_normalizado(fila.get("ESTADO - VALORIZACIÓN", "")) == "SI":
+        return "🟢 Valorizado (SI)"
+    if "FALTA CARPETA" in notas or "PENDIENTE INSPECCION" in notas:
+        return "🟡 Pend. inspección"
+    if "INSPECCION COMPLEMENTARIA" in notas:
+        return "🔵 Inspección complem."
+    return "⚪ Sin alerta"
+
+
 st.markdown("""
 <style>
 header, footer {visibility: hidden;}
@@ -263,6 +278,7 @@ header, footer {visibility: hidden;}
 .stTabs [data-baseweb="tab"] {border-radius:7px;font-size:.78rem;font-weight:650;padding:0 10px;color:#3d5269;}
 .stTabs [aria-selected="true"] {background:#0E2A47 !important;color:#fff !important;}
 div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {border:1px solid #dbe5ef;border-radius:10px;background:#fff;overflow:hidden;}
+div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {border:1px solid #dbe5ef;border-radius:10px;background:#fff;overflow:visible;}
 div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radius:10px;}
 [data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
 [data-testid="stBaseButton-secondary"]:hover {border-color:#1D4D7D;color:#0E2A47;background:#edf4fb;}
@@ -468,7 +484,9 @@ with tabs[1]:
     df_vista["ESTADO - VALORIZACIÓN"] = df_vista["ESTADO - VALORIZACIÓN"].apply(
         lambda valor: "SI" if texto_normalizado(valor) == "SI" else "Pendiente - valorización"
     )
+    df_vista.insert(0, "SEÑAL", df_vista.apply(senal_visual, axis=1))
     encabezados = {
+        "SEÑAL": st.column_config.TextColumn("Señal", width=190, disabled=True, pinned=True),
         "ITEM POR MES": st.column_config.TextColumn("Item por mes", width="small"),
         "IT2": st.column_config.TextColumn("IT2", width="small"),
         "UNIDAD": st.column_config.TextColumn("Unidad", width="small"),
@@ -483,7 +501,22 @@ with tabs[1]:
         "RESPONSABLE": st.column_config.TextColumn("Responsable", width="medium"),
         "OBSERVACIÓN": st.column_config.TextColumn("Observación", width="large"),
         "ESTADO - VALORIZACIÓN": st.column_config.TextColumn("Estado de valorización", width="medium"),
+        "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
+        "IT2": st.column_config.TextColumn("IT2", width=55),
+        "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
+        "MES": st.column_config.TextColumn("Mes", width=80),
+        "LINEAS": st.column_config.TextColumn("Líneas", width=180),
+        "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=190),
+        "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=180),
+        "SAP": st.column_config.TextColumn("SAP", width=85),
+        "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width=120),
+        "NOTAS": st.column_config.TextColumn("Notas", width=170),
+        "ESTADO - ELABORACIÓN DE INFORME": st.column_config.TextColumn("Estado de elaboración", width=190),
+        "RESPONSABLE": st.column_config.TextColumn("Responsable", width=135),
+        "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=280),
+        "ESTADO - VALORIZACIÓN": st.column_config.TextColumn("Valorización", width=145),
     }
+    st.caption("🟢 Valorizado (SI) · 🟡 Pendiente de inspección o falta carpeta · 🔵 Inspección complementaria · ⚫ Retirado")
     acciones_tabla = st.container(horizontal=True, horizontal_alignment="right")
     with acciones_tabla:
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
@@ -498,6 +531,7 @@ with tabs[1]:
         hide_index=True,
         width="stretch",
         height=560,
+        disabled=["SEÑAL"],
         key="editor_tabla_general",
     )
     if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
