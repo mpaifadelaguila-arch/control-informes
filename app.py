@@ -196,6 +196,7 @@ def preparar_tabla(df):
     return resultado
 
 
+@st.cache_data(ttl=60, show_spinner=False)
 def cargar_datos():
     if not os.path.exists(DB_FILE):
         return pd.DataFrame(columns=COLUMNAS_EXCEL)
@@ -204,11 +205,11 @@ def cargar_datos():
 
 
 def guardar_datos(df):
-    normalizar_base(df).to_json(
-        DB_FILE, orient="records", force_ascii=False, indent=4
-    )
+    normalizar_base(df).to_json(DB_FILE, orient="records", force_ascii=False)
+    st.cache_data.clear()
 
 
+@st.cache_data(ttl=5, show_spinner=False)
 def cargar_solicitudes():
     if not os.path.exists(SOLICITUDES_FILE):
         return []
@@ -218,7 +219,8 @@ def cargar_solicitudes():
 
 def guardar_solicitudes(solicitudes):
     with open(SOLICITUDES_FILE, "w", encoding="utf-8") as archivo:
-        json.dump(solicitudes, archivo, ensure_ascii=False, indent=4)
+        json.dump(solicitudes, archivo, ensure_ascii=False)
+    st.cache_data.clear()
 
 
 def registrar_solicitud(tipo, codigo, grupo, solicitante):
@@ -305,22 +307,6 @@ def boton_descarga_excel(df, archivo, etiqueta="Descargar Excel"):
     )
 
 
-def estilo_tabla_general(fila):
-    valorizacion = texto_normalizado(fila.get("ESTADO - VALORIZACIÓN", ""))
-    notas = texto_normalizado(fila.get("NOTAS", ""))
-    if valorizacion == "SI":
-        return ["background-color: #D1FAE5; color: #065F46;"] * len(fila)
-    estilos = [""] * len(fila)
-    indice_notas = fila.index.get_loc("NOTAS") if "NOTAS" in fila.index else None
-    if "FALTA CARPETA" in notas or "PENDIENTE INSPECCION" in notas:
-        estilos[indice_notas] = "background-color: #FEF3C7; color: #713F12;"
-    elif "INSPECCION COMPLEMENTARIA" in notas:
-        estilos[indice_notas] = "background-color: #DBEAFE; color: #1E3A8A;"
-    elif "RETIRADO" in notas:
-        estilos[indice_notas] = "background-color: #E5E7EB; color: #374151;"
-    return estilos
-
-
 def senal_visual(fila):
     """Etiqueta visible para reconocer criterios dentro de la tabla editable."""
     notas = texto_normalizado(fila.get("NOTAS", ""))
@@ -368,11 +354,7 @@ div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radiu
 if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
 
-# La migración se guarda una vez para que la nueva columna NOTAS no quede solo en memoria.
 df = normalizar_base(st.session_state.df_data)
-if not df.equals(st.session_state.df_data):
-    st.session_state.df_data = df
-    guardar_datos(df)
 
 st.html("""
 <div class="header-banner"><h1>Control interno de informes - Ademinsac</h1>
@@ -436,7 +418,7 @@ if df.empty:
     )
     st.stop()
 
-# Exclusión de retirados históricos y nuevos antes de procesar
+# Exclusión de retirados
 mascara_retirado = df["OBSERVACIÓN"].apply(
     lambda valor: "RETIRADO" in texto_normalizado(valor)
 ) | df["NOTAS"].apply(lambda valor: "RETIRADO" in texto_normalizado(valor))
@@ -640,132 +622,101 @@ with tabs[0]:
                 st.rerun()
 
 with tabs[1]:
-    filtros = st.columns([1, 1, 2])
-    meses = ["Todos"] + sorted(
-        {texto_limpio(mes).upper() for mes in df["MES"] if texto_limpio(mes)},
-        key=lambda mes: ORDEN_MESES.index(mes) if mes in ORDEN_MESES else 99,
-    )
-    mes = filtros[0].selectbox("Filtrar mes", meses)
-    alcance = filtros[1].selectbox(
-        "Alcance del servicio", ["Todos", "LINEAS", "VT-CIRCUITOS"]
-    )
-    consulta = filtros[2].text_input(
-        "Buscar por líneas, código, grupo, SAP o notas", icon=":material/search:"
-    )
-    df_vista = df.copy()
-    if mes != "Todos":
-        df_vista = df_vista[
-            df_vista["MES"].apply(lambda valor: texto_normalizado(valor) == mes)
-        ]
-    if alcance != "Todos":
-        df_vista = df_vista[
-            df_vista["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == alcance
-        ]
-    if consulta.strip():
-        consulta_norm = texto_normalizado(consulta)
-        columnas_busqueda = [
-            "LINEAS",
-            "CODIGO DE INFORME",
-            "GRUPO DE TUBERÍAS",
-            "SAP",
-            "NOTAS",
-        ]
-        mascara_busqueda = df_vista[columnas_busqueda].apply(
-            lambda fila: any(
-                consulta_norm in texto_normalizado(valor) for valor in fila
+    @st.fragment
+    def vista_tabla_general():
+        filtros = st.columns([1, 1, 2])
+        meses = ["Todos"] + sorted(
+            {texto_limpio(m).upper() for m in df["MES"] if texto_limpio(m)},
+            key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99,
+        )
+        mes = filtros[0].selectbox("Filtrar mes", meses)
+        alcance = filtros[1].selectbox(
+            "Alcance del servicio", ["Todos", "LINEAS", "VT-CIRCUITOS"]
+        )
+        consulta = filtros[2].text_input(
+            "Buscar por líneas, código, grupo, SAP o notas", icon=":material/search:"
+        )
+        df_vista = df.copy()
+        if mes != "Todos":
+            df_vista = df_vista[
+                df_vista["MES"].apply(lambda v: texto_normalizado(v) == mes)
+            ]
+        if alcance != "Todos":
+            df_vista = df_vista[
+                df_vista["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == alcance
+            ]
+        if consulta.strip():
+            consulta_norm = texto_normalizado(consulta)
+            columnas_busqueda = [
+                "LINEAS",
+                "CODIGO DE INFORME",
+                "GRUPO DE TUBERÍAS",
+                "SAP",
+                "NOTAS",
+            ]
+            mascara_busqueda = df_vista[columnas_busqueda].apply(
+                lambda fila: any(
+                    consulta_norm in texto_normalizado(v) for v in fila
+                ),
+                axis=1,
+            )
+            df_vista = df_vista[mascara_busqueda]
+
+        df_vista = df_vista.map(texto_limpio)
+        df_vista["ESTADO - VALORIZACIÓN"] = df_vista["ESTADO - VALORIZACIÓN"].apply(
+            lambda v: "SI" if texto_normalizado(v) == "SI" else "Pendiente - valorización"
+        )
+        df_vista.insert(0, "SEÑAL", df_vista.apply(senal_visual, axis=1))
+        encabezados = {
+            "SEÑAL": st.column_config.TextColumn("Señal", width=190, disabled=True, pinned=True),
+            "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
+            "IT2": st.column_config.TextColumn("IT2", width=55),
+            "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
+            "MES": st.column_config.TextColumn("Mes", width=80),
+            "LINEAS": st.column_config.TextColumn("Líneas", width=180),
+            "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=190),
+            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=180),
+            "SAP": st.column_config.TextColumn("SAP", width=85),
+            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width=120),
+            "NOTAS": st.column_config.TextColumn("Notas", width=170),
+            "ESTADO - ELABORACIÓN DE INFORME": st.column_config.TextColumn("Estado de elaboración", width=190),
+            "RESPONSABLE": st.column_config.TextColumn("Responsable", width=135),
+            "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=280),
+            "ESTADO - VALORIZACIÓN": st.column_config.SelectboxColumn(
+                "Valorización",
+                options=["Pendiente - valorización", "SI"],
+                required=True,
+                width=145,
             ),
-            axis=1,
+        }
+        st.caption(
+            "🟢 Valorizado (SI) · 🟡 Pendiente de inspección o falta carpeta · 🔵 Inspección complementaria · ⚫ Retirado"
         )
-        df_vista = df_vista[mascara_busqueda]
+        acciones_tabla = st.container(horizontal=True, horizontal_alignment="right")
+        with acciones_tabla:
+            boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
-    df_vista = df_vista.map(texto_limpio)
-    df_vista["ESTADO - VALORIZACIÓN"] = df_vista["ESTADO - VALORIZACIÓN"].apply(
-        lambda valor: (
-            "SI"
-            if texto_normalizado(valor) == "SI"
-            else "Pendiente - valorización"
-        )
-    )
-    df_vista.insert(0, "SEÑAL", df_vista.apply(senal_visual, axis=1))
-    encabezados = {
-        "SEÑAL": st.column_config.TextColumn(
-            "Señal", width=190, disabled=True, pinned=True
-        ),
-        "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
-        "IT2": st.column_config.TextColumn("IT2", width=55),
-        "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
-        "MES": st.column_config.TextColumn("Mes", width=80),
-        "LINEAS": st.column_config.TextColumn("Líneas", width=180),
-        "CODIGO DE INFORME": st.column_config.TextColumn(
-            "Código de informe", width=190
-        ),
-        "GRUPO DE TUBERÍAS": st.column_config.TextColumn(
-            "Grupo de tuberías", width=180
-        ),
-        "SAP": st.column_config.TextColumn("SAP", width=85),
-        "ALCANCE DEL SERVICIO": st.column_config.TextColumn(
-            "Alcance", width=120
-        ),
-        "NOTAS": st.column_config.TextColumn("Notas", width=170),
-        "ESTADO - ELABORACIÓN DE INFORME": st.column_config.TextColumn(
-            "Estado de elaboración", width=190
-        ),
-        "RESPONSABLE": st.column_config.TextColumn(
-            "Responsable", width=135
-        ),
-        "OBSERVACIÓN": st.column_config.TextColumn(
-            "Observación", width=280
-        ),
-        "ESTADO - VALORIZACIÓN": st.column_config.TextColumn(
-            "Valorización", width=145
-        ),
-    }
-    st.caption(
-        "🟢 Valorizado (SI) · 🟡 Pendiente de inspección o falta carpeta · 🔵 Inspección complementaria · ⚫ Retirado"
-    )
-    acciones_tabla = st.container(
-        horizontal=True, horizontal_alignment="right"
-    )
-    with acciones_tabla:
-        boton_descarga_excel(
+        editado = st.data_editor(
             df_vista,
-            "Tabla_general_informes.xlsx",
-            "Descargar tabla general",
+            column_config=encabezados,
+            hide_index=True,
+            width="stretch",
+            height=560,
+            disabled=["SEÑAL"],
+            key="editor_tabla_general",
         )
+        if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
+            for indice, fila in editado.iterrows():
+                for columna in COLUMNAS_EXCEL:
+                    df.at[indice, columna] = fila[columna]
+                if texto_normalizado(fila["ESTADO - VALORIZACIÓN"]) == "SI":
+                    df.at[indice, "OBSERVACIÓN"] = ""
+            st.session_state.df_data = normalizar_base(df)
+            guardar_datos(st.session_state.df_data)
+            st.success("Cambios guardados correctamente.")
+            st.rerun()
 
-    configuracion_editor = dict(encabezados)
-    configuracion_editor["ESTADO - VALORIZACIÓN"] = (
-        st.column_config.SelectboxColumn(
-            "Estado de valorización",
-            options=["Pendiente - valorización", "SI"],
-            required=True,
-            width="medium",
-        )
-    )
-    editado = st.data_editor(
-        df_vista,
-        column_config=configuracion_editor,
-        hide_index=True,
-        width="stretch",
-        height=560,
-        disabled=["SEÑAL"],
-        key="editor_tabla_general",
-    )
-    if st.button(
-        "Guardar cambios",
-        key="guardar_tabla",
-        icon=":material/save:",
-        type="primary",
-    ):
-        for indice, fila in editado.iterrows():
-            for columna in COLUMNAS_EXCEL:
-                df.at[indice, columna] = fila[columna]
-            if texto_normalizado(fila["ESTADO - VALORIZACIÓN"]) == "SI":
-                df.at[indice, "OBSERVACIÓN"] = ""
-        st.session_state.df_data = normalizar_base(df)
-        guardar_datos(st.session_state.df_data)
-        st.success("Cambios guardados correctamente.")
-        st.rerun()
+    vista_tabla_general()
 
 
 def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
