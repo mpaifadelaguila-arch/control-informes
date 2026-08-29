@@ -325,7 +325,7 @@ st.markdown(
 header, footer {visibility: hidden;}
 .stAppDeployButton {display: none;}
 .stApp {background: linear-gradient(180deg, #eef4fa 0%, #f8fafc 360px);}
-[data-testid="stAppViewBlockContainer"] {padding-top: 2.1rem; max-width: 1800px;}
+[data-testid="stAppViewBlockContainer"] {padding-top: 2.1rem; max-width: 100% !important; padding-left: 2rem; padding-right: 2rem;}
 .header-banner {background: linear-gradient(135deg,#0E2A47 0%,#1D4D7D 100%);border-left:6px solid #E7BE30;
   border-radius:14px;padding:22px 30px;color:#fff;margin-bottom:.9rem;box-shadow:0 10px 24px rgba(14,42,71,.16);}
 .header-banner h1 {font-size:1.55rem;margin:0;color:#fff;letter-spacing:.1px;}.header-banner p {margin:.3rem 0 0;color:#d9e6f3;}
@@ -343,7 +343,7 @@ div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radiu
 [data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
 [data-testid="stBaseButton-secondary"]:hover {border-color:#1D4D7D;color:#0E2A47;background:#edf4fb;}
 
-/* REALIZAR oculta el menu individual de cada columna (Sort, Pin, Hide) */
+/* REALIZAR oculta el menu individual de cada columna */
 div[id^="portal"] :has(button[aria-label="Column menu"]),
 .glideDataGrid-column-header-menu,
 [data-testid="stDataFrame"] button[aria-label="Open menu"],
@@ -353,7 +353,7 @@ div[id^="portal"] :has(button[aria-label="Column menu"]),
     pointer-events: none !important;
 }
 
-/* REALIZAR configuracion para desbordamiento visible y barra de herramientas no recortada */
+/* REALIZAR permite que el marco ocupe todo el alto sin recortar toolbar flotante */
 div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
     border: 1px solid #dbe5ef;
     border-radius: 10px;
@@ -363,7 +363,12 @@ div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
     margin-top: 10px !important;
 }
 
-/* REALIZAR posiciona y muestra la barra nativa completa (Lupa, Descarga, Pantalla completa) arriba del borde */
+/* REALIZAR extension vertical completa para el canvas interno de la tabla */
+div[data-testid="stDataFrame"] > div, div[data-testid="stDataEditor"] > div {
+    height: 100% !important;
+}
+
+/* REALIZAR barra de herramientas posicionada correctamente sobre el borde */
 [data-testid="stElementToolbar"] {
     opacity: 1 !important;
     visibility: visible !important;
@@ -718,12 +723,13 @@ with tabs[1]:
         )
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
+        # REALIZAR aumento de altura a 780 para extender la vista de filas inferiores
         editado = st.data_editor(
             df_vista,
             column_config=encabezados,
             hide_index=True,
             use_container_width=True,
-            height=560,
+            height=780,
             disabled=["SEÑAL"],
             key="editor_tabla_general",
         )
@@ -752,7 +758,8 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     )
     tabla.index = range(1, len(tabla) + 1)
     boton_descarga_excel(tabla, nombre_archivo, "Descargar Excel")
-    st.dataframe(tabla, use_container_width=True, hide_index=False, height=400)
+    # REALIZAR aumento de altura a 650 para maximizar espacio vertical
+    st.dataframe(tabla, use_container_width=True, hide_index=False, height=650)
     return tabla
 
 
@@ -791,7 +798,8 @@ def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
 
     df_mostrar.index = range(1, len(df_mostrar) + 1)
     boton_descarga_excel(df_mostrar, nombre_archivo, "Descargar Excel")
-    st.dataframe(df_mostrar, use_container_width=True, hide_index=False, height=400)
+    # REALIZAR aumento de altura a 650
+    st.dataframe(df_mostrar, use_container_width=True, hide_index=False, height=650)
 
 
 with tabs[2]:
@@ -1103,3 +1111,4 @@ with tabs[8]:
             mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx", es_metricas=False)
 
     vista_sub_resumen()
+    
