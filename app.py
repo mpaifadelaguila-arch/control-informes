@@ -243,17 +243,31 @@ def estilo_tabla_general(fila):
     return estilos
 
 
-st.html("""
+st.markdown("""
 <style>
 header, footer {visibility: hidden;}
 .stAppDeployButton {display: none;}
-.stApp {background: #f8fafc;}
-.header-banner {background: linear-gradient(135deg,#0E2A47,#1A3E68);border-left:6px solid #D4AF37;
-  border-radius:12px;padding:24px 30px;color:#fff;margin-bottom:1rem;box-shadow:0 4px 12px #0e2a4726;}
-.header-banner h1 {font-size:1.65rem;margin:0;color:#fff;}.header-banner p {margin:.25rem 0 0;color:#cbd5e1;}
-.section-heading {color:#0E2A47;font-weight:700;margin:.7rem 0 .15rem;font-size:1.05rem;}
+.stApp {background: linear-gradient(180deg, #eef4fa 0%, #f8fafc 360px);}
+[data-testid="stAppViewBlockContainer"] {padding-top: 2.1rem; max-width: 1800px;}
+.header-banner {background: linear-gradient(135deg,#0E2A47 0%,#1D4D7D 100%);border-left:6px solid #E7BE30;
+  border-radius:14px;padding:22px 30px;color:#fff;margin-bottom:.9rem;box-shadow:0 10px 24px rgba(14,42,71,.16);}
+.header-banner h1 {font-size:1.55rem;margin:0;color:#fff;letter-spacing:.1px;}.header-banner p {margin:.3rem 0 0;color:#d9e6f3;}
+.section-heading {color:#0E2A47;font-weight:800;margin:.85rem 0 .35rem;font-size:1.04rem;letter-spacing:.1px;}
+.kpi-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:.35rem;}
+.kpi-card {background:#fff;border:1px solid #dbe5ef;border-top:4px solid var(--tone);border-radius:10px;min-height:74px;
+  padding:10px 12px;box-shadow:0 3px 10px rgba(15,42,70,.06);transition:transform .18s ease,box-shadow .18s ease;}
+.kpi-card:hover {transform:translateY(-2px);box-shadow:0 8px 18px rgba(15,42,70,.12);}
+.kpi-label {font-size:.70rem;font-weight:750;line-height:1.12;text-transform:uppercase;color:#5d7086;letter-spacing:.18px;}
+.kpi-icon {float:right;color:var(--tone);font-size:1rem;font-weight:800;}.kpi-value {font-size:1.58rem;font-weight:800;line-height:1.05;color:#102e4c;margin-top:7px;}
+.stTabs [data-baseweb="tab-list"] {gap:4px;background:#e7eef6;border-radius:10px;padding:5px 6px;}
+.stTabs [data-baseweb="tab"] {border-radius:7px;font-size:.78rem;font-weight:650;padding:0 10px;color:#3d5269;}
+.stTabs [aria-selected="true"] {background:#0E2A47 !important;color:#fff !important;}
+div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {border:1px solid #dbe5ef;border-radius:10px;background:#fff;overflow:hidden;}
+div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radius:10px;}
+[data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
+[data-testid="stBaseButton-secondary"]:hover {border-color:#1D4D7D;color:#0E2A47;background:#edf4fb;}
 </style>
-""")
+""", unsafe_allow_html=True)
 
 if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
@@ -362,18 +376,23 @@ for _, fila in df_activos.iterrows():
 
 st.markdown("<div class='section-heading'>Panel de control de informes</div>", unsafe_allow_html=True)
 metricas = [
-    ("Informes totales", len(unicos)), ("Pendientes total", sum(por_mes["pendientes"].values())),
-    ("Valorizados (sí)", sum(por_mes["valorizados"].values())),
-    ("Pend. asignar informe", df_pend_asignacion["CLAVE_GLOBAL"].nunique()),
-    ("En proceso", df_en_proceso["CLAVE_GLOBAL"].nunique()),
-    ("Pend. inspección", df_pend_inspeccion["CLAVE_GLOBAL"].nunique()),
-    ("Rev. fiabilidad", revision_fiabilidad), ("Pend. rev. especialista", revision_especialista_pendiente),
-    ("Rev. por especialista", revision_especialista), ("Corrección PSAIM", sum(por_mes["psaim"].values())),
+    ("Informes totales", len(unicos), "▤", "#173F67"),
+    ("Pendientes total", sum(por_mes["pendientes"].values()), "◷", "#E38921"),
+    ("Valorizados (sí)", sum(por_mes["valorizados"].values()), "✓", "#159A68"),
+    ("Pend. asignar informe", df_pend_asignacion["CLAVE_GLOBAL"].nunique(), "!", "#D54D9D"),
+    ("En proceso", df_en_proceso["CLAVE_GLOBAL"].nunique(), "↻", "#7B61C9"),
+    ("Pend. inspección", df_pend_inspeccion["CLAVE_GLOBAL"].nunique(), "⌛", "#D8534F"),
+    ("Rev. fiabilidad", revision_fiabilidad, "⌕", "#159D99"),
+    ("Pend. rev. especialista", revision_especialista_pendiente, "◉", "#5564D8"),
+    ("Rev. por especialista", revision_especialista, "◆", "#168EAE"),
+    ("Corrección PSAIM", sum(por_mes["psaim"].values()), "✦", "#C89716"),
 ]
-for columna, (titulo, valor) in zip(st.columns(5), metricas[:5]):
-    columna.metric(titulo, valor, border=True)
-for columna, (titulo, valor) in zip(st.columns(5), metricas[5:]):
-    columna.metric(titulo, valor, border=True)
+tarjetas_kpi = "".join(
+    f"<div class='kpi-card' style='--tone:{color}'><span class='kpi-icon'>{icono}</span>"
+    f"<div class='kpi-label'>{titulo}</div><div class='kpi-value'>{valor}</div></div>"
+    for titulo, valor, icono, color in metricas
+)
+st.markdown(f"<div class='kpi-grid'>{tarjetas_kpi}</div>", unsafe_allow_html=True)
 
 st.markdown("<div class='section-heading'>Sistema de control y resúmenes</div>", unsafe_allow_html=True)
 solicitudes_activas = [solicitud for solicitud in cargar_solicitudes() if solicitud["estado"] == "PENDIENTE"]
