@@ -303,7 +303,7 @@ def boton_descarga_excel(df, archivo, etiqueta="Descargar Excel"):
         file_name=archivo,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         icon=":material/download:",
-        width="content",
+        use_container_width=False,
     )
 
 
@@ -549,6 +549,8 @@ solicitudes_activas = [
     for solicitud in cargar_solicitudes()
     if solicitud["estado"] == "PENDIENTE"
 ]
+
+# Modificación de pestañas: Unificación de las 3 resúmenes en "Resumen por mes"
 tabs = st.tabs(
     [
         f"Administración ({len(solicitudes_activas)})",
@@ -560,9 +562,7 @@ tabs = st.tabs(
         "Pend. rev. especialista",
         "Rev. por especialista",
         "Correc. PSAIM",
-        "Resumen mes (T3)",
-        "Pend. mes/obs (T4)",
-        "Resumen obs (T5)",
+        "Resumen por mes",
     ]
 )
 
@@ -692,15 +692,16 @@ with tabs[1]:
         st.caption(
             "🟢 Valorizado (SI) · 🟡 Pendiente de inspección o falta carpeta · 🔵 Inspección complementaria · ⚫ Retirado"
         )
-        acciones_tabla = st.container(horizontal=True, horizontal_alignment="right")
-        with acciones_tabla:
+        col_descarga, _ = st.columns([1, 4])
+        with col_descarga:
             boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
+        # Corrección: uso de use_container_width=True para habilitar botón nativo de pantalla completa
         editado = st.data_editor(
             df_vista,
             column_config=encabezados,
             hide_index=True,
-            width="stretch",
+            use_container_width=True,
             height=560,
             disabled=["SEÑAL"],
             key="editor_tabla_general",
@@ -729,11 +730,12 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
         .fillna("")
     )
     tabla = preparar_tabla(tabla)
-    with st.container(horizontal=True, horizontal_alignment="right"):
+    col_descarga, _ = st.columns([1, 4])
+    with col_descarga:
         boton_descarga_excel(
             tabla.reset_index(drop=True), nombre_archivo, "Descargar Excel"
         )
-    st.dataframe(tabla, width="stretch", height=420)
+    st.dataframe(tabla, use_container_width=True, height=420)
     return tabla
 
 
@@ -741,9 +743,10 @@ def mostrar_resumen(df_resumen, nombre_archivo):
     if df_resumen.empty:
         st.info("No hay registros para mostrar.", icon=":material/info:")
         return
-    with st.container(horizontal=True, horizontal_alignment="right"):
+    col_descarga, _ = st.columns([1, 4])
+    with col_descarga:
         boton_descarga_excel(df_resumen, nombre_archivo, "Descargar Excel")
-    st.dataframe(preparar_tabla(df_resumen), width="stretch", height=420)
+    st.dataframe(preparar_tabla(df_resumen), use_container_width=True, height=420)
 
 
 with tabs[2]:
@@ -969,6 +972,7 @@ with tabs[8]:
             else:
                 st.warning(mensaje)
 
+# Construcción de DataFrames consolidados para la vista "Resumen por mes"
 filas_t3 = []
 for mes in sorted(
     set(por_mes["valorizados"]) | set(por_mes["pendientes"]),
@@ -1034,9 +1038,18 @@ df_t5 = pd.DataFrame(
 if not df_t5.empty:
     df_t5 = df_t5.sort_values("CANTIDAD TOTAL", ascending=False)
 
+# Pestaña unificada "Resumen por mes"
 with tabs[9]:
-    mostrar_resumen(df_t3, "Resumen_mensual_T3.xlsx")
-with tabs[10]:
-    mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx")
-with tabs[11]:
-    mostrar_resumen(df_t5, "Resumen_observaciones_T5.xlsx")
+    st.subheader("Resumen consolidado por mes")
+    opcion_resumen = st.radio(
+        "Seleccionar tipo de vista:",
+        ["Métricas por mes", "Detalle pendientes por mes / observación", "Consolidado total por observación"],
+        horizontal=True,
+    )
+    
+    if opcion_resumen == "Métricas por mes":
+        mostrar_resumen(df_t3, "Resumen_mensual_T3.xlsx")
+    elif opcion_resumen == "Detalle pendientes por mes / observación":
+        mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx")
+    else:
+        mostrar_resumen(df_t5, "Resumen_observaciones_T5.xlsx")
