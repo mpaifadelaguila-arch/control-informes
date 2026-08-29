@@ -10,7 +10,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
-st.set_page_config(
+REALIZAR_CONFIGURACION_PAGINA = st.set_page_config(
     page_title="Control interno de informes - Ademinsac",
     page_icon=":material/assignment:",
     layout="wide",
@@ -322,10 +322,13 @@ def senal_visual(fila):
 st.markdown(
     """
 <style>
+/* REALIZAR ocultamiento de elementos innecesarios */
 header, footer {visibility: hidden;}
 .stAppDeployButton {display: none;}
 .stApp {background: linear-gradient(180deg, #eef4fa 0%, #f8fafc 360px);}
 [data-testid="stAppViewBlockContainer"] {padding-top: 2.1rem; max-width: 100% !important; padding-left: 2rem; padding-right: 2rem;}
+
+/* REALIZAR diseño de encabezado y KPIs */
 .header-banner {background: linear-gradient(135deg,#0E2A47 0%,#1D4D7D 100%);border-left:6px solid #E7BE30;
   border-radius:14px;padding:22px 30px;color:#fff;margin-bottom:.9rem;box-shadow:0 10px 24px rgba(14,42,71,.16);}
 .header-banner h1 {font-size:1.55rem;margin:0;color:#fff;letter-spacing:.1px;}.header-banner p {margin:.3rem 0 0;color:#d9e6f3;}
@@ -343,7 +346,7 @@ div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radiu
 [data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
 [data-testid="stBaseButton-secondary"]:hover {border-color:#1D4D7D;color:#0E2A47;background:#edf4fb;}
 
-/* REALIZAR oculta el menu individual de cada columna */
+/* REALIZAR oculta el menú individual por columna */
 div[id^="portal"] :has(button[aria-label="Column menu"]),
 .glideDataGrid-column-header-menu,
 [data-testid="stDataFrame"] button[aria-label="Open menu"],
@@ -353,30 +356,34 @@ div[id^="portal"] :has(button[aria-label="Column menu"]),
     pointer-events: none !important;
 }
 
-/* REALIZAR permite que el marco ocupe todo el alto sin recortar toolbar flotante */
+/* REALIZAR ajuste del contenedor general para evitar la franja blanca vertical */
 div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
     border: 1px solid #dbe5ef;
     border-radius: 10px;
     background: #fff;
-    overflow: visible !important;
     position: relative !important;
     margin-top: 10px !important;
 }
 
-/* REALIZAR extension vertical completa para el canvas interno de la tabla */
+/* REALIZAR anulación del scroll y comportamiento en bloque del canvas */
 div[data-testid="stDataFrame"] > div, div[data-testid="stDataEditor"] > div {
-    height: 100% !important;
+    height: auto !important;
 }
 
-/* REALIZAR barra de herramientas posicionada correctamente sobre el borde */
-[data-testid="stElementToolbar"] {
+/* REALIZAR integracion limpia de la barra de herramientas flotante */
+div[data-testid="stElementToolbar"] {
     opacity: 1 !important;
     visibility: visible !important;
     display: flex !important;
-    top: -28px !important;
-    right: 5px !important;
-    z-index: 999 !important;
+    position: absolute !important;
+    top: 8px !important;
+    right: 12px !important;
+    height: auto !important;
+    width: auto !important;
     background-color: transparent !important;
+    z-index: 99 !important;
+    box-shadow: none !important;
+    border: none !important;
 }
 </style>
 """,
@@ -723,13 +730,13 @@ with tabs[1]:
         )
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
-        # REALIZAR aumento de altura a 780 para extender la vista de filas inferiores
+        # REALIZAR renderizado del visor con dimensiones estables
         editado = st.data_editor(
             df_vista,
             column_config=encabezados,
             hide_index=True,
             use_container_width=True,
-            height=780,
+            height=650,
             disabled=["SEÑAL"],
             key="editor_tabla_general",
         )
@@ -758,7 +765,6 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     )
     tabla.index = range(1, len(tabla) + 1)
     boton_descarga_excel(tabla, nombre_archivo, "Descargar Excel")
-    # REALIZAR aumento de altura a 650 para maximizar espacio vertical
     st.dataframe(tabla, use_container_width=True, hide_index=False, height=650)
     return tabla
 
@@ -798,7 +804,6 @@ def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
 
     df_mostrar.index = range(1, len(df_mostrar) + 1)
     boton_descarga_excel(df_mostrar, nombre_archivo, "Descargar Excel")
-    # REALIZAR aumento de altura a 650
     st.dataframe(df_mostrar, use_container_width=True, hide_index=False, height=650)
 
 
@@ -1111,4 +1116,3 @@ with tabs[8]:
             mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx", es_metricas=False)
 
     vista_sub_resumen()
-    
