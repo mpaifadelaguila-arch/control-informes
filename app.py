@@ -100,7 +100,6 @@ def texto_limpio(valor):
 
 
 def separar_alcance_y_notas(alcance, notas=""):
-    """Separa notas añadidas al alcance, sin alterar alcances no reconocidos."""
     alcance_limpio = texto_limpio(alcance)
     notas_limpias = texto_limpio(notas)
     patron = re.compile(
@@ -252,7 +251,6 @@ def registrar_solicitud(tipo, codigo, grupo, solicitante):
 
 
 def excel_con_formato(df, nombre_hoja="CONTROL"):
-    """Genera un XLSX con tabla, autofiltro, encabezados y anchos legibles."""
     salida = io.BytesIO()
     datos = df.copy().fillna("")
     with pd.ExcelWriter(salida, engine="openpyxl") as escritor:
@@ -308,7 +306,6 @@ def boton_descarga_excel(df, archivo, etiqueta="Descargar Excel"):
 
 
 def senal_visual(fila):
-    """Etiqueta visible para reconocer criterios dentro de la tabla editable."""
     notas = texto_normalizado(fila.get("NOTAS", ""))
     observacion = texto_normalizado(fila.get("OBSERVACIÓN", ""))
     if "RETIRADO" in notas or "RETIRADO" in observacion:
@@ -457,7 +454,7 @@ por_mes = {
     "fiabilidad": {},
     "psaim": {},
 }
-detalle_pendientes, resumen_pendientes = {}, {}
+detalle_pendientes = {}
 revision_fiabilidad = revision_especialista_pendiente = revision_especialista = 0
 
 for _, fila in df_activos.iterrows():
@@ -503,7 +500,6 @@ for _, fila in df_activos.iterrows():
     detalle_pendientes[(mes, etiqueta)] = (
         detalle_pendientes.get((mes, etiqueta), 0) + 1
     )
-    resumen_pendientes[etiqueta] = resumen_pendientes.get(etiqueta, 0) + 1
 
 st.markdown(
     "<div class='section-heading'>Panel de control de informes</div>",
@@ -550,7 +546,6 @@ solicitudes_activas = [
     if solicitud["estado"] == "PENDIENTE"
 ]
 
-# Modificación de pestañas: Unificación de las 3 resúmenes en "Resumen por mes"
 tabs = st.tabs(
     [
         f"Administración ({len(solicitudes_activas)})",
@@ -559,8 +554,7 @@ tabs = st.tabs(
         "En proceso",
         "Pend. inspección",
         "Rev. fiabilidad",
-        "Pend. rev. especialista",
-        "Rev. por especialista",
+        "Revisión especialista",
         "Correc. PSAIM",
         "Resumen por mes",
     ]
@@ -696,7 +690,6 @@ with tabs[1]:
         with col_descarga:
             boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
-        # Corrección: uso de use_container_width=True para habilitar botón nativo de pantalla completa
         editado = st.data_editor(
             df_vista,
             column_config=encabezados,
@@ -851,7 +844,7 @@ with tabs[5]:
     )
 
 
-def vista_revision_especialista(indice_tab, condicion, archivo, llave):
+def vista_revision_especialista(condicion, archivo, llave):
     df_revision = df_activos[df_activos["OBSERVACIÓN"].apply(condicion)]
     tabla_revision = tabla_agrupada(
         df_revision,
@@ -899,28 +892,34 @@ def vista_revision_especialista(indice_tab, condicion, archivo, llave):
             st.warning(mensaje)
 
 
+# Pestaña unificada "Revisión especialista"
 with tabs[6]:
-    vista_revision_especialista(
-        6,
-        lambda valor: "PENDIENTE REVISION POR EL ESPECIALISTA"
-        in texto_normalizado(valor),
-        "Pendientes_revision_especialista.xlsx",
-        "PEND_REV_ESP",
+    st.subheader("Revisión especialista")
+    opcion_especialista = st.radio(
+        "Seleccionar tipo de vista:",
+        ["Pendientes de revisión", "Revisados por el especialista"],
+        horizontal=True,
     )
+    
+    if opcion_especialista == "Pendientes de revisión":
+        vista_revision_especialista(
+            lambda valor: "PENDIENTE REVISION POR EL ESPECIALISTA"
+            in texto_normalizado(valor),
+            "Pendientes_revision_especialista.xlsx",
+            "PEND_REV_ESP",
+        )
+    else:
+        vista_revision_especialista(
+            lambda valor: (
+                "REV. POR EL ESPECIALISTA" in texto_normalizado(valor)
+                or "REVISION POR EL ESPECIALISTA" in texto_normalizado(valor)
+            )
+            and "PENDIENTE" not in texto_normalizado(valor),
+            "Revision_por_especialista.xlsx",
+            "REV_POR_ESP",
+        )
 
 with tabs[7]:
-    vista_revision_especialista(
-        7,
-        lambda valor: (
-            "REV. POR EL ESPECIALISTA" in texto_normalizado(valor)
-            or "REVISION POR EL ESPECIALISTA" in texto_normalizado(valor)
-        )
-        and "PENDIENTE" not in texto_normalizado(valor),
-        "Revision_por_especialista.xlsx",
-        "REV_POR_ESP",
-    )
-
-with tabs[8]:
     df_psaim_lineas = df_psaim[
         df_psaim["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == "LINEAS"
     ].copy()
@@ -972,34 +971,43 @@ with tabs[8]:
             else:
                 st.warning(mensaje)
 
-# Construcción de DataFrames consolidados para la vista "Resumen por mes"
-filas_t3 = []
-for mes in sorted(
-    set(por_mes["valorizados"]) | set(por_mes["pendientes"]),
-    key=lambda valor: (
-        ORDEN_MESES.index(valor.upper()) if valor.upper() in ORDEN_MESES else 99
-    ),
-):
-    valorizados = por_mes["valorizados"].get(mes, 0)
-    pendientes = por_mes["pendientes"].get(mes, 0)
-    filas_t3.append(
+# Métricas de Elaboración por Mes
+filas_elaboracion = []
+meses_unicos = sorted(
+    set(df_activos["MES"].apply(texto_limpio)),
+    key=lambda m: ORDEN_MESES.index(m.upper()) if m.upper() in ORDEN_MESES else 99,
+)
+
+for mes in meses_unicos:
+    if not mes:
+        continue
+    df_mes = df_activos[df_activos["MES"].apply(lambda v: texto_limpio(v) == mes)]
+    df_mes_unicos = df_mes.drop_duplicates(subset=["CLAVE_GLOBAL"])
+    total_informes = len(df_mes_unicos)
+    
+    elaborados = len(
+        df_mes_unicos[
+            df_mes_unicos["ESTADO - ELABORACIÓN DE INFORME"].apply(
+                lambda v: "FINALIZADO" in texto_normalizado(v) or "100%" in texto_normalizado(v)
+            )
+        ]
+    )
+    pendientes_elaborar = total_informes - elaborados
+    porcentaje = f"{(elaborados / total_informes * 100):.1f}%" if total_informes > 0 else "0.0%"
+    
+    filas_elaboracion.append(
         {
             "MES": mes,
-            "GRUPOS": df_activos[
-                df_activos["MES"].apply(
-                    lambda valor: texto_normalizado(valor)
-                    == texto_normalizado(mes)
-                )
-            ]["GRUPO DE TUBERÍAS"].nunique(),
-            "VALORIZADOS": valorizados,
-            "PENDIENTE VALORIZAR": pendientes,
-            "SUMA TOTAL": valorizados + pendientes,
-            "PENDIENTE ADEMINSAC": por_mes["ademinsac"].get(mes, 0),
-            "PENDIENTE FIABILIDAD": por_mes["fiabilidad"].get(mes, 0),
-            "CORRECCION PSAIM": por_mes["psaim"].get(mes, 0),
+            "TOTAL INFORMES": total_informes,
+            "INFORMES ELABORADOS": elaborados,
+            "PENDIENTES POR ELABORAR": pendientes_elaborar,
+            "% AVANCE ELABORACIÓN": porcentaje,
         }
     )
-df_t3 = pd.DataFrame(filas_t3)
+
+df_metricas_elaboracion = pd.DataFrame(filas_elaboracion)
+
+# Detalle pendientes por mes u observación
 df_t4 = pd.DataFrame(
     [
         {
@@ -1021,35 +1029,17 @@ if not df_t4.empty:
     df_t4 = df_t4.sort_values(
         ["ORDEN", "CANTIDAD"], ascending=[True, False]
     ).drop(columns="ORDEN")
-df_t5 = pd.DataFrame(
-    [
-        {
-            "OBSERVACIÓN PENDIENTE": observacion,
-            "CANTIDAD TOTAL": cantidad,
-            "RESPONSABLE": (
-                "ADEMINSAC"
-                if "ADEMINSAC" in texto_normalizado(observacion)
-                else "FIABILIDAD"
-            ),
-        }
-        for observacion, cantidad in resumen_pendientes.items()
-    ]
-)
-if not df_t5.empty:
-    df_t5 = df_t5.sort_values("CANTIDAD TOTAL", ascending=False)
 
-# Pestaña unificada "Resumen por mes"
-with tabs[9]:
-    st.subheader("Resumen consolidado por mes")
+# Pestaña "Resumen por mes"
+with tabs[8]:
+    st.subheader("Resumen por mes")
     opcion_resumen = st.radio(
         "Seleccionar tipo de vista:",
-        ["Métricas por mes", "Detalle pendientes por mes / observación", "Consolidado total por observación"],
+        ["Métricas por mes", "Detalle pendientes por mes / observación"],
         horizontal=True,
     )
     
     if opcion_resumen == "Métricas por mes":
-        mostrar_resumen(df_t3, "Resumen_mensual_T3.xlsx")
-    elif opcion_resumen == "Detalle pendientes por mes / observación":
-        mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx")
+        mostrar_resumen(df_metricas_elaboracion, "Metricas_Elaboracion_Por_Mes.xlsx")
     else:
-        mostrar_resumen(df_t5, "Resumen_observaciones_T5.xlsx")
+        mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx")
