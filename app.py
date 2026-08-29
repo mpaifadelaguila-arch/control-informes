@@ -100,6 +100,7 @@ def texto_limpio(valor):
 
 
 def separar_alcance_y_notas(alcance, notas=""):
+    """Separa notas añadidas al alcance, sin alterar alcances no reconocidos."""
     alcance_limpio = texto_limpio(alcance)
     notas_limpias = texto_limpio(notas)
     patron = re.compile(
@@ -251,6 +252,7 @@ def registrar_solicitud(tipo, codigo, grupo, solicitante):
 
 
 def excel_con_formato(df, nombre_hoja="CONTROL"):
+    """Genera un XLSX con tabla, autofiltro, encabezados y anchos legibles."""
     salida = io.BytesIO()
     datos = df.copy().fillna("")
     with pd.ExcelWriter(salida, engine="openpyxl") as escritor:
@@ -306,6 +308,7 @@ def boton_descarga_excel(df, archivo, etiqueta="Descargar Excel"):
 
 
 def senal_visual(fila):
+    """Etiqueta visible para reconocer criterios dentro de la tabla editable."""
     notas = texto_normalizado(fila.get("NOTAS", ""))
     observacion = texto_normalizado(fila.get("OBSERVACIÓN", ""))
     if "RETIRADO" in notas or "RETIRADO" in observacion:
@@ -319,84 +322,30 @@ def senal_visual(fila):
     return "⚪ Sin alerta"
 
 
-# Estilos CSS con maximización de ancho en pantalla y diseño ajustado
 st.markdown(
     """
 <style>
 header, footer {visibility: hidden;}
 .stAppDeployButton {display: none;}
 .stApp {background: linear-gradient(180deg, #eef4fa 0%, #f8fafc 360px);}
-[data-testid="stAppViewBlockContainer"] {
-    padding-top: 1.2rem !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
-    max-width: 100% !important;
-}
-.header-banner {
-    background: linear-gradient(135deg,#0E2A47 0%,#1D4D7D 100%);
-    border-left: 6px solid #E7BE30;
-    border-radius: 14px;
-    padding: 20px 25px;
-    color: #fff;
-    margin-bottom: .9rem;
-    box-shadow: 0 10px 24px rgba(14,42,71,.16);
-}
-.header-banner h1 {font-size: 1.55rem; margin: 0; color: #fff; letter-spacing: .1px;}
-.header-banner p {margin: .3rem 0 0; color: #d9e6f3;}
-.section-heading {color: #0E2A47; font-weight: 800; margin: .85rem 0 .35rem; font-size: 1.04rem; letter-spacing: .1px;}
-.kpi-grid {display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 10px; margin-bottom: .35rem;}
-.kpi-card {
-    background: #fff;
-    border: 1px solid #dbe5ef;
-    border-top: 4px solid var(--tone);
-    border-radius: 10px;
-    min-height: 74px;
-    padding: 10px 12px;
-    box-shadow: 0 3px 10px rgba(15,42,70,.06);
-    transition: transform .18s ease, box-shadow .18s ease;
-}
-.kpi-card:hover {transform: translateY(-2px); box-shadow: 0 8px 18px rgba(15,42,70,.12);}
-.kpi-label {font-size: .70rem; font-weight: 750; line-height: 1.12; text-transform: uppercase; color: #5d7086; letter-spacing: .18px;}
-.kpi-icon {float: right; color: var(--tone); font-size: 1rem; font-weight: 800;}
-.kpi-value {font-size: 1.58rem; font-weight: 800; line-height: 1.05; color: #102e4c; margin-top: 7px;}
-
-/* Estilo mejorado de botones/pestañas de navegación redondeadas */
-.stTabs [data-baseweb="tab-list"] {
-    gap: 8px;
-    background: transparent;
-    padding: 6px 0px;
-}
-.stTabs [data-baseweb="tab"] {
-    border-radius: 20px !important;
-    border: 1px solid #c9d7e5 !important;
-    background-color: #ffffff !important;
-    font-size: 0.82rem !important;
-    font-weight: 600 !important;
-    padding: 6px 16px !important;
-    color: #4a607a !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-    transition: all 0.2s ease;
-}
-.stTabs [data-baseweb="tab"]:hover {
-    border-color: #0E2A47 !important;
-    color: #0E2A47 !important;
-}
-.stTabs [aria-selected="true"] {
-    background: #0E2A47 !important;
-    color: #ffffff !important;
-    border-color: #0E2A47 !important;
-}
-
-div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
-    border: 1px solid #dbe5ef;
-    border-radius: 10px;
-    background: #fff;
-    overflow: auto;
-    width: 100% !important;
-}
-div[data-testid="stExpander"] {background: #fff; border-color: #cfdbe7; border-radius: 10px;}
-[data-testid="stBaseButton-secondary"] {border-color: #b8c9da; color: #173a5d; background: #fff;}
-[data-testid="stBaseButton-secondary"]:hover {border-color: #1D4D7D; color: #0E2A47; background: #edf4fb;}
+[data-testid="stAppViewBlockContainer"] {padding-top: 2.1rem; max-width: 1800px;}
+.header-banner {background: linear-gradient(135deg,#0E2A47 0%,#1D4D7D 100%);border-left:6px solid #E7BE30;
+  border-radius:14px;padding:22px 30px;color:#fff;margin-bottom:.9rem;box-shadow:0 10px 24px rgba(14,42,71,.16);}
+.header-banner h1 {font-size:1.55rem;margin:0;color:#fff;letter-spacing:.1px;}.header-banner p {margin:.3rem 0 0;color:#d9e6f3;}
+.section-heading {color:#0E2A47;font-weight:800;margin:.85rem 0 .35rem;font-size:1.04rem;letter-spacing:.1px;}
+.kpi-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:.35rem;}
+.kpi-card {background:#fff;border:1px solid #dbe5ef;border-top:4px solid var(--tone);border-radius:10px;min-height:74px;
+  padding:10px 12px;box-shadow:0 3px 10px rgba(15,42,70,.06);transition:transform .18s ease,box-shadow .18s ease;}
+.kpi-card:hover {transform:translateY(-2px);box-shadow:0 8px 18px rgba(15,42,70,.12);}
+.kpi-label {font-size:.70rem;font-weight:750;line-height:1.12;text-transform:uppercase;color:#5d7086;letter-spacing:.18px;}
+.kpi-icon {float:right;color:var(--tone);font-size:1rem;font-weight:800;}.kpi-value {font-size:1.58rem;font-weight:800;line-height:1.05;color:#102e4c;margin-top:7px;}
+.stTabs [data-baseweb="tab-list"] {gap:4px;background:#e7eef6;border-radius:10px;padding:5px 6px;}
+.stTabs [data-baseweb="tab"] {border-radius:7px;font-size:.78rem;font-weight:650;padding:0 10px;color:#3d5269;}
+.stTabs [aria-selected="true"] {background:#0E2A47 !important;color:#fff !important;}
+div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {border:1px solid #dbe5ef;border-radius:10px;background:#fff;overflow:hidden;}
+div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radius:10px;}
+[data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
+[data-testid="stBaseButton-secondary"]:hover {border-color:#1D4D7D;color:#0E2A47;background:#edf4fb;}
 </style>
 """,
     unsafe_allow_html=True,
@@ -408,10 +357,8 @@ if "df_data" not in st.session_state:
 df = normalizar_base(st.session_state.df_data)
 
 st.html("""
-<div class="header-banner">
-  <h1>Control interno de elaboración de informes - Plan de Líneas - Ademinsac - Repsol / Pampilla</h1>
-  <p>Sistema de monitoreo y valorización | Refinería La Pampilla</p>
-</div>
+<div class="header-banner"><h1>Control interno de informes - Ademinsac</h1>
+<p>Sistema de monitoreo de inspecciones técnicas y valorización | Refinería La Pampilla</p></div>
 """)
 
 with st.expander(
@@ -606,14 +553,16 @@ tabs = st.tabs(
     [
         f"Administración ({len(solicitudes_activas)})",
         "Tabla general",
-        "Pendiente asignar",
+        "Pend. asignar",
         "En proceso",
-        "Pendiente inspección",
-        "En revisión fiabilidad",
-        "Pendiente revisión especialista",
-        "Revisado por especialista",
-        "Corregir PSAIM",
-        "Resumen total por mes",
+        "Pend. inspección",
+        "Rev. fiabilidad",
+        "Pend. rev. especialista",
+        "Rev. por especialista",
+        "Correc. PSAIM",
+        "Resumen mes (T3)",
+        "Pend. mes/obs (T4)",
+        "Resumen obs (T5)",
     ]
 )
 
@@ -718,27 +667,26 @@ with tabs[1]:
             lambda v: "SI" if texto_normalizado(v) == "SI" else "Pendiente - valorización"
         )
         df_vista.insert(0, "SEÑAL", df_vista.apply(senal_visual, axis=1))
-        
         encabezados = {
-            "SEÑAL": st.column_config.TextColumn("Señal", width=170, disabled=True, pinned=True),
+            "SEÑAL": st.column_config.TextColumn("Señal", width=190, disabled=True, pinned=True),
             "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
-            "IT2": st.column_config.TextColumn("IT2", width=60),
-            "UNIDAD": st.column_config.TextColumn("Unidad", width=70),
-            "MES": st.column_config.TextColumn("Mes", width=90),
-            "LINEAS": st.column_config.TextColumn("Líneas", width=220),
-            "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=240),
-            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=220),
-            "SAP": st.column_config.TextColumn("SAP", width=100),
-            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width=130),
-            "NOTAS": st.column_config.TextColumn("Notas", width=220),
-            "ESTADO - ELABORACIÓN DE INFORME": st.column_config.TextColumn("Estado de elaboración", width=200),
-            "RESPONSABLE": st.column_config.TextColumn("Responsable", width=160),
-            "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=300),
+            "IT2": st.column_config.TextColumn("IT2", width=55),
+            "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
+            "MES": st.column_config.TextColumn("Mes", width=80),
+            "LINEAS": st.column_config.TextColumn("Líneas", width=180),
+            "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=190),
+            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=180),
+            "SAP": st.column_config.TextColumn("SAP", width=85),
+            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width=120),
+            "NOTAS": st.column_config.TextColumn("Notas", width=170),
+            "ESTADO - ELABORACIÓN DE INFORME": st.column_config.TextColumn("Estado de elaboración", width=190),
+            "RESPONSABLE": st.column_config.TextColumn("Responsable", width=135),
+            "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=280),
             "ESTADO - VALORIZACIÓN": st.column_config.SelectboxColumn(
                 "Valorización",
                 options=["Pendiente - valorización", "SI"],
                 required=True,
-                width=160,
+                width=145,
             ),
         }
         st.caption(
@@ -748,12 +696,12 @@ with tabs[1]:
         with acciones_tabla:
             boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
-        # Visualización sin compresión para mantener scroll y pantalla completa nativos
         editado = st.data_editor(
             df_vista,
             column_config=encabezados,
             hide_index=True,
-            height=600,
+            width="stretch",
+            height=560,
             disabled=["SEÑAL"],
             key="editor_tabla_general",
         )
@@ -780,22 +728,12 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
         .agg(LINEAS=("LINEAS", "count"))
         .fillna("")
     )
-    
-    # Agregar fila de TOTAL al final de la tabla agrupada
-    total_lineas = tabla["LINEAS"].sum()
-    fila_total = {col: "" for col in tabla.columns}
-    col_primer_texto = columnas[0]
-    fila_total[col_primer_texto] = "TOTAL"
-    fila_total["LINEAS"] = total_lineas
-    
-    tabla_con_total = pd.concat([tabla, pd.DataFrame([fila_total])], ignore_index=True)
-    tabla_mostrar = preparar_tabla(tabla_con_total)
-    
+    tabla = preparar_tabla(tabla)
     with st.container(horizontal=True, horizontal_alignment="right"):
         boton_descarga_excel(
-            tabla_mostrar.reset_index(drop=True), nombre_archivo, "Descargar Excel"
+            tabla.reset_index(drop=True), nombre_archivo, "Descargar Excel"
         )
-    st.dataframe(tabla_mostrar, height=450)
+    st.dataframe(tabla, width="stretch", height=420)
     return tabla
 
 
@@ -803,19 +741,9 @@ def mostrar_resumen(df_resumen, nombre_archivo):
     if df_resumen.empty:
         st.info("No hay registros para mostrar.", icon=":material/info:")
         return
-        
-    # Fila acumulativa de TOTALES
-    fila_totales = {
-        "MES": "TOTALES",
-        "INFORMES FALTANTES (PENDIENTES)": df_resumen["INFORMES FALTANTES (PENDIENTES)"].sum(),
-        "INFORMES VALORIZADOS": df_resumen["INFORMES VALORIZADOS"].sum(),
-        "TOTAL INFORMES": df_resumen["TOTAL INFORMES"].sum(),
-    }
-    df_con_total = pd.concat([df_resumen, pd.DataFrame([fila_totales])], ignore_index=True)
-    
     with st.container(horizontal=True, horizontal_alignment="right"):
-        boton_descarga_excel(df_con_total, nombre_archivo, "Descargar Excel")
-    st.dataframe(preparar_tabla(df_con_total), height=450)
+        boton_descarga_excel(df_resumen, nombre_archivo, "Descargar Excel")
+    st.dataframe(preparar_tabla(df_resumen), width="stretch", height=420)
 
 
 with tabs[2]:
@@ -1041,8 +969,7 @@ with tabs[8]:
             else:
                 st.warning(mensaje)
 
-# Construcción de resumen simplificado por mes
-filas_resumen_mes = []
+filas_t3 = []
 for mes in sorted(
     set(por_mes["valorizados"]) | set(por_mes["pendientes"]),
     key=lambda valor: (
@@ -1051,16 +978,65 @@ for mes in sorted(
 ):
     valorizados = por_mes["valorizados"].get(mes, 0)
     pendientes = por_mes["pendientes"].get(mes, 0)
-    total = valorizados + pendientes
-    filas_resumen_mes.append(
+    filas_t3.append(
         {
             "MES": mes,
-            "INFORMES FALTANTES (PENDIENTES)": pendientes,
-            "INFORMES VALORIZADOS": valorizados,
-            "TOTAL INFORMES": total,
+            "GRUPOS": df_activos[
+                df_activos["MES"].apply(
+                    lambda valor: texto_normalizado(valor)
+                    == texto_normalizado(mes)
+                )
+            ]["GRUPO DE TUBERÍAS"].nunique(),
+            "VALORIZADOS": valorizados,
+            "PENDIENTE VALORIZAR": pendientes,
+            "SUMA TOTAL": valorizados + pendientes,
+            "PENDIENTE ADEMINSAC": por_mes["ademinsac"].get(mes, 0),
+            "PENDIENTE FIABILIDAD": por_mes["fiabilidad"].get(mes, 0),
+            "CORRECCION PSAIM": por_mes["psaim"].get(mes, 0),
         }
     )
-df_resumen_mes = pd.DataFrame(filas_resumen_mes)
+df_t3 = pd.DataFrame(filas_t3)
+df_t4 = pd.DataFrame(
+    [
+        {
+            "MES": mes,
+            "OBSERVACIÓN PENDIENTE": observacion,
+            "CANTIDAD": cantidad,
+        }
+        for (mes, observacion), cantidad in detalle_pendientes.items()
+    ]
+)
+if not df_t4.empty:
+    df_t4["ORDEN"] = df_t4["MES"].apply(
+        lambda valor: (
+            ORDEN_MESES.index(texto_normalizado(valor))
+            if texto_normalizado(valor) in ORDEN_MESES
+            else 99
+        )
+    )
+    df_t4 = df_t4.sort_values(
+        ["ORDEN", "CANTIDAD"], ascending=[True, False]
+    ).drop(columns="ORDEN")
+df_t5 = pd.DataFrame(
+    [
+        {
+            "OBSERVACIÓN PENDIENTE": observacion,
+            "CANTIDAD TOTAL": cantidad,
+            "RESPONSABLE": (
+                "ADEMINSAC"
+                if "ADEMINSAC" in texto_normalizado(observacion)
+                else "FIABILIDAD"
+            ),
+        }
+        for observacion, cantidad in resumen_pendientes.items()
+    ]
+)
+if not df_t5.empty:
+    df_t5 = df_t5.sort_values("CANTIDAD TOTAL", ascending=False)
 
 with tabs[9]:
-    mostrar_resumen(df_resumen_mes, "Resumen_informes_faltantes_por_mes.xlsx")
+    mostrar_resumen(df_t3, "Resumen_mensual_T3.xlsx")
+with tabs[10]:
+    mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx")
+with tabs[11]:
+    mostrar_resumen(df_t5, "Resumen_observaci
