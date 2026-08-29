@@ -314,6 +314,13 @@ if df.empty:
     st.stop()
 
 df_activos = df[df["NOTAS"].apply(texto_normalizado) != "RETIRADO"].copy()
+# Los retirados históricos pueden estar en OBSERVACIÓN y los nuevos en NOTAS.
+# Ambos deben excluirse antes de consolidar cada informe.
+mascara_retirado = (
+    df["OBSERVACIÓN"].apply(lambda valor: "RETIRADO" in texto_normalizado(valor))
+    | df["NOTAS"].apply(lambda valor: "RETIRADO" in texto_normalizado(valor))
+)
+df_activos = df[~mascara_retirado].copy()
 df_activos["CLAVE_GLOBAL"] = df_activos.apply(
     lambda fila: (
         f"{texto_limpio(fila['MES'])}|SIN-CODIGO-GRUPO|{texto_normalizado(fila['GRUPO DE TUBERÍAS'])}"
@@ -480,24 +487,29 @@ with tabs[1]:
     acciones_tabla = st.container(horizontal=True, horizontal_alignment="right")
     with acciones_tabla:
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
-    st.dataframe(df_vista.style.apply(estilo_tabla_general, axis=1), column_config=encabezados, hide_index=True, width="stretch", height=520)
-    with st.expander("Editar los registros filtrados", icon=":material/edit:"):
-        st.caption("Los colores se muestran en la vista principal. Guarda los cambios al terminar la edición.")
-        configuracion_editor = dict(encabezados)
-        configuracion_editor["ESTADO - VALORIZACIÓN"] = st.column_config.SelectboxColumn(
-            "Estado de valorización", options=["Pendiente - valorización", "SI"], required=True, width="medium"
-        )
-        editado = st.data_editor(df_vista, column_config=configuracion_editor, hide_index=True, width="stretch", key="editor_tabla_general")
-        if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
-            for indice, fila in editado.iterrows():
-                for columna in COLUMNAS_EXCEL:
-                    df.at[indice, columna] = fila[columna]
-                if texto_normalizado(fila["ESTADO - VALORIZACIÓN"]) == "SI":
-                    df.at[indice, "OBSERVACIÓN"] = ""
-            st.session_state.df_data = normalizar_base(df)
-            guardar_datos(st.session_state.df_data)
-            st.success("Cambios guardados correctamente.")
-            st.rerun()
+    # Una sola tabla: editable y con las herramientas nativas, incluido ampliar a pantalla completa.
+    configuracion_editor = dict(encabezados)
+    configuracion_editor["ESTADO - VALORIZACIÓN"] = st.column_config.SelectboxColumn(
+        "Estado de valorización", options=["Pendiente - valorización", "SI"], required=True, width="medium"
+    )
+    editado = st.data_editor(
+        df_vista,
+        column_config=configuracion_editor,
+        hide_index=True,
+        width="stretch",
+        height=560,
+        key="editor_tabla_general",
+    )
+    if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
+        for indice, fila in editado.iterrows():
+            for columna in COLUMNAS_EXCEL:
+                df.at[indice, columna] = fila[columna]
+            if texto_normalizado(fila["ESTADO - VALORIZACIÓN"]) == "SI":
+                df.at[indice, "OBSERVACIÓN"] = ""
+        st.session_state.df_data = normalizar_base(df)
+        guardar_datos(st.session_state.df_data)
+        st.success("Cambios guardados correctamente.")
+        st.rerun()
 
 
 def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
