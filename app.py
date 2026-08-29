@@ -437,7 +437,8 @@ with tabs[1]:
             lambda fila: any(consulta_norm in texto_normalizado(valor) for valor in fila), axis=1
         )
         df_vista = df_vista[mascara_busqueda]
-    df_vista = df_vista.applymap(texto_limpio)
+    # Pandas 3 retiró DataFrame.applymap; DataFrame.map conserva el mismo comportamiento.
+    df_vista = df_vista.map(texto_limpio)
     df_vista["ESTADO - VALORIZACIÓN"] = df_vista["ESTADO - VALORIZACIÓN"].apply(
         lambda valor: "SI" if texto_normalizado(valor) == "SI" else "Pendiente - valorización"
     )
