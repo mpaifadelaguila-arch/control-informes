@@ -343,6 +343,25 @@ div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {border:1px soli
 div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radius:10px;}
 [data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
 [data-testid="stBaseButton-secondary"]:hover {border-color:#1D4D7D;color:#0E2A47;background:#edf4fb;}
+
+/* REALIZAR oculta el menu de la columna (Sort, Pin, Hide) */
+div[id^="portal"] :has(button[aria-label="Column menu"]),
+.glideDataGrid-column-header-menu,
+[data-testid="stDataFrame"] button[aria-label="Open menu"],
+[data-testid="stDataEditor"] button[aria-label="Open menu"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* REALIZAR activa y posiciona permanentemente el menu flotante de Streamlit (Pantalla completa, Lupa, Descarga) */
+[data-testid="stElementToolbar"] {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    top: -35px !important;
+    right: 10px !important;
+}
 </style>
 """,
     unsafe_allow_html=True,
@@ -686,9 +705,7 @@ with tabs[1]:
         st.caption(
             "🟢 Valorizado (SI) · 🟡 Pendiente de inspección o falta carpeta · 🔵 Inspección complementaria · ⚫ Retirado"
         )
-        col_descarga, _ = st.columns([1, 4])
-        with col_descarga:
-            boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
+        boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
         editado = st.data_editor(
             df_vista,
@@ -722,13 +739,9 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
         .agg(LINEAS=("LINEAS", "count"))
         .fillna("")
     )
-    col_descarga, _ = st.columns([1, 4])
-    with col_descarga:
-        boton_descarga_excel(
-            tabla, nombre_archivo, "Descargar Excel"
-        )
-    # REALIZAR renderizado nativo de Streamlit con pantalla completa e índice secuencial automático
-    st.dataframe(tabla, use_container_width=True, hide_index=False)
+    tabla.index = range(1, len(tabla) + 1)
+    boton_descarga_excel(tabla, nombre_archivo, "Descargar Excel")
+    st.dataframe(tabla, use_container_width=True, hide_index=False, height=400)
     return tabla
 
 
@@ -739,7 +752,6 @@ def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
     
     df_mostrar = df_resumen.copy()
     
-    # REALIZAR el cálculo e inyección de la fila de TOTALES
     if es_metricas:
         tot_informes = df_mostrar["TOTAL INFORMES"].sum()
         tot_elaborados = df_mostrar["INFORMES ELABORADOS"].sum()
@@ -766,12 +778,9 @@ def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
         })
         df_mostrar = pd.concat([df_mostrar, fila_total], ignore_index=True)
 
-    col_descarga, _ = st.columns([1, 4])
-    with col_descarga:
-        boton_descarga_excel(df_mostrar, nombre_archivo, "Descargar Excel")
-        
-    # REALIZAR renderizado nativo interactivo compatible con Pantalla Completa
-    st.dataframe(df_mostrar, use_container_width=True, hide_index=False)
+    df_mostrar.index = range(1, len(df_mostrar) + 1)
+    boton_descarga_excel(df_mostrar, nombre_archivo, "Descargar Excel")
+    st.dataframe(df_mostrar, use_container_width=True, hide_index=False, height=400)
 
 
 with tabs[2]:
@@ -924,32 +933,37 @@ def vista_revision_especialista(condicion, archivo, llave):
             st.warning(mensaje)
 
 
-# Pestaña unificada "Revisión especialista"
 with tabs[6]:
     st.subheader("Revisión especialista")
-    opcion_especialista = st.radio(
-        "Seleccionar tipo de vista:",
-        ["Pendientes de revisión", "Revisados por el especialista"],
-        horizontal=True,
-    )
     
-    if opcion_especialista == "Pendientes de revisión":
-        vista_revision_especialista(
-            lambda valor: "PENDIENTE REVISION POR EL ESPECIALISTA"
-            in texto_normalizado(valor),
-            "Pendientes_revision_especialista.xlsx",
-            "PEND_REV_ESP",
+    @st.fragment
+    def vista_sub_especialista():
+        opcion_especialista = st.radio(
+            "Seleccionar tipo de vista:",
+            ["Pendientes de revisión", "Revisados por el especialista"],
+            horizontal=True,
+            key="radio_especialistas"
         )
-    else:
-        vista_revision_especialista(
-            lambda valor: (
-                "REV. POR EL ESPECIALISTA" in texto_normalizado(valor)
-                or "REVISION POR EL ESPECIALISTA" in texto_normalizado(valor)
+        
+        if opcion_especialista == "Pendientes de revisión":
+            vista_revision_especialista(
+                lambda valor: "PENDIENTE REVISION POR EL ESPECIALISTA"
+                in texto_normalizado(valor),
+                "Pendientes_revision_especialista.xlsx",
+                "PEND_REV_ESP",
             )
-            and "PENDIENTE" not in texto_normalizado(valor),
-            "Revision_por_especialista.xlsx",
-            "REV_POR_ESP",
-        )
+        else:
+            vista_revision_especialista(
+                lambda valor: (
+                    "REV. POR EL ESPECIALISTA" in texto_normalizado(valor)
+                    or "REVISION POR EL ESPECIALISTA" in texto_normalizado(valor)
+                )
+                and "PENDIENTE" not in texto_normalizado(valor),
+                "Revision_por_especialista.xlsx",
+                "REV_POR_ESP",
+            )
+            
+    vista_sub_especialista()
 
 with tabs[7]:
     df_psaim_lineas = df_psaim[
@@ -1003,7 +1017,6 @@ with tabs[7]:
             else:
                 st.warning(mensaje)
 
-# Métricas de Elaboración por Mes
 filas_elaboracion = []
 meses_unicos = sorted(
     set(df_activos["MES"].apply(texto_limpio)),
@@ -1039,7 +1052,6 @@ for mes in meses_unicos:
 
 df_metricas_elaboracion = pd.DataFrame(filas_elaboracion)
 
-# Detalle pendientes por mes u observación
 df_t4 = pd.DataFrame(
     [
         {
@@ -1062,16 +1074,21 @@ if not df_t4.empty:
         ["ORDEN", "CANTIDAD"], ascending=[True, False]
     ).drop(columns="ORDEN")
 
-# Pestaña "Resumen por mes"
 with tabs[8]:
     st.subheader("Resumen por mes")
-    opcion_resumen = st.radio(
-        "Seleccionar tipo de vista:",
-        ["Métricas por mes", "Detalle pendientes por mes / observación"],
-        horizontal=True,
-    )
     
-    if opcion_resumen == "Métricas por mes":
-        mostrar_resumen(df_metricas_elaboracion, "Metricas_Elaboracion_Por_Mes.xlsx", es_metricas=True)
-    else:
-        mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx", es_metricas=False)
+    @st.fragment
+    def vista_sub_resumen():
+        opcion_resumen = st.radio(
+            "Seleccionar tipo de vista:",
+            ["Métricas por mes", "Detalle pendientes por mes / observación"],
+            horizontal=True,
+            key="radio_resumen"
+        )
+        
+        if opcion_resumen == "Métricas por mes":
+            mostrar_resumen(df_metricas_elaboracion, "Metricas_Elaboracion_Por_Mes.xlsx", es_metricas=True)
+        else:
+            mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx", es_metricas=False)
+
+    vista_sub_resumen()
