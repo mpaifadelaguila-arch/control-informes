@@ -356,12 +356,31 @@ div[id^="portal"] :has(button[aria-label="Column menu"]),
     pointer-events: none !important;
 }
 
-/* REALIZAR corrección del contenedor permitiendo altura definida por height=780 */
+/* REALIZAR corrección del contenedor permitiendo adaptación dinámica */
 div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
     border: 1px solid #dbe5ef;
     border-radius: 10px;
     background: #fff;
     margin-top: 10px !important;
+    width: 100% !important;
+}
+
+/* REALIZAR expansión total al activar Fullscreen (Modo Pantalla Completa) */
+div[data-testid="stElementContainer"]:has(div[aria-label="Exit fullscreen"]),
+div[data-testid="stElementContainer"]:has(div[data-testid="stDataEditor"]),
+div[data-testid="stDataFrame"]:fullscreen,
+div[data-testid="stDataEditor"]:fullscreen,
+[data-aria-expanded="true"] div[data-testid="stDataEditor"],
+section[data-testid="stMain"] *:fullscreen {
+    height: 92vh !important;
+    max-height: 100vh !important;
+}
+
+/* REALIZAR ajuste específico para la grilla interna en pantalla completa */
+div[aria-label="Exit fullscreen"] ~ div div[data-testid="stDataEditor"],
+div[aria-label="Exit fullscreen"] ~ div iframe,
+div[data-testid="stElementContainer"]:has(button[title="Exit fullscreen"]) {
+    height: 90vh !important;
 }
 
 /* REALIZAR integración de barra de herramientas flotante arriba a la derecha */
@@ -727,7 +746,7 @@ with tabs[1]:
             column_config=encabezados,
             hide_index=True,
             use_container_width=True,
-            height=780,
+            height=None,
             disabled=["SEÑAL"],
             key="editor_tabla_general",
         )
