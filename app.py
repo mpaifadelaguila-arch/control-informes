@@ -339,12 +339,11 @@ header, footer {visibility: hidden;}
 .stTabs [data-baseweb="tab-list"] {gap:4px;background:#e7eef6;border-radius:10px;padding:5px 6px;}
 .stTabs [data-baseweb="tab"] {border-radius:7px;font-size:.78rem;font-weight:650;padding:0 10px;color:#3d5269;}
 .stTabs [aria-selected="true"] {background:#0E2A47 !important;color:#fff !important;}
-div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {border:1px solid #dbe5ef;border-radius:10px;background:#fff;overflow:hidden;}
 div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radius:10px;}
 [data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
 [data-testid="stBaseButton-secondary"]:hover {border-color:#1D4D7D;color:#0E2A47;background:#edf4fb;}
 
-/* REALIZAR oculta el menu de la columna (Sort, Pin, Hide) */
+/* REALIZAR oculta el menu individual de cada columna (Sort, Pin, Hide) */
 div[id^="portal"] :has(button[aria-label="Column menu"]),
 .glideDataGrid-column-header-menu,
 [data-testid="stDataFrame"] button[aria-label="Open menu"],
@@ -354,13 +353,25 @@ div[id^="portal"] :has(button[aria-label="Column menu"]),
     pointer-events: none !important;
 }
 
-/* REALIZAR activa y posiciona permanentemente el menu flotante de Streamlit (Pantalla completa, Lupa, Descarga) */
+/* REALIZAR configuracion para desbordamiento visible y barra de herramientas no recortada */
+div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
+    border: 1px solid #dbe5ef;
+    border-radius: 10px;
+    background: #fff;
+    overflow: visible !important;
+    position: relative !important;
+    margin-top: 10px !important;
+}
+
+/* REALIZAR posiciona y muestra la barra nativa completa (Lupa, Descarga, Pantalla completa) arriba del borde */
 [data-testid="stElementToolbar"] {
     opacity: 1 !important;
     visibility: visible !important;
     display: flex !important;
-    top: -35px !important;
-    right: 10px !important;
+    top: -28px !important;
+    right: 5px !important;
+    z-index: 999 !important;
+    background-color: transparent !important;
 }
 </style>
 """,
