@@ -100,7 +100,6 @@ def texto_limpio(valor):
 
 
 def separar_alcance_y_notas(alcance, notas=""):
-    """Separa notas añadidas al alcance, sin alterar alcances no reconocidos."""
     alcance_limpio = texto_limpio(alcance)
     notas_limpias = texto_limpio(notas)
     patron = re.compile(
@@ -252,7 +251,6 @@ def registrar_solicitud(tipo, codigo, grupo, solicitante):
 
 
 def excel_con_formato(df, nombre_hoja="CONTROL"):
-    """Genera un XLSX con tabla, autofiltro, encabezados y anchos legibles."""
     salida = io.BytesIO()
     datos = df.copy().fillna("")
     with pd.ExcelWriter(salida, engine="openpyxl") as escritor:
@@ -308,7 +306,6 @@ def boton_descarga_excel(df, archivo, etiqueta="Descargar Excel"):
 
 
 def senal_visual(fila):
-    """Etiqueta visible para reconocer criterios dentro de la tabla editable."""
     notas = texto_normalizado(fila.get("NOTAS", ""))
     observacion = texto_normalizado(fila.get("OBSERVACIÓN", ""))
     if "RETIRADO" in notas or "RETIRADO" in observacion:
@@ -339,9 +336,34 @@ header, footer {visibility: hidden;}
 .kpi-card:hover {transform:translateY(-2px);box-shadow:0 8px 18px rgba(15,42,70,.12);}
 .kpi-label {font-size:.70rem;font-weight:750;line-height:1.12;text-transform:uppercase;color:#5d7086;letter-spacing:.18px;}
 .kpi-icon {float:right;color:var(--tone);font-size:1rem;font-weight:800;}.kpi-value {font-size:1.58rem;font-weight:800;line-height:1.05;color:#102e4c;margin-top:7px;}
-.stTabs [data-baseweb="tab-list"] {gap:4px;background:#e7eef6;border-radius:10px;padding:5px 6px;}
-.stTabs [data-baseweb="tab"] {border-radius:7px;font-size:.78rem;font-weight:650;padding:0 10px;color:#3d5269;}
-.stTabs [aria-selected="true"] {background:#0E2A47 !important;color:#fff !important;}
+
+/* Estilo mejorado de botones/pestañas de navegación redondeadas */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+    background: transparent;
+    padding: 6px 0px;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 20px !important;
+    border: 1px solid #c9d7e5 !important;
+    background-color: #ffffff !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    padding: 6px 16px !important;
+    color: #4a607a !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    transition: all 0.2s ease;
+}
+.stTabs [data-baseweb="tab"]:hover {
+    border-color: #0E2A47 !important;
+    color: #0E2A47 !important;
+}
+.stTabs [aria-selected="true"] {
+    background: #0E2A47 !important;
+    color: #ffffff !important;
+    border-color: #0E2A47 !important;
+}
+
 div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {border:1px solid #dbe5ef;border-radius:10px;background:#fff;overflow:hidden;}
 div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radius:10px;}
 [data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
@@ -357,8 +379,10 @@ if "df_data" not in st.session_state:
 df = normalizar_base(st.session_state.df_data)
 
 st.html("""
-<div class="header-banner"><h1>Control interno de informes - Ademinsac</h1>
-<p>Sistema de monitoreo de inspecciones técnicas y valorización | Refinería La Pampilla</p></div>
+<div class="header-banner">
+  <h1>Control interno de elaboración de informes - Plan de Líneas - Ademinsac - Repsol / Pampilla</h1>
+  <p>Sistema de monitoreo y valorización | Refinería La Pampilla</p>
+</div>
 """)
 
 with st.expander(
@@ -553,16 +577,14 @@ tabs = st.tabs(
     [
         f"Administración ({len(solicitudes_activas)})",
         "Tabla general",
-        "Pend. asignar",
+        "Pendiente asignar",
         "En proceso",
-        "Pend. inspección",
-        "Rev. fiabilidad",
-        "Pend. rev. especialista",
-        "Rev. por especialista",
-        "Correc. PSAIM",
-        "Resumen mes (T3)",
-        "Pend. mes/obs (T4)",
-        "Resumen obs (T5)",
+        "Pendiente inspección",
+        "En revisión fiabilidad",
+        "Pendiente revisión especialista",
+        "Revisado por especialista",
+        "Corregir PSAIM",
+        "Resumen total por mes",
     ]
 )
 
@@ -969,7 +991,8 @@ with tabs[8]:
             else:
                 st.warning(mensaje)
 
-filas_t3 = []
+# Construcción de resumen simplificado por mes (informes faltantes del total)
+filas_resumen_mes = []
 for mes in sorted(
     set(por_mes["valorizados"]) | set(por_mes["pendientes"]),
     key=lambda valor: (
@@ -978,65 +1001,16 @@ for mes in sorted(
 ):
     valorizados = por_mes["valorizados"].get(mes, 0)
     pendientes = por_mes["pendientes"].get(mes, 0)
-    filas_t3.append(
+    total = valorizados + pendientes
+    filas_resumen_mes.append(
         {
             "MES": mes,
-            "GRUPOS": df_activos[
-                df_activos["MES"].apply(
-                    lambda valor: texto_normalizado(valor)
-                    == texto_normalizado(mes)
-                )
-            ]["GRUPO DE TUBERÍAS"].nunique(),
-            "VALORIZADOS": valorizados,
-            "PENDIENTE VALORIZAR": pendientes,
-            "SUMA TOTAL": valorizados + pendientes,
-            "PENDIENTE ADEMINSAC": por_mes["ademinsac"].get(mes, 0),
-            "PENDIENTE FIABILIDAD": por_mes["fiabilidad"].get(mes, 0),
-            "CORRECCION PSAIM": por_mes["psaim"].get(mes, 0),
+            "INFORMES FALTANTES (PENDIENTES)": pendientes,
+            "INFORMES VALORIZADOS": valorizados,
+            "TOTAL INFORMES": total,
         }
     )
-df_t3 = pd.DataFrame(filas_t3)
-df_t4 = pd.DataFrame(
-    [
-        {
-            "MES": mes,
-            "OBSERVACIÓN PENDIENTE": observacion,
-            "CANTIDAD": cantidad,
-        }
-        for (mes, observacion), cantidad in detalle_pendientes.items()
-    ]
-)
-if not df_t4.empty:
-    df_t4["ORDEN"] = df_t4["MES"].apply(
-        lambda valor: (
-            ORDEN_MESES.index(texto_normalizado(valor))
-            if texto_normalizado(valor) in ORDEN_MESES
-            else 99
-        )
-    )
-    df_t4 = df_t4.sort_values(
-        ["ORDEN", "CANTIDAD"], ascending=[True, False]
-    ).drop(columns="ORDEN")
-df_t5 = pd.DataFrame(
-    [
-        {
-            "OBSERVACIÓN PENDIENTE": observacion,
-            "CANTIDAD TOTAL": cantidad,
-            "RESPONSABLE": (
-                "ADEMINSAC"
-                if "ADEMINSAC" in texto_normalizado(observacion)
-                else "FIABILIDAD"
-            ),
-        }
-        for observacion, cantidad in resumen_pendientes.items()
-    ]
-)
-if not df_t5.empty:
-    df_t5 = df_t5.sort_values("CANTIDAD TOTAL", ascending=False)
+df_resumen_mes = pd.DataFrame(filas_resumen_mes)
 
 with tabs[9]:
-    mostrar_resumen(df_t3, "Resumen_mensual_T3.xlsx")
-with tabs[10]:
-    mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx")
-with tabs[11]:
-    mostrar_resumen(df_t5, "Resumen_observaciones_T5.xlsx")
+    mostrar_resumen(df_resumen_mes, "Resumen_informes_faltantes_por_mes.xlsx")
