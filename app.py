@@ -722,24 +722,56 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
         .agg(LINEAS=("LINEAS", "count"))
         .fillna("")
     )
-    tabla = preparar_tabla(tabla)
     col_descarga, _ = st.columns([1, 4])
     with col_descarga:
         boton_descarga_excel(
-            tabla.reset_index(drop=True), nombre_archivo, "Descargar Excel"
+            tabla, nombre_archivo, "Descargar Excel"
         )
-    st.dataframe(tabla, use_container_width=True, height=420)
+    # REALIZAR renderizado nativo de Streamlit con pantalla completa e índice secuencial automático
+    st.dataframe(tabla, use_container_width=True, hide_index=False)
     return tabla
 
 
-def mostrar_resumen(df_resumen, nombre_archivo):
+def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
     if df_resumen.empty:
         st.info("No hay registros para mostrar.", icon=":material/info:")
         return
+    
+    df_mostrar = df_resumen.copy()
+    
+    # REALIZAR el cálculo e inyección de la fila de TOTALES
+    if es_metricas:
+        tot_informes = df_mostrar["TOTAL INFORMES"].sum()
+        tot_elaborados = df_mostrar["INFORMES ELABORADOS"].sum()
+        tot_pendientes = df_mostrar["PENDIENTES POR ELABORAR"].sum()
+        pct_total = (tot_elaborados / tot_informes * 100) if tot_informes > 0 else 0.0
+
+        fila_total = pd.DataFrame({
+            "MES": ["TOTAL"],
+            "TOTAL INFORMES": [tot_informes],
+            "INFORMES ELABORADOS": [tot_elaborados],
+            "PENDIENTES POR ELABORAR": [tot_pendientes],
+            "% AVANCE ELABORACIÓN": [f"{pct_total:.1f}%"]
+        })
+        df_mostrar["% AVANCE ELABORACIÓN"] = df_mostrar["% AVANCE ELABORACIÓN"].apply(
+            lambda v: f"{v:.1f}%" if isinstance(v, (int, float)) else str(v)
+        )
+        df_mostrar = pd.concat([df_mostrar, fila_total], ignore_index=True)
+    elif "CANTIDAD" in df_mostrar.columns:
+        tot_cantidad = df_mostrar["CANTIDAD"].sum()
+        fila_total = pd.DataFrame({
+            "MES": ["TOTAL"],
+            "OBSERVACIÓN PENDIENTE": ["-"],
+            "CANTIDAD": [tot_cantidad]
+        })
+        df_mostrar = pd.concat([df_mostrar, fila_total], ignore_index=True)
+
     col_descarga, _ = st.columns([1, 4])
     with col_descarga:
-        boton_descarga_excel(df_resumen, nombre_archivo, "Descargar Excel")
-    st.dataframe(preparar_tabla(df_resumen), use_container_width=True, height=420)
+        boton_descarga_excel(df_mostrar, nombre_archivo, "Descargar Excel")
+        
+    # REALIZAR renderizado nativo interactivo compatible con Pantalla Completa
+    st.dataframe(df_mostrar, use_container_width=True, hide_index=False)
 
 
 with tabs[2]:
@@ -993,7 +1025,7 @@ for mes in meses_unicos:
         ]
     )
     pendientes_elaborar = total_informes - elaborados
-    porcentaje = f"{(elaborados / total_informes * 100):.1f}%" if total_informes > 0 else "0.0%"
+    porcentaje = round((elaborados / total_informes * 100), 1) if total_informes > 0 else 0.0
     
     filas_elaboracion.append(
         {
@@ -1040,6 +1072,6 @@ with tabs[8]:
     )
     
     if opcion_resumen == "Métricas por mes":
-        mostrar_resumen(df_metricas_elaboracion, "Metricas_Elaboracion_Por_Mes.xlsx")
+        mostrar_resumen(df_metricas_elaboracion, "Metricas_Elaboracion_Por_Mes.xlsx", es_metricas=True)
     else:
-        mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx")
+        mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx", es_metricas=False)
