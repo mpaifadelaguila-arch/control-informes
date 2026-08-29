@@ -10,7 +10,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
-REALIZAR_CONFIGURACION_PAGINA = st.set_page_config(
+st.set_page_config(
     page_title="Control interno de informes - Ademinsac",
     page_icon=":material/assignment:",
     layout="wide",
@@ -346,7 +346,7 @@ div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radiu
 [data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
 [data-testid="stBaseButton-secondary"]:hover {border-color:#1D4D7D;color:#0E2A47;background:#edf4fb;}
 
-/* REALIZAR oculta el menú individual por columna */
+/* REALIZAR ocultamiento del botón de menú individual por columna */
 div[id^="portal"] :has(button[aria-label="Column menu"]),
 .glideDataGrid-column-header-menu,
 [data-testid="stDataFrame"] button[aria-label="Open menu"],
@@ -356,21 +356,15 @@ div[id^="portal"] :has(button[aria-label="Column menu"]),
     pointer-events: none !important;
 }
 
-/* REALIZAR ajuste del contenedor general para evitar la franja blanca vertical */
+/* REALIZAR corrección del contenedor permitiendo altura definida por height=780 */
 div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
     border: 1px solid #dbe5ef;
     border-radius: 10px;
     background: #fff;
-    position: relative !important;
     margin-top: 10px !important;
 }
 
-/* REALIZAR anulación del scroll y comportamiento en bloque del canvas */
-div[data-testid="stDataFrame"] > div, div[data-testid="stDataEditor"] > div {
-    height: auto !important;
-}
-
-/* REALIZAR integracion limpia de la barra de herramientas flotante */
+/* REALIZAR integración de barra de herramientas flotante arriba a la derecha */
 div[data-testid="stElementToolbar"] {
     opacity: 1 !important;
     visibility: visible !important;
@@ -378,10 +372,8 @@ div[data-testid="stElementToolbar"] {
     position: absolute !important;
     top: 8px !important;
     right: 12px !important;
-    height: auto !important;
-    width: auto !important;
-    background-color: transparent !important;
     z-index: 99 !important;
+    background-color: transparent !important;
     box-shadow: none !important;
     border: none !important;
 }
@@ -730,13 +722,12 @@ with tabs[1]:
         )
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
-        # REALIZAR renderizado del visor con dimensiones estables
         editado = st.data_editor(
             df_vista,
             column_config=encabezados,
             hide_index=True,
             use_container_width=True,
-            height=650,
+            height=780,
             disabled=["SEÑAL"],
             key="editor_tabla_general",
         )
