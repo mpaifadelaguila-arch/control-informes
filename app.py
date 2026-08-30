@@ -310,7 +310,7 @@ def senal_visual(fila):
     observacion = texto_normalizado(fila.get("OBSERVACIÓN", ""))
     val = texto_normalizado(fila.get("VALORIZACIÓN", ""))
     if "RETIRADO" in notas or "RETIRADO" in observacion or val == "RETIRADO":
-        return "⚫ Retirado"
+        return "🔴 Retirado"
     if val == "SI":
         return "🟢 Valorizado (SI)"
     if "FALTA CARPETA" in notas or "PENDIENTE INSPECCION" in notas:
@@ -720,8 +720,13 @@ with tabs[1]:
                 width=145,
             ),
         }
-        st.caption(
-            "🟢 Valorizado (SI) · 🟡 Pendiente de inspección o falta carpeta · 🔵 Inspección complementaria · ⚫ Retirado"
+       st.markdown(
+            """
+            <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #102E4C; margin-bottom: 10px; display: inline-block;">
+                🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
+            </div>
+            """,
+            unsafe_allow_html=True
         )
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
