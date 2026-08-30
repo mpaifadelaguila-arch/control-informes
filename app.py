@@ -317,7 +317,6 @@ def senal_visual(fila):
     return "⚪ Sin alerta"
 
 
-# REALIZAR CSS adaptado para la estructura por bloques
 st.markdown(
     """
 <style>
@@ -332,7 +331,6 @@ header, footer {visibility: hidden;}
 
 .section-heading {color:#173A5D;font-weight:800;margin:1rem 0 .6rem;font-size:1.05rem;letter-spacing:.1px;}
 
-/* Estilos de Contenedores de Bloques */
 .block-container-card {
     background: #edf3f9;
     border: 1px solid #d5e1ed;
@@ -353,7 +351,6 @@ header, footer {visibility: hidden;}
     margin-bottom: 10px;
 }
 
-/* Rejilla de tarjetas dentro del bloque */
 .kpi-block-grid {
     display: grid;
     gap: 8px;
@@ -531,6 +528,8 @@ df_en_proceso = df_activos[
 ]
 
 unicos, psaim_unicos = set(), set()
+unicos_finalizados = set()
+
 por_mes = {
     "valorizados": {},
     "pendientes": {},
@@ -546,6 +545,7 @@ for _, fila in df_activos.iterrows():
     codigo = texto_limpio(fila["CODIGO DE INFORME"])
     grupo = texto_limpio(fila["GRUPO DE TUBERÍAS"])
     observacion = texto_limpio(fila["OBSERVACIÓN"])
+    estado_elab = texto_normalizado(fila["ESTADO - ELABORACIÓN "])
     clave = fila["CLAVE_GLOBAL"]
     if not mes or not grupo:
         continue
@@ -557,6 +557,11 @@ for _, fila in df_activos.iterrows():
     if clave in unicos:
         continue
     unicos.add(clave)
+    
+    # Contabilidad por estado de elaboración para FINALIZADOS
+    if "FINALIZADO" in estado_elab or "100%" in estado_elab:
+        unicos_finalizados.add(clave)
+
     for clave_mes in ["valorizados", "pendientes", "ademinsac", "fiabilidad"]:
         por_mes[clave_mes].setdefault(mes, 0)
     if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
@@ -587,10 +592,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Cálculos de los KPIs
+# REALIZAR Cálculo estricto del BLOQUE GENERAL basado exclusivamente en elaboración
 total_inf_unicos = len(unicos)
+tot_finalizados = len(unicos_finalizados)
+tot_pendientes_elaborar = max(0, total_inf_unicos - tot_finalizados)
+
+# KPIs secundarios
 tot_valorizados = sum(por_mes["valorizados"].values())
-tot_pendientes = max(0, total_inf_unicos - tot_valorizados)
 val_para_asignar = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
 val_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
 val_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
@@ -605,7 +613,6 @@ def render_kpi_card(titulo, valor, icono, color):
         f"</div>"
     )
 
-# REALIZAR Renderizado de KPIs organizados por bloques según el diseño solicitado
 col1, col2 = st.columns([1.1, 1.25])
 
 with col1:
@@ -615,8 +622,8 @@ with col1:
             <div class="block-header">📊 BLOQUE GENERAL</div>
             <div class="kpi-block-grid grid-cols-3">
                 {render_kpi_card("INFORMES TOTALES", total_inf_unicos, "▤", "#173F67")}
-                {render_kpi_card("FINALIZADOS", tot_valorizados, "✓", "#159A68")}
-                {render_kpi_card("PENDIENTES", tot_pendientes, "📋", "#E38921")}
+                {render_kpi_card("FINALIZADOS", tot_finalizados, "✓", "#159A68")}
+                {render_kpi_card("PENDIENTES", tot_pendientes_elaborar, "📋", "#E38921")}
             </div>
         </div>
         """,
