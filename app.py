@@ -720,7 +720,8 @@ with tabs[1]:
                 width=145,
             ),
         }
-       st.markdown(
+        
+        st.markdown(
             """
             <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #102E4C; margin-bottom: 10px; display: inline-block;">
                 🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
@@ -728,6 +729,7 @@ with tabs[1]:
             """,
             unsafe_allow_html=True
         )
+        
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
         editado = st.data_editor(
