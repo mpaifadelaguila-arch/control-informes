@@ -31,10 +31,10 @@ COLUMNAS_EXCEL = [
     "SAP",
     "ALCANCE DEL SERVICIO",
     "NOTAS",
-    "ESTADO - ELABORACIÓN DE INFORME",
+    "ESTADO - ELABORACIÓN ",
     "RESPONSABLE",
     "OBSERVACIÓN",
-    "ESTADO - VALORIZACIÓN",
+    "VALORIZACIÓN",
 ]
 ORDEN_MESES = [
     "ENERO",
@@ -135,11 +135,11 @@ def normalizar_base(df_entrada):
     df = df[COLUMNAS_EXCEL].fillna("")
 
     for indice, fila in df.iterrows():
-        estado = texto_limpio(fila["ESTADO - ELABORACIÓN DE INFORME"])
+        estado = texto_limpio(fila["ESTADO - ELABORACIÓN "])
         responsable = texto_limpio(fila["RESPONSABLE"])
         if "-" in estado:
             estado_base, responsable_estado = estado.split("-", 1)
-            df.at[indice, "ESTADO - ELABORACIÓN DE INFORME"] = (
+            df.at[indice, "ESTADO - ELABORACIÓN "] = (
                 estado_base.strip()
             )
             if not responsable or texto_normalizado(responsable) in {
@@ -175,7 +175,7 @@ def es_correccion_psaim(observacion):
 
 
 def es_pendiente_inspeccion(fila):
-    estado = texto_normalizado(fila.get("ESTADO - ELABORACIÓN DE INFORME", ""))
+    estado = texto_normalizado(fila.get("ESTADO - ELABORACIÓN ", ""))
     notas = texto_normalizado(fila.get("NOTAS", ""))
     observacion = texto_normalizado(fila.get("OBSERVACIÓN", ""))
     return any(
@@ -308,9 +308,10 @@ def boton_descarga_excel(df, archivo, etiqueta="Descargar Excel"):
 def senal_visual(fila):
     notas = texto_normalizado(fila.get("NOTAS", ""))
     observacion = texto_normalizado(fila.get("OBSERVACIÓN", ""))
-    if "RETIRADO" in notas or "RETIRADO" in observacion:
+    val = texto_normalizado(fila.get("VALORIZACIÓN", ""))
+    if "RETIRADO" in notas or "RETIRADO" in observacion or val == "RETIRADO":
         return "⚫ Retirado"
-    if texto_normalizado(fila.get("ESTADO - VALORIZACIÓN", "")) == "SI":
+    if val == "SI":
         return "🟢 Valorizado (SI)"
     if "FALTA CARPETA" in notas or "PENDIENTE INSPECCION" in notas:
         return "🟡 Pend. inspección"
@@ -420,9 +421,9 @@ with st.expander(
                     for columna in df_cargado.columns
                 }
                 renombre = {
-                    mapa[columna]: columna
+                    mapa[columna.strip().upper()]: columna
                     for columna in COLUMNAS_EXCEL
-                    if columna in mapa
+                    if columna.strip().upper() in mapa
                 }
                 df_cargado = df_cargado.rename(columns=renombre)
                 st.session_state.df_data = normalizar_base(df_cargado)
@@ -436,7 +437,7 @@ with st.expander(
         if not df.empty:
             boton_descarga_excel(
                 df,
-                "Respaldo_Control_Informes.xlsx",
+                "Respaldo_Control_Informes -TABLA NUEVA.xlsx",
                 "Descargar copia en Excel",
             )
         else:
@@ -452,7 +453,9 @@ if df.empty:
 # Exclusión de retirados
 mascara_retirado = df["OBSERVACIÓN"].apply(
     lambda valor: "RETIRADO" in texto_normalizado(valor)
-) | df["NOTAS"].apply(lambda valor: "RETIRADO" in texto_normalizado(valor))
+) | df["NOTAS"].apply(lambda valor: "RETIRADO" in texto_normalizado(valor)) | (
+    df["VALORIZACIÓN"].apply(lambda valor: texto_normalizado(valor) == "RETIRADO")
+)
 df_activos = df[~mascara_retirado].copy()
 
 df_activos["CLAVE_GLOBAL"] = df_activos.apply(
@@ -466,7 +469,7 @@ df_activos["CLAVE_GLOBAL"] = df_activos.apply(
 mask_psaim = df_activos["OBSERVACIÓN"].apply(es_correccion_psaim)
 mask_pend_inspeccion = df_activos.apply(es_pendiente_inspeccion, axis=1)
 mask_pend_elaboracion = (
-    df_activos["ESTADO - ELABORACIÓN DE INFORME"]
+    df_activos["ESTADO - ELABORACIÓN "]
     .apply(texto_normalizado)
     .str.contains("PENDIENTE ELABORACION")
 )
@@ -474,7 +477,7 @@ df_psaim = df_activos[mask_psaim]
 df_pend_inspeccion = df_activos[mask_pend_inspeccion]
 df_pend_asignacion = df_activos[mask_pend_elaboracion]
 df_en_proceso = df_activos[
-    df_activos["ESTADO - ELABORACIÓN DE INFORME"]
+    df_activos["ESTADO - ELABORACIÓN "]
     .apply(texto_normalizado)
     .str.contains("EN PROCESO")
     & ~mask_pend_inspeccion
@@ -509,7 +512,7 @@ for _, fila in df_activos.iterrows():
     unicos.add(clave)
     for clave_mes in ["valorizados", "pendientes", "ademinsac", "fiabilidad"]:
         por_mes[clave_mes].setdefault(mes, 0)
-    if texto_normalizado(fila["ESTADO - VALORIZACIÓN"]) == "SI":
+    if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
         por_mes["valorizados"][mes] += 1
         continue
     por_mes["pendientes"][mes] += 1
@@ -617,13 +620,13 @@ with tabs[0]:
                     df["GRUPO DE TUBERÍAS"] == solicitud["grupo"]
                 )
                 if solicitud["tipo"] == "INFORME COMPLETADO (GABINETE)":
-                    df.loc[mascara, "ESTADO - ELABORACIÓN DE INFORME"] = (
-                        "FINALIZADO"
+                    df.loc[mascara, "ESTADO - ELABORACIÓN "] = (
+                        "Finalizado"
                     )
                 elif solicitud["tipo"] == "CORRECCIÓN PSAIM":
                     df.loc[mascara, "OBSERVACIÓN"] = "PSAIM CORREGIDO"
-                    df.loc[mascara, "ESTADO - ELABORACIÓN DE INFORME"] = (
-                        "EN PROCESO"
+                    df.loc[mascara, "ESTADO - ELABORACIÓN "] = (
+                        "En proceso"
                     )
                 elif solicitud["tipo"] == "REVISIÓN ESPECIALISTA":
                     df.loc[mascara, "OBSERVACIÓN"] = (
@@ -691,8 +694,8 @@ with tabs[1]:
             df_vista = df_vista[mascara_busqueda]
 
         df_vista = df_vista.map(texto_limpio)
-        df_vista["ESTADO - VALORIZACIÓN"] = df_vista["ESTADO - VALORIZACIÓN"].apply(
-            lambda v: "SI" if texto_normalizado(v) == "SI" else "Pendiente - valorización"
+        df_vista["VALORIZACIÓN"] = df_vista["VALORIZACIÓN"].apply(
+            lambda v: "SI" if texto_normalizado(v) == "SI" else ("Retirado" if texto_normalizado(v) == "RETIRADO" else "Pendiente")
         )
         df_vista.insert(0, "SEÑAL", df_vista.apply(senal_visual, axis=1))
         encabezados = {
@@ -707,12 +710,12 @@ with tabs[1]:
             "SAP": st.column_config.TextColumn("SAP", width=85),
             "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width=120),
             "NOTAS": st.column_config.TextColumn("Notas", width=170),
-            "ESTADO - ELABORACIÓN DE INFORME": st.column_config.TextColumn("Estado de elaboración", width=190),
+            "ESTADO - ELABORACIÓN ": st.column_config.TextColumn("Estado de elaboración", width=190),
             "RESPONSABLE": st.column_config.TextColumn("Responsable", width=135),
             "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=280),
-            "ESTADO - VALORIZACIÓN": st.column_config.SelectboxColumn(
+            "VALORIZACIÓN": st.column_config.SelectboxColumn(
                 "Valorización",
-                options=["Pendiente - valorización", "SI"],
+                options=["Pendiente", "SI", "Retirado"],
                 required=True,
                 width=145,
             ),
@@ -722,7 +725,6 @@ with tabs[1]:
         )
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
-        # REALIZAR ajuste de height="auto" para corregir StreamlitInvalidHeightError
         editado = st.data_editor(
             df_vista,
             column_config=encabezados,
@@ -736,7 +738,7 @@ with tabs[1]:
             for indice, fila in editado.iterrows():
                 for columna in COLUMNAS_EXCEL:
                     df.at[indice, columna] = fila[columna]
-                if texto_normalizado(fila["ESTADO - VALORIZACIÓN"]) == "SI":
+                if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
                     df.at[indice, "OBSERVACIÓN"] = ""
             st.session_state.df_data = normalizar_base(df)
             guardar_datos(st.session_state.df_data)
@@ -804,7 +806,7 @@ with tabs[2]:
         df_pend_asignacion,
         [
             "MES",
-            "ESTADO - ELABORACIÓN DE INFORME",
+            "ESTADO - ELABORACIÓN ",
             "RESPONSABLE",
             "GRUPO DE TUBERÍAS",
             "CODIGO DE INFORME",
@@ -818,7 +820,7 @@ with tabs[3]:
         df_en_proceso,
         [
             "MES",
-            "ESTADO - ELABORACIÓN DE INFORME",
+            "ESTADO - ELABORACIÓN ",
             "RESPONSABLE",
             "GRUPO DE TUBERÍAS",
             "CODIGO DE INFORME",
@@ -870,7 +872,7 @@ with tabs[4]:
         df_pend_inspeccion,
         [
             "MES",
-            "ESTADO - ELABORACIÓN DE INFORME",
+            "ESTADO - ELABORACIÓN ",
             "RESPONSABLE",
             "GRUPO DE TUBERÍAS",
             "CODIGO DE INFORME",
@@ -890,7 +892,7 @@ with tabs[5]:
         df_fiabilidad,
         [
             "MES",
-            "ESTADO - ELABORACIÓN DE INFORME",
+            "ESTADO - ELABORACIÓN ",
             "RESPONSABLE",
             "GRUPO DE TUBERÍAS",
             "CODIGO DE INFORME",
@@ -907,7 +909,7 @@ def vista_revision_especialista(condicion, archivo, llave):
         df_revision,
         [
             "MES",
-            "ESTADO - ELABORACIÓN DE INFORME",
+            "ESTADO - ELABORACIÓN ",
             "RESPONSABLE",
             "GRUPO DE TUBERÍAS",
             "CODIGO DE INFORME",
@@ -987,7 +989,7 @@ with tabs[7]:
     ].copy()
     columnas_psaim = [
         "MES",
-        "ESTADO - ELABORACIÓN DE INFORME",
+        "ESTADO - ELABORACIÓN ",
         "RESPONSABLE",
         "ITEM POR MES",
         "IT2",
@@ -1048,7 +1050,7 @@ for mes in meses_unicos:
     
     elaborados = len(
         df_mes_unicos[
-            df_mes_unicos["ESTADO - ELABORACIÓN DE INFORME"].apply(
+            df_mes_unicos["ESTADO - ELABORACIÓN "].apply(
                 lambda v: "FINALIZADO" in texto_normalizado(v) or "100%" in texto_normalizado(v)
             )
         ]
