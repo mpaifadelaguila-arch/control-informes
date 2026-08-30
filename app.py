@@ -622,8 +622,8 @@ with col1:
             <div class="block-header">📊 BLOQUE GENERAL</div>
             <div class="kpi-block-grid grid-cols-3">
                 {render_kpi_card("INFORMES TOTALES", total_inf_unicos, "▤", "#173F67")}
-                {render_kpi_card("FINALIZADOS", tot_finalizados, "✓", "#159A68")}
-                {render_kpi_card("PENDIENTES", tot_pendientes_elaborar, "📋", "#E38921")}
+                {render_kpi_card("INFORMES FINALIZADOS", tot_finalizados, "✓", "#159A68")}
+                {render_kpi_card("INFORMES PENDIENTES", tot_pendientes_elaborar, "📋", "#E38921")}
             </div>
         </div>
         """,
