@@ -544,10 +544,16 @@ st.markdown(
     "<div class='section-heading'>Panel de control de informes</div>",
     unsafe_allow_html=True,
 )
+
+# REALIZAR ajuste exacto del conteo general para guardar coherencia matemática
+total_inf_unicos = len(unicos)
+tot_valorizados = sum(por_mes["valorizados"].values())
+tot_pendientes = max(0, total_inf_unicos - tot_valorizados)
+
 metricas = [
-    ("Informes totales", len(unicos), "▤", "#173F67"),
-    ("Pendientes total", sum(por_mes["pendientes"].values()), "◷", "#E38921"),
-    ("Valorizados (sí)", sum(por_mes["valorizados"].values()), "✓", "#159A68"),
+    ("Informes totales", total_inf_unicos, "▤", "#173F67"),
+    ("Pendientes total", tot_pendientes, "◷", "#E38921"),
+    ("Valorizados (sí)", tot_valorizados, "✓", "#159A68"),
     (
         "Pend. asignar informe",
         df_pend_asignacion["CLAVE_GLOBAL"].nunique(),
@@ -723,14 +729,11 @@ with tabs[1]:
             ),
         }
         
-        st.markdown(
-            """
-            <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #102E4C; margin-bottom: 10px; display: inline-block;">
-                🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.html("""
+        <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #102E4C; margin-bottom: 10px; display: inline-block;">
+            🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
+        </div>
+        """)
         
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
@@ -739,7 +742,7 @@ with tabs[1]:
             column_config=encabezados,
             hide_index=True,
             use_container_width=True,
-            height="auto",
+            height=600,
             disabled=["SEÑAL"],
             key="editor_tabla_general",
         )
