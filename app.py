@@ -139,9 +139,7 @@ def normalizar_base(df_entrada):
         responsable = texto_limpio(fila["RESPONSABLE"])
         if "-" in estado:
             estado_base, responsable_estado = estado.split("-", 1)
-            df.at[indice, "ESTADO - ELABORACIÓN "] = (
-                estado_base.strip()
-            )
+            df.at[indice, "ESTADO - ELABORACIÓN "] = estado_base.strip()
             if not responsable or texto_normalizado(responsable) in {
                 "NAN",
                 "NONE",
@@ -192,12 +190,6 @@ def es_pendiente_inspeccion(fila):
             "COMPLETAR INSPECCION",
         ]
     )
-
-
-def preparar_tabla(df):
-    resultado = df.reset_index(drop=True).copy()
-    resultado.index = range(1, len(resultado) + 1)
-    return resultado
 
 
 @st.cache_data(ttl=60, show_spinner=False)
@@ -325,34 +317,86 @@ def senal_visual(fila):
     return "⚪ Sin alerta"
 
 
+# REALIZAR CSS adaptado para la estructura por bloques
 st.markdown(
     """
 <style>
-/* REALIZAR ocultamiento de elementos innecesarios */
 header, footer {visibility: hidden;}
 .stAppDeployButton {display: none;}
-.stApp {background: linear-gradient(180deg, #eef4fa 0%, #f8fafc 360px);}
-[data-testid="stAppViewBlockContainer"] {padding-top: 2.1rem; max-width: 100% !important; padding-left: 2rem; padding-right: 2rem;}
+.stApp {background: #f4f7fb;}
+[data-testid="stAppViewBlockContainer"] {padding-top: 1.8rem; max-width: 100% !important; padding-left: 2rem; padding-right: 2rem;}
 
-/* REALIZAR diseño de encabezado y KPIs */
 .header-banner {background: linear-gradient(135deg,#0E2A47 0%,#1D4D7D 100%);border-left:6px solid #E7BE30;
-  border-radius:14px;padding:22px 30px;color:#fff;margin-bottom:.9rem;box-shadow:0 10px 24px rgba(14,42,71,.16);}
-.header-banner h1 {font-size:1.55rem;margin:0;color:#fff;letter-spacing:.1px;}.header-banner p {margin:.3rem 0 0;color:#d9e6f3;}
-.section-heading {color:#0E2A47;font-weight:800;margin:.85rem 0 .35rem;font-size:1.04rem;letter-spacing:.1px;}
-.kpi-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:.35rem;}
-.kpi-card {background:#fff;border:1px solid #dbe5ef;border-top:4px solid var(--tone);border-radius:10px;min-height:74px;
-  padding:10px 12px;box-shadow:0 3px 10px rgba(15,42,70,.06);transition:transform .18s ease,box-shadow .18s ease;}
-.kpi-card:hover {transform:translateY(-2px);box-shadow:0 8px 18px rgba(15,42,70,.12);}
-.kpi-label {font-size:.70rem;font-weight:750;line-height:1.12;text-transform:uppercase;color:#5d7086;letter-spacing:.18px;}
-.kpi-icon {float:right;color:var(--tone);font-size:1rem;font-weight:800;}.kpi-value {font-size:1.58rem;font-weight:800;line-height:1.05;color:#102e4c;margin-top:7px;}
-.stTabs [data-baseweb="tab-list"] {gap:4px;background:#e7eef6;border-radius:10px;padding:5px 6px;}
-.stTabs [data-baseweb="tab"] {border-radius:7px;font-size:.78rem;font-weight:650;padding:0 10px;color:#3d5269;}
+  border-radius:12px;padding:20px 28px;color:#fff;margin-bottom:1.2rem;box-shadow:0 8px 20px rgba(14,42,71,.12);}
+.header-banner h1 {font-size:1.5rem;margin:0;color:#fff;font-weight:700;}.header-banner p {margin:.25rem 0 0;color:#d9e6f3;}
+
+.section-heading {color:#173A5D;font-weight:800;margin:1rem 0 .6rem;font-size:1.05rem;letter-spacing:.1px;}
+
+/* Estilos de Contenedores de Bloques */
+.block-container-card {
+    background: #edf3f9;
+    border: 1px solid #d5e1ed;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    height: 100%;
+}
+.block-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #4a637d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+/* Rejilla de tarjetas dentro del bloque */
+.kpi-block-grid {
+    display: grid;
+    gap: 8px;
+}
+.grid-cols-1 { grid-template-columns: repeat(1, 1fr); }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+.kpi-card-sub {
+    background: #ffffff;
+    border: 1px solid #dbe5ef;
+    border-top: 3.5px solid var(--tone);
+    border-radius: 8px;
+    padding: 8px 12px;
+    min-height: 68px;
+    box-shadow: 0 2px 6px rgba(15,42,70,.04);
+}
+.kpi-label-sub {
+    font-size: 0.65rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    color: #5d7086;
+    line-height: 1.1;
+}
+.kpi-icon-sub {
+    float: right;
+    color: var(--tone);
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+.kpi-value-sub {
+    font-size: 1.45rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: #102e4c;
+    margin-top: 4px;
+}
+
+.stTabs [data-baseweb="tab-list"] {gap:4px;background:#e2ebf4;border-radius:9px;padding:4px 5px;}
+.stTabs [data-baseweb="tab"] {border-radius:6px;font-size:.78rem;font-weight:650;padding:0 10px;color:#3d5269;}
 .stTabs [aria-selected="true"] {background:#0E2A47 !important;color:#fff !important;}
 div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radius:10px;}
-[data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
-[data-testid="stBaseButton-secondary"]:hover {border-color:#1D4D7D;color:#0E2A47;background:#edf4fb;}
 
-/* REALIZAR ocultamiento del botón de menú individual por columna */
 div[id^="portal"] :has(button[aria-label="Column menu"]),
 .glideDataGrid-column-header-menu,
 [data-testid="stDataFrame"] button[aria-label="Open menu"],
@@ -362,7 +406,6 @@ div[id^="portal"] :has(button[aria-label="Column menu"]),
     pointer-events: none !important;
 }
 
-/* REALIZAR corrección del contenedor permitiendo altura definida */
 div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
     border: 1px solid #dbe5ef;
     border-radius: 10px;
@@ -370,7 +413,6 @@ div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
     margin-top: 10px !important;
 }
 
-/* REALIZAR integración de barra de herramientas flotante arriba a la derecha */
 div[data-testid="stElementToolbar"] {
     opacity: 1 !important;
     visibility: visible !important;
@@ -545,41 +587,99 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# REALIZAR ajuste exacto del conteo general para guardar coherencia matemática
+# Cálculos de los KPIs
 total_inf_unicos = len(unicos)
 tot_valorizados = sum(por_mes["valorizados"].values())
 tot_pendientes = max(0, total_inf_unicos - tot_valorizados)
+val_para_asignar = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
+val_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
+val_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
+val_psaim = sum(por_mes["psaim"].values())
 
-metricas = [
-    ("Informes totales", total_inf_unicos, "▤", "#173F67"),
-    ("Pendientes total", tot_pendientes, "◷", "#E38921"),
-    ("Valorizados (sí)", tot_valorizados, "✓", "#159A68"),
-    (
-        "Pend. asignar informe",
-        df_pend_asignacion["CLAVE_GLOBAL"].nunique(),
-        "!",
-        "#D54D9D",
-    ),
-    ("En proceso", df_en_proceso["CLAVE_GLOBAL"].nunique(), "↻", "#7B61C9"),
-    (
-        "Pend. inspección",
-        df_pend_inspeccion["CLAVE_GLOBAL"].nunique(),
-        "⌛",
-        "#D8534F",
-    ),
-    ("Rev. fiabilidad", revision_fiabilidad, "⌕", "#159D99"),
-    ("Pend. rev. especialista", revision_especialista_pendiente, "◉", "#5564D8"),
-    ("Rev. por especialista", revision_especialista, "◆", "#168EAE"),
-    ("Corrección PSAIM", sum(por_mes["psaim"].values()), "✦", "#C89716"),
-]
-tarjetas_kpi = "".join(
-    f"<div class='kpi-card' style='--tone:{color}'><span class='kpi-icon'>{icono}</span>"
-    f"<div class='kpi-label'>{titulo}</div><div class='kpi-value'>{valor}</div></div>"
-    for titulo, valor, icono, color in metricas
-)
-st.markdown(
-    f"<div class='kpi-grid'>{tarjetas_kpi}</div>", unsafe_allow_html=True
-)
+def render_kpi_card(titulo, valor, icono, color):
+    return (
+        f"<div class='kpi-card-sub' style='--tone:{color}'>"
+        f"<span class='kpi-icon-sub'>{icono}</span>"
+        f"<div class='kpi-label-sub'>{titulo}</div>"
+        f"<div class='kpi-value-sub'>{valor}</div>"
+        f"</div>"
+    )
+
+# REALIZAR Renderizado de KPIs organizados por bloques según el diseño solicitado
+col1, col2 = st.columns([1.1, 1.25])
+
+with col1:
+    st.markdown(
+        f"""
+        <div class="block-container-card">
+            <div class="block-header">📊 BLOQUE GENERAL</div>
+            <div class="kpi-block-grid grid-cols-3">
+                {render_kpi_card("INFORMES TOTALES", total_inf_unicos, "▤", "#173F67")}
+                {render_kpi_card("FINALIZADOS", tot_valorizados, "✓", "#159A68")}
+                {render_kpi_card("PENDIENTES", tot_pendientes, "📋", "#E38921")}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col2:
+    st.markdown(
+        f"""
+        <div class="block-container-card">
+            <div class="block-header">📁 BLOQUE GABINETE</div>
+            <div class="kpi-block-grid grid-cols-3">
+                {render_kpi_card("EN PROCESO", val_en_proceso, "↻", "#7B61C9")}
+                {render_kpi_card("PARA ASIGNAR", val_para_asignar, "📇", "#D54D9D")}
+                {render_kpi_card("CORRECCIÓN PSAIM", val_psaim, "✏️", "#C89716")}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+col3, col4, col5 = st.columns([1.1, 0.7, 0.9])
+
+with col3:
+    st.markdown(
+        f"""
+        <div class="block-container-card">
+            <div class="block-header">👤 BLOQUE ESPECIALISTA</div>
+            <div class="kpi-block-grid grid-cols-2">
+                {render_kpi_card("REVISADOS", revision_especialista, "🗹", "#168EAE")}
+                {render_kpi_card("POR REVISAR", revision_especialista_pendiente, "📌", "#5564D8")}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col4:
+    st.markdown(
+        f"""
+        <div class="block-container-card">
+            <div class="block-header">📝 BLOQUE CAMPO</div>
+            <div class="kpi-block-grid grid-cols-1">
+                {render_kpi_card("PEND. INSPECCIÓN", val_pend_inspeccion, "📋", "#D8534F")}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with col5:
+    st.markdown(
+        f"""
+        <div class="block-container-card">
+            <div class="block-header">🏢 BLOQUE CLIENTE</div>
+            <div class="kpi-block-grid grid-cols-2">
+                {render_kpi_card("VALORIZADOS", tot_valorizados, "🏷️", "#159A68")}
+                {render_kpi_card("EN REVISIÓN", revision_fiabilidad, "⏳", "#159D99")}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 st.markdown(
     "<div class='section-heading'>Sistema de control y resúmenes</div>",
@@ -628,14 +728,10 @@ with tabs[0]:
                     df["GRUPO DE TUBERÍAS"] == solicitud["grupo"]
                 )
                 if solicitud["tipo"] == "INFORME COMPLETADO (GABINETE)":
-                    df.loc[mascara, "ESTADO - ELABORACIÓN "] = (
-                        "Finalizado"
-                    )
+                    df.loc[mascara, "ESTADO - ELABORACIÓN "] = "Finalizado"
                 elif solicitud["tipo"] == "CORRECCIÓN PSAIM":
                     df.loc[mascara, "OBSERVACIÓN"] = "PSAIM CORREGIDO"
-                    df.loc[mascara, "ESTADO - ELABORACIÓN "] = (
-                        "En proceso"
-                    )
+                    df.loc[mascara, "ESTADO - ELABORACIÓN "] = "En proceso"
                 elif solicitud["tipo"] == "REVISIÓN ESPECIALISTA":
                     df.loc[mascara, "OBSERVACIÓN"] = (
                         "INFORME REVISADO POR ESPECIALISTA"
