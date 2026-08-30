@@ -334,81 +334,17 @@ header, footer {visibility: hidden;}
 .stApp {background: linear-gradient(180deg, #eef4fa 0%, #f8fafc 360px);}
 [data-testid="stAppViewBlockContainer"] {padding-top: 2.1rem; max-width: 100% !important; padding-left: 2rem; padding-right: 2rem;}
 
-/* REALIZAR diseño de encabezado */
+/* REALIZAR diseño de encabezado y KPIs */
 .header-banner {background: linear-gradient(135deg,#0E2A47 0%,#1D4D7D 100%);border-left:6px solid #E7BE30;
   border-radius:14px;padding:22px 30px;color:#fff;margin-bottom:.9rem;box-shadow:0 10px 24px rgba(14,42,71,.16);}
 .header-banner h1 {font-size:1.55rem;margin:0;color:#fff;letter-spacing:.1px;}.header-banner p {margin:.3rem 0 0;color:#d9e6f3;}
-.section-heading {color:#0E2A47;font-weight:800;margin:.85rem 0 .5rem;font-size:1.04rem;letter-spacing:.1px;}
-
-/* REALIZAR estructura modular de bloques de KPIs */
-.kpi-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-bottom: 1.2rem;
-}
-.kpi-group-box {
-    background: #f0f5fa;
-    border: 1px solid #d0deec;
-    border-radius: 12px;
-    padding: 12px 14px;
-    box-shadow: 0 4px 12px rgba(15,42,70,.03);
-    flex: 1 1 min-content;
-    min-width: 280px;
-}
-.kpi-group-title {
-    font-size: 0.72rem;
-    font-weight: 800;
-    color: #435b75;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 10px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.kpi-cards-wrapper {
-    display: flex;
-    gap: 10px;
-}
-.kpi-card {
-    background: #fff;
-    border: 1px solid #dbe5ef;
-    border-top: 4px solid var(--tone);
-    border-radius: 8px;
-    padding: 10px 12px;
-    flex: 1;
-    min-width: 105px;
-    box-shadow: 0 2px 6px rgba(15,42,70,.04);
-    transition: transform .18s ease, box-shadow .18s ease;
-}
-.kpi-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 14px rgba(15,42,70,.08);
-}
-.kpi-label {
-    font-size: .65rem;
-    font-weight: 750;
-    line-height: 1.1;
-    text-transform: uppercase;
-    color: #5d7086;
-    letter-spacing: .15px;
-    min-height: 22px;
-}
-.kpi-icon {
-    float: right;
-    color: var(--tone);
-    font-size: .95rem;
-    font-weight: 800;
-}
-.kpi-value {
-    font-size: 1.45rem;
-    font-weight: 800;
-    line-height: 1.05;
-    color: #102e4c;
-    margin-top: 4px;
-}
-
+.section-heading {color:#0E2A47;font-weight:800;margin:.85rem 0 .35rem;font-size:1.04rem;letter-spacing:.1px;}
+.kpi-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:.35rem;}
+.kpi-card {background:#fff;border:1px solid #dbe5ef;border-top:4px solid var(--tone);border-radius:10px;min-height:74px;
+  padding:10px 12px;box-shadow:0 3px 10px rgba(15,42,70,.06);transition:transform .18s ease,box-shadow .18s ease;}
+.kpi-card:hover {transform:translateY(-2px);box-shadow:0 8px 18px rgba(15,42,70,.12);}
+.kpi-label {font-size:.70rem;font-weight:750;line-height:1.12;text-transform:uppercase;color:#5d7086;letter-spacing:.18px;}
+.kpi-icon {float:right;color:var(--tone);font-size:1rem;font-weight:800;}.kpi-value {font-size:1.58rem;font-weight:800;line-height:1.05;color:#102e4c;margin-top:7px;}
 .stTabs [data-baseweb="tab-list"] {gap:4px;background:#e7eef6;border-radius:10px;padding:5px 6px;}
 .stTabs [data-baseweb="tab"] {border-radius:7px;font-size:.78rem;font-weight:650;padding:0 10px;color:#3d5269;}
 .stTabs [aria-selected="true"] {background:#0E2A47 !important;color:#fff !important;}
@@ -416,7 +352,7 @@ div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radiu
 [data-testid="stBaseButton-secondary"] {border-color:#b8c9da;color:#173a5d;background:#fff;}
 [data-testid="stBaseButton-secondary"]:hover {border-color:#1D4D7D;color:#0E2A47;background:#edf4fb;}
 
-/* REALIZAR ocultamiento del menú individual de columna */
+/* REALIZAR ocultamiento del botón de menú individual por columna */
 div[id^="portal"] :has(button[aria-label="Column menu"]),
 .glideDataGrid-column-header-menu,
 [data-testid="stDataFrame"] button[aria-label="Open menu"],
@@ -426,6 +362,7 @@ div[id^="portal"] :has(button[aria-label="Column menu"]),
     pointer-events: none !important;
 }
 
+/* REALIZAR corrección del contenedor permitiendo altura definida */
 div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
     border: 1px solid #dbe5ef;
     border-radius: 10px;
@@ -433,6 +370,7 @@ div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
     margin-top: 10px !important;
 }
 
+/* REALIZAR integración de barra de herramientas flotante arriba a la derecha */
 div[data-testid="stElementToolbar"] {
     opacity: 1 !important;
     visibility: visible !important;
@@ -560,14 +498,12 @@ por_mes = {
 }
 detalle_pendientes = {}
 revision_fiabilidad = revision_especialista_pendiente = revision_especialista = 0
-finalizados_conteo = 0
 
 for _, fila in df_activos.iterrows():
     mes = texto_limpio(fila["MES"])
     codigo = texto_limpio(fila["CODIGO DE INFORME"])
     grupo = texto_limpio(fila["GRUPO DE TUBERÍAS"])
     observacion = texto_limpio(fila["OBSERVACIÓN"])
-    estado_elab = texto_normalizado(fila["ESTADO - ELABORACIÓN "])
     clave = fila["CLAVE_GLOBAL"]
     if not mes or not grupo:
         continue
@@ -579,10 +515,6 @@ for _, fila in df_activos.iterrows():
     if clave in unicos:
         continue
     unicos.add(clave)
-    
-    if "FINALIZADO" in estado_elab or "100%" in estado_elab:
-        finalizados_conteo += 1
-
     for clave_mes in ["valorizados", "pendientes", "ademinsac", "fiabilidad"]:
         por_mes[clave_mes].setdefault(mes, 0)
     if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
@@ -612,102 +544,36 @@ st.markdown(
     "<div class='section-heading'>Panel de control de informes</div>",
     unsafe_allow_html=True,
 )
-
-# REALIZAR Renderizado de bloques agrupados
-kpi_bloques_html = f"""
-<div class="kpi-container">
-    <!-- BLOQUE GENERAL -->
-    <div class="kpi-group-box">
-        <div class="kpi-group-title">📊 BLOQUE GENERAL</div>
-        <div class="kpi-cards-wrapper">
-            <div class="kpi-card" style="--tone:#173F67">
-                <span class="kpi-icon">▤</span>
-                <div class="kpi-label">Informes Totales</div>
-                <div class="kpi-value">{len(unicos)}</div>
-            </div>
-            <div class="kpi-card" style="--tone:#2E7D32">
-                <span class="kpi-icon">✔</span>
-                <div class="kpi-label">Finalizados</div>
-                <div class="kpi-value">{finalizados_conteo}</div>
-            </div>
-            <div class="kpi-card" style="--tone:#E38921">
-                <span class="kpi-icon">📋</span>
-                <div class="kpi-label">Pendientes</div>
-                <div class="kpi-value">{sum(por_mes['pendientes'].values())}</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- BLOQUE GABINETE -->
-    <div class="kpi-group-box">
-        <div class="kpi-group-title">📑 BLOQUE GABINETE</div>
-        <div class="kpi-cards-wrapper">
-            <div class="kpi-card" style="--tone:#7B61C9">
-                <span class="kpi-icon">↻</span>
-                <div class="kpi-label">En Proceso</div>
-                <div class="kpi-value">{df_en_proceso['CLAVE_GLOBAL'].nunique()}</div>
-            </div>
-            <div class="kpi-card" style="--tone:#D54D9D">
-                <span class="kpi-icon">👤</span>
-                <div class="kpi-label">Para Asignar</div>
-                <div class="kpi-value">{df_pend_asignacion['CLAVE_GLOBAL'].nunique()}</div>
-            </div>
-            <div class="kpi-card" style="--tone:#C89716">
-                <span class="kpi-icon">✍</span>
-                <div class="kpi-label">Corrección PSAIM</div>
-                <div class="kpi-value">{sum(por_mes['psaim'].values())}</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- BLOQUE ESPECIALISTA -->
-    <div class="kpi-group-box">
-        <div class="kpi-group-title">👨‍💻 BLOQUE ESPECIALISTA</div>
-        <div class="kpi-cards-wrapper">
-            <div class="kpi-card" style="--tone:#168EAE">
-                <span class="kpi-icon">☑</span>
-                <div class="kpi-label">Revisados</div>
-                <div class="kpi-value">{revision_especialista}</div>
-            </div>
-            <div class="kpi-card" style="--tone:#5564D8">
-                <span class="kpi-icon">✏</span>
-                <div class="kpi-label">Por Revisar</div>
-                <div class="kpi-value">{revision_especialista_pendiente}</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- BLOQUE CAMPO -->
-    <div class="kpi-group-box">
-        <div class="kpi-group-title">🛠 BLOQUE CAMPO</div>
-        <div class="kpi-cards-wrapper">
-            <div class="kpi-card" style="--tone:#D8534F">
-                <span class="kpi-icon">📋</span>
-                <div class="kpi-label">Pend. Inspección</div>
-                <div class="kpi-value">{df_pend_inspeccion['CLAVE_GLOBAL'].nunique()}</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- BLOQUE CLIENTE -->
-    <div class="kpi-group-box">
-        <div class="kpi-group-title">💼 BLOQUE CLIENTE</div>
-        <div class="kpi-cards-wrapper">
-            <div class="kpi-card" style="--tone:#159A68">
-                <span class="kpi-icon">💲</span>
-                <div class="kpi-label">Valorizados</div>
-                <div class="kpi-value">{sum(por_mes['valorizados'].values())}</div>
-            </div>
-            <div class="kpi-card" style="--tone:#159D99">
-                <span class="kpi-icon">⌛</span>
-                <div class="kpi-label">En Revisión</div>
-                <div class="kpi-value">{revision_fiabilidad}</div>
-            </div>
-        </div>
-    </div>
-</div>
-"""
-st.markdown(kpi_bloques_html, unsafe_allow_html=True)
+metricas = [
+    ("Informes totales", len(unicos), "▤", "#173F67"),
+    ("Pendientes total", sum(por_mes["pendientes"].values()), "◷", "#E38921"),
+    ("Valorizados (sí)", sum(por_mes["valorizados"].values()), "✓", "#159A68"),
+    (
+        "Pend. asignar informe",
+        df_pend_asignacion["CLAVE_GLOBAL"].nunique(),
+        "!",
+        "#D54D9D",
+    ),
+    ("En proceso", df_en_proceso["CLAVE_GLOBAL"].nunique(), "↻", "#7B61C9"),
+    (
+        "Pend. inspección",
+        df_pend_inspeccion["CLAVE_GLOBAL"].nunique(),
+        "⌛",
+        "#D8534F",
+    ),
+    ("Rev. fiabilidad", revision_fiabilidad, "⌕", "#159D99"),
+    ("Pend. rev. especialista", revision_especialista_pendiente, "◉", "#5564D8"),
+    ("Rev. por especialista", revision_especialista, "◆", "#168EAE"),
+    ("Corrección PSAIM", sum(por_mes["psaim"].values()), "✦", "#C89716"),
+]
+tarjetas_kpi = "".join(
+    f"<div class='kpi-card' style='--tone:{color}'><span class='kpi-icon'>{icono}</span>"
+    f"<div class='kpi-label'>{titulo}</div><div class='kpi-value'>{valor}</div></div>"
+    for titulo, valor, icono, color in metricas
+)
+st.markdown(
+    f"<div class='kpi-grid'>{tarjetas_kpi}</div>", unsafe_allow_html=True
+)
 
 st.markdown(
     "<div class='section-heading'>Sistema de control y resúmenes</div>",
