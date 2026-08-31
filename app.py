@@ -476,7 +476,7 @@ for _, fila in df_activos.iterrows():
     etiqueta = "(En blanco)" if not observacion else observacion
     detalle_pendientes[(mes, etiqueta)] = detalle_pendientes.get((mes, etiqueta), 0) + 1
 
-# KPIs del Bloque General según Elaboración (REALIZAR Cálculo Estricto)
+# REALIZAR Cálculo Estricto de KPIs del Bloque General según Elaboración
 total_inf_unicos = len(unicos)
 tot_finalizados = len(unicos_finalizados)
 tot_pendientes_elaborar = max(0, total_inf_unicos - tot_finalizados)
