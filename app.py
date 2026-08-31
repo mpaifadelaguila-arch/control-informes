@@ -1,16 +1,24 @@
 import io
 import json
 import os
+import re
+from datetime import datetime
+
 import pandas as pd
 import streamlit as st
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.table import Table, TableStyleInfo
 
+# Configuración de página
 st.set_page_config(
-    page_title="CONTROL INTERNO DE INFORMES - ADEMINSAC",
+    page_title="Control interno de informes - Ademinsac",
+    page_icon=":material/assignment:",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# --- ESTILOS CSS PROFESIONALES Y PALETA CORPORATIVA ---
+# Estilos CSS Corporativos (Diseño Visual Código 2 + Scaffolding Código 1)
 st.markdown(
     """
     <style>
@@ -29,13 +37,12 @@ st.markdown(
     }
 
     .stApp { background-color: #EEF2F7; }
-
     .block-container { padding-top: 1.6rem !important; }
 
-    /* ---------- HEADER ---------- */
+    /* HEADER BANNER */
     .header-banner {
         background: linear-gradient(120deg, #0B2038 0%, #1E4E7E 60%, #2C6494 100%);
-        padding: 24px 32px;
+        padding: 22px 30px;
         border-radius: 14px;
         color: white;
         margin-bottom: 20px;
@@ -48,15 +55,15 @@ st.markdown(
         position: absolute; top: 0; right: 0; bottom: 0; width: 6px;
         background: linear-gradient(180deg, #E7BE30, #C99A1E);
     }
-    .header-title { font-size: 26px; font-weight: 800; letter-spacing: 0.3px; margin: 0; color: #FFFFFF; }
-    .header-subtitle { font-size: 14px; color: #C9DCEE; margin-top: 5px; font-weight: 500; }
+    .header-title { font-size: 24px; font-weight: 800; letter-spacing: 0.3px; margin: 0; color: #FFFFFF; }
+    .header-subtitle { font-size: 13.5px; color: #C9DCEE; margin-top: 4px; font-weight: 500; }
 
-    /* ---------- CONTENEDORES DE SECCIÓN (st.container(key=...)) ---------- */
+    /* CONTENEDORES PRINCIPALES */
     .st-key-panel_control, .st-key-sistema_control {
         background: #FFFFFF !important;
         border: 1px solid #DBE5EF;
         border-radius: 16px;
-        padding: 20px 22px 22px;
+        padding: 18px 20px 20px;
         margin-bottom: 20px;
         box-shadow: 0 4px 14px rgba(15, 42, 70, 0.05);
     }
@@ -64,30 +71,26 @@ st.markdown(
         font-size: 1.02rem;
         font-weight: 800;
         color: #122F4C;
-        margin-bottom: 16px;
-        padding-bottom: 12px;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
         border-bottom: 1px solid #E7EDF3;
     }
 
-    /* ---------- FILA DE BLOQUES KPI (horizontal, 5 columnas) ---------- */
+    /* FILA HORIZONTAL DE BLOQUES KPI */
     .kpi-row {
         display: grid;
         grid-template-columns: repeat(5, minmax(0, 1fr));
         align-items: stretch;
         gap: 12px;
     }
-    @media (max-width: 1100px) {
-        .kpi-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    }
-    @media (max-width: 700px) {
-        .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
+    @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 700px) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
     .kpi-block-card {
         background: #F4F8FC;
         border: 1px solid #E1E9F1;
         border-radius: 14px;
-        padding: 12px 14px 14px;
-        min-width: 0;
+        padding: 12px 14px;
         display: flex;
         flex-direction: column;
         height: 100%;
@@ -109,7 +112,6 @@ st.markdown(
         border-left: 3.5px solid var(--tone);
         border-radius: 0 9px 9px 0;
         padding: 7px 11px;
-        min-width: 0;
     }
     .kpi-item-label {
         font-size: .63rem;
@@ -123,7 +125,7 @@ st.markdown(
     }
     .kpi-item-value { font-size: 1.35rem; font-weight: 800; color: #102E4C; line-height: 1.15; }
 
-    /* ---------- PESTAÑAS DISTRIBUIDAS EN TODO EL ANCHO ---------- */
+    /* PESTAÑAS DISTRIBUIDAS PAREJAS */
     .st-key-sistema_control .stTabs [data-baseweb="tab-list"],
     .st-key-sistema_control .stTabs [role="tablist"] {
         display: flex !important;
@@ -157,11 +159,12 @@ st.markdown(
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    .stDataFrame, div[data-testid="stDataEditor"] {
+    div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
         background-color: #FFFFFF !important;
         border-radius: 10px;
         border: 1px solid #E2E8F0;
         padding: 4px;
+        margin-top: 10px !important;
     }
     div[data-testid="stExpander"] { background:#fff; border-color:#dbe5ef; border-radius:12px; }
     </style>
@@ -169,570 +172,722 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Constantes y Archivos
 DB_FILE = "database_informes.json"
 SOLICITUDES_FILE = "database_solicitudes.json"
 
 COLUMNAS_EXCEL = [
     "ITEM POR MES", "IT2", "UNIDAD", "MES", "LINEAS", "CODIGO DE INFORME",
-    "GRUPO DE TUBERÍAS", "SAP", "ALCANCE DEL SERVICIO",
-    "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "OBSERVACIÓN", "ESTADO - VALORIZACIÓN"
+    "GRUPO DE TUBERÍAS", "SAP", "ALCANCE DEL SERVICIO", "NOTAS",
+    "ESTADO - ELABORACIÓN ", "RESPONSABLE", "OBSERVACIÓN", "VALORIZACIÓN"
 ]
 
-ORDEN_MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SETIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"]
+ORDEN_MESES = [
+    "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO",
+    "JULIO", "AGOSTO", "SETIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+]
 
 ESPECIALISTAS_LISTA = ["Jesús Rehkoff Díaz", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
 REVISORES_PSAIM_LISTA = ["Franmary Gutierrez", "Alejandro Macury", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
 PERSONAL_LISTA_BASE = ["M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid", "Juan José", "Dante", "Jesús Rehkoff Díaz", "Franmary Gutierrez", "Alejandro Macury", "Otro Inspector"]
 
-def formatear_entero_limpio(valor):
-    """Limpia cadenas o números eliminando la terminación decimal .0 provocada por Pandas."""
+# Funciones de Limpieza y Normalización
+def texto_normalizado(valor):
     if pd.isna(valor) or valor is None:
         return ""
-    val_str = str(valor).strip()
-    if val_str.endswith(".0"):
-        return val_str[:-2]
-    return val_str
+    texto = str(valor).strip().upper()
+    return texto.translate(str.maketrans("ÁÉÍÓÚÜÑ", "AEIOUUN"))
 
-def texto_normalizado(texto):
-    if pd.isna(texto): return ""
-    t = str(texto).strip().upper()
-    replacements = {"Á": "A", "É": "E", "Í": "I", "Ó": "O", "Ú": "U", "Ü": "U", "Ñ": "N"}
-    for orig, repl in replacements.items(): t = t.replace(orig, repl)
-    return t
+def texto_limpio(valor):
+    if pd.isna(valor) or valor is None:
+        return ""
+    texto = str(valor).strip()
+    return texto[:-2] if texto.endswith(".0") else texto
 
-def limpiar_estado_y_responsable(df_input):
-    df_clean = df_input.copy()
+def separar_alcance_y_notas(alcance, notas=""):
+    alcance_limpio = texto_limpio(alcance)
+    notas_limpias = texto_limpio(notas)
+    patron = re.compile(r"^\s*(LINEAS|VT\s*-\s*CIRCUITOS)\s*(?:[-–—:]\s*(.+))?$", flags=re.IGNORECASE)
+    coincidencia = patron.match(alcance_limpio)
+    if not coincidencia:
+        return alcance_limpio, notas_limpias
 
-    # Garantizar que las columnas numéricas sean tratadas como tipo objeto/texto antes de asignar valores
-    for col in ["ITEM POR MES", "IT2", "SAP"]:
-        if col in df_clean.columns:
-            df_clean[col] = df_clean[col].astype(object)
+    alcance_base = "LINEAS" if texto_normalizado(coincidencia.group(1)) == "LINEAS" else "VT-CIRCUITOS"
+    nota_extraida = texto_limpio(coincidencia.group(2) or "")
+    if nota_extraida and texto_normalizado(nota_extraida) not in texto_normalizado(notas_limpias):
+        notas_limpias = f"{notas_limpias} | {nota_extraida}".strip(" |") if notas_limpias else nota_extraida
+    return alcance_base, notas_limpias
 
-    for idx, row in df_clean.iterrows():
-        val_estado = str(row["ESTADO - ELABORACIÓN DE INFORME"]).strip()
-        val_resp = str(row["RESPONSABLE"]).strip()
-        if "-" in val_estado:
-            partes = val_estado.split("-", 1)
-            df_clean.at[idx, "ESTADO - ELABORACIÓN DE INFORME"] = partes[0].strip()
-            if val_resp in ["", "nan", "None"]:
-                df_clean.at[idx, "RESPONSABLE"] = partes[1].strip()
+def normalizar_base(df_entrada):
+    df = df_entrada.copy()
+    for columna in COLUMNAS_EXCEL:
+        if columna not in df.columns:
+            df[columna] = ""
+    df = df[COLUMNAS_EXCEL].fillna("")
 
-        # Limpieza de valores numéricos para remover .0 sin conflicto de tipos
-        df_clean.at[idx, "ITEM POR MES"] = formatear_entero_limpio(row["ITEM POR MES"])
-        df_clean.at[idx, "IT2"] = formatear_entero_limpio(row["IT2"])
-        df_clean.at[idx, "SAP"] = formatear_entero_limpio(row["SAP"])
+    for indice, fila in df.iterrows():
+        estado = texto_limpio(fila["ESTADO - ELABORACIÓN "])
+        responsable = texto_limpio(fila["RESPONSABLE"])
+        if "-" in estado:
+            estado_base, responsable_estado = estado.split("-", 1)
+            df.at[indice, "ESTADO - ELABORACIÓN "] = estado_base.strip()
+            if not responsable or texto_normalizado(responsable) in {"NAN", "NONE"}:
+                df.at[indice, "RESPONSABLE"] = responsable_estado.strip()
 
-    return df_clean
+        alcance, notas = separar_alcance_y_notas(fila["ALCANCE DEL SERVICIO"], fila.get("NOTAS", ""))
+        df.at[indice, "ALCANCE DEL SERVICIO"] = alcance
+        df.at[indice, "NOTAS"] = notas
+        for columna in ["ITEM POR MES", "IT2", "SAP"]:
+            df.at[indice, columna] = texto_limpio(fila[columna])
+    return df
 
 def es_codigo_provisional(codigo):
-    t = texto_normalizado(codigo)
-    return t in ["", "-"] or any(p in t for p in ["PENDIENTE ASIGNAR", "PENDIENTE DE ASIGNAR", "POR ASIGNAR"])
+    codigo_normalizado = texto_normalizado(codigo)
+    return codigo_normalizado in {"", "-"} or any(
+        texto in codigo_normalizado for texto in ["PENDIENTE ASIGNAR", "PENDIENTE DE ASIGNAR", "POR ASIGNAR"]
+    )
 
 def es_correccion_psaim(observacion):
-    t = texto_normalizado(observacion)
-    return "PSAIM" in t and any(word in t for word in ["CORRECCION", "CORREGIR", "CORREGIDO", "CORREGIDA"])
+    observacion = texto_normalizado(observacion)
+    return "PSAIM" in observacion and any(
+        texto in observacion for texto in ["CORRECCION", "CORREGIR", "CORREGIDO", "CORREGIDA"]
+    )
 
-def es_pendiente_inspeccion_fn(row):
-    estado = texto_normalizado(row.get("ESTADO - ELABORACIÓN DE INFORME", ""))
-    alcance = texto_normalizado(row.get("ALCANCE DEL SERVICIO", ""))
-    obs = texto_normalizado(row.get("OBSERVACIÓN", ""))
-    return ("PENDIENTE COMPLETAR INSPECCION" in estado or "PENDIENTE INSPECCION" in estado or
-            "PENDIENTE INSPECCION" in alcance or "FALTA CARPETA" in alcance or
-            "COMPLETAR INSPECCION" in obs or "COMPLETAR INSPECCIÓN" in obs)
+def es_revision_fiabilidad(observacion):
+    obs = texto_normalizado(observacion)
+    return "FIABILIDAD" in obs and "REVISION" in obs
 
-def preparar_tabla_con_indice_1(df_input):
-    if df_input.empty:
-        return df_input
-    df_res = df_input.reset_index(drop=True)
-    df_res.index = range(1, len(df_res) + 1)
-    return df_res
+def es_pendiente_inspeccion(fila):
+    estado = texto_normalizado(fila.get("ESTADO - ELABORACIÓN ", ""))
+    notas = texto_normalizado(fila.get("NOTAS", ""))
+    observacion = texto_normalizado(fila.get("OBSERVACIÓN", ""))
+    return any(
+        texto in estado or texto in notas or texto in observacion
+        for texto in ["PENDIENTE COMPLETAR INSPECCION", "PENDIENTE INSPECCION", "FALTA CARPETA", "COMPLETAR INSPECCION"]
+    )
 
+@st.cache_data(ttl=60, show_spinner=False)
 def cargar_datos():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, "r", encoding="utf-8") as f:
-            df = pd.DataFrame(json.load(f))
-            for col in COLUMNAS_EXCEL:
-                if col not in df.columns: df[col] = ""
-            return limpiar_estado_y_responsable(df)[COLUMNAS_EXCEL]
-    else:
-        df = pd.DataFrame(columns=COLUMNAS_EXCEL)
-        guardar_datos(df)
-        return df
+    if not os.path.exists(DB_FILE):
+        return pd.DataFrame(columns=COLUMNAS_EXCEL)
+    with open(DB_FILE, "r", encoding="utf-8") as archivo:
+        return normalizar_base(pd.DataFrame(json.load(archivo)))
 
 def guardar_datos(df):
-    df.to_json(DB_FILE, orient="records", force_ascii=False, indent=4)
+    normalizar_base(df).to_json(DB_FILE, orient="records", force_ascii=False)
+    st.cache_data.clear()
 
+@st.cache_data(ttl=5, show_spinner=False)
 def cargar_solicitudes():
-    if os.path.exists(SOLICITUDES_FILE):
-        with open(SOLICITUDES_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+    if not os.path.exists(SOLICITUDES_FILE):
+        return []
+    with open(SOLICITUDES_FILE, "r", encoding="utf-8") as archivo:
+        return json.load(archivo)
 
 def guardar_solicitudes(solicitudes):
-    with open(SOLICITUDES_FILE, "w", encoding="utf-8") as f:
-        json.dump(solicitudes, f, ensure_ascii=False, indent=4)
+    with open(SOLICITUDES_FILE, "w", encoding="utf-8") as archivo:
+        json.dump(solicitudes, archivo, ensure_ascii=False)
+    st.cache_data.clear()
 
 def registrar_solicitud(tipo, codigo, grupo, solicitante):
     solicitudes = cargar_solicitudes()
-    for s in solicitudes:
-        if s["codigo"] == codigo and s["grupo"] == grupo and s["tipo"] == tipo and s["estado"] == "PENDIENTE":
-            return False, "Ya existe una solicitud pendiente de aprobación para este informe."
-    solicitudes.append({"id": len(solicitudes) + 1, "tipo": tipo, "codigo": codigo, "grupo": grupo, "solicitante": solicitante, "estado": "PENDIENTE"})
+    repetida = any(
+        solicitud["codigo"] == codigo and solicitud["grupo"] == grupo and solicitud["tipo"] == tipo and solicitud["estado"] == "PENDIENTE"
+        for solicitud in solicitudes
+    )
+    if repetida:
+        return False, "Ya existe una solicitud pendiente para este informe."
+    siguiente_id = max((solicitud.get("id", 0) for solicitud in solicitudes), default=0) + 1
+    solicitudes.append({
+        "id": siguiente_id, "tipo": tipo, "codigo": codigo, "grupo": grupo,
+        "solicitante": solicitante, "estado": "PENDIENTE"
+    })
     guardar_solicitudes(solicitudes)
-    return True, "Solicitud enviada con éxito al Administrador."
+    return True, "Solicitud enviada al administrador."
 
+def excel_con_formato(df, nombre_hoja="CONTROL"):
+    salida = io.BytesIO()
+    datos = df.copy().fillna("")
+    with pd.ExcelWriter(salida, engine="openpyxl") as escritor:
+        datos.to_excel(escritor, index=False, sheet_name=nombre_hoja[:31])
+        hoja = escritor.book[nombre_hoja[:31]]
+        hoja.freeze_panes = "A2"
+        hoja.row_dimensions[1].height = 30
+        relleno = PatternFill("solid", fgColor="0E2A47")
+        for celda in hoja[1]:
+            celda.font = Font(color="FFFFFF", bold=True)
+            celda.fill = relleno
+            celda.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+
+        for columna in hoja.columns:
+            letra = get_column_letter(columna[0].column)
+            ancho = max(len(texto_limpio(celda.value)) for celda in columna)
+            hoja.column_dimensions[letra].width = min(max(ancho + 2, 12), 42)
+            for celda in columna[1:]:
+                celda.alignment = Alignment(vertical="top", wrap_text=True)
+
+        ultima_columna = get_column_letter(max(1, len(datos.columns)))
+        ultima_fila = len(datos) + 1
+        if len(datos.columns) and len(datos):
+            tabla = Table(displayName=f"Tabla_{datetime.now():%H%M%S%f}", ref=f"A1:{ultima_columna}{ultima_fila}")
+            tabla.tableStyleInfo = TableStyleInfo(name="TableStyleMedium2", showFirstColumn=False, showLastColumn=False, showRowStripes=True, showColumnStripes=False)
+            hoja.add_table(tabla)
+        else:
+            hoja.auto_filter.ref = f"A1:{ultima_columna}1"
+    salida.seek(0)
+    return salida.getvalue()
+
+def boton_descarga_excel(df, archivo, etiqueta="Descargar Excel"):
+    st.download_button(
+        etiqueta,
+        data=excel_con_formato(df),
+        file_name=archivo,
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        icon=":material/download:",
+        use_container_width=False,
+    )
+
+def senal_visual(fila):
+    notas = texto_normalizado(fila.get("NOTAS", ""))
+    observacion = texto_normalizado(fila.get("OBSERVACIÓN", ""))
+    val = texto_normalizado(fila.get("VALORIZACIÓN", ""))
+    if "RETIRADO" in notas or "RETIRADO" in observacion or val == "RETIRADO":
+        return "🔴 Retirado"
+    if val == "SI":
+        return "🟢 Valorizado (SI)"
+    if "FALTA CARPETA" in notas or "PENDIENTE INSPECCION" in notas:
+        return "🟡 Pend. inspección"
+    if "INSPECCION COMPLEMENTARIA" in notas:
+        return "🔵 Inspección complem."
+    return "⚪ Sin alerta"
+
+# Carga Inicial de Datos
 if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
 
-df = st.session_state.df_data
+df = normalizar_base(st.session_state.df_data)
 
-resp_unicos = [str(r).strip() for r in df["RESPONSABLE"].unique() if pd.notna(r) and str(r).strip() not in ["", "nan", "None"]]
-PERSONAL_LISTA = sorted(list(set(PERSONAL_LISTA_BASE + resp_unicos)))
-
-st.markdown("""
+# Banner Principal
+st.html("""
     <div class="header-banner">
         <div class="header-title">CONTROL INTERNO DE INFORMES - ADEMINSAC</div>
         <div class="header-subtitle">Sistema de Monitoreo de Inspección Técnicas y Valorización | Refinería La Pampilla</div>
     </div>
-""", unsafe_allow_html=True)
+""")
 
-with st.expander("⚙️ **Gestión de Datos: Cargar / Restaurar Excel & Descargar Respaldo**", expanded=False):
-    col_carg, col_desc = st.columns(2)
-    with col_carg:
-        st.markdown("##### 📤 Cargar Base de Datos desde Excel")
-        archivo_excel = st.file_uploader("Seleccionar archivo Excel:", type=["xlsx", "xlsm"], key="uploader_main")
-        if archivo_excel and st.button("🔄 Reemplazar Base de Datos"):
+# Expander de Carga / Respaldo
+with st.expander("⚙️ Gestión de datos: cargar, restaurar y descargar respaldo", expanded=False):
+    carga, respaldo = st.columns([1.15, 0.85], vertical_alignment="bottom")
+    with carga:
+        st.subheader("Cargar base de datos")
+        archivo_excel = st.file_uploader("Selecciona un archivo Excel", type=["xlsx", "xlsm"])
+        if archivo_excel and st.button("Reemplazar base de datos", icon=":material/upload:", type="primary"):
             try:
-                excel_file = pd.ExcelFile(archivo_excel)
-                hoja = "CONTROL" if "CONTROL" in excel_file.sheet_names else excel_file.sheet_names[0]
-                df_cargado = pd.read_excel(excel_file, sheet_name=hoja)
-                mapeo = {c: r for c in df_cargado.columns for r in COLUMNAS_EXCEL if str(c).strip().upper() == r.upper()}
-                df_cargado = df_cargado.rename(columns=mapeo)
-                for col in COLUMNAS_EXCEL:
-                    if col not in df_cargado.columns: df_cargado[col] = ""
-                st.session_state.df_data = limpiar_estado_y_responsable(df_cargado)[COLUMNAS_EXCEL]
+                libro = pd.ExcelFile(archivo_excel)
+                hoja = "CONTROL" if "CONTROL" in libro.sheet_names else libro.sheet_names[0]
+                df_cargado = pd.read_excel(libro, sheet_name=hoja)
+                mapa = {str(columna).strip().upper(): columna for columna in df_cargado.columns}
+                renombre = {mapa[columna.strip().upper()]: columna for columna in COLUMNAS_EXCEL if columna.strip().upper() in mapa}
+                df_cargado = df_cargado.rename(columns=renombre)
+                st.session_state.df_data = normalizar_base(df_cargado)
                 guardar_datos(st.session_state.df_data)
-                st.success("¡Base de datos cargada correctamente!")
+                st.success("Base de datos cargada y migrada correctamente.")
                 st.rerun()
-            except Exception as e:
-                st.error(f"Error: {e}")
-
-    with col_desc:
-        st.markdown("##### 📥 Descargar Respaldo Actual")
+            except Exception as error:
+                st.error(f"No se pudo cargar el Excel: {error}")
+    with respaldo:
+        st.subheader("Descargar respaldo actual")
         if not df.empty:
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-                df.to_excel(writer, index=False, sheet_name="CONTROL")
-            buffer.seek(0)
-            st.download_button("💾 Descargar Copia en Excel (.xlsx)", buffer, "Respaldo_Control_Informes.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            boton_descarga_excel(df, "Respaldo_Control_Informes.xlsx", "Descargar copia en Excel")
+        else:
+            st.caption("Carga una base de datos para generar el respaldo.")
 
-if not df.empty:
-    df_activos = df[df["OBSERVACIÓN"].apply(texto_normalizado) != "RETIRADO"].copy()
-    df_activos["CLAVE_GLOBAL"] = df_activos.apply(lambda r: f"{str(r['MES']).strip()}|SIN-CODIGO-GRUPO|{texto_normalizado(r['GRUPO DE TUBERÍAS'])}" if es_codigo_provisional(r["CODIGO DE INFORME"]) else f"{str(r['MES']).strip()}|{str(r['CODIGO DE INFORME']).strip()}", axis=1)
+if df.empty:
+    st.info("Carga un archivo Excel desde Gestión de datos para iniciar el control.", icon=":material/info:")
+    st.stop()
 
-    mask_psaim = df_activos["OBSERVACIÓN"].apply(es_correccion_psaim)
-    mask_pend_insp = df_activos.apply(es_pendiente_inspeccion_fn, axis=1)
-    mask_pend_elab = df_activos["ESTADO - ELABORACIÓN DE INFORME"].apply(texto_normalizado).str.contains("PENDIENTE ELABORACION")
+# --- CÁLCULOS ESTRICTOS DE AGRUPACIÓN (CÓDIGO 1) ---
+mascara_retirado = df["OBSERVACIÓN"].apply(lambda v: "RETIRADO" in texto_normalizado(v)) | \
+                   df["NOTAS"].apply(lambda v: "RETIRADO" in texto_normalizado(v)) | \
+                   df["VALORIZACIÓN"].apply(lambda v: texto_normalizado(v) == "RETIRADO")
+df_activos = df[~mascara_retirado].copy()
 
-    df_psaim_det = df_activos[mask_psaim]
-    df_pend_inspeccion = df_activos[mask_pend_insp]
-    df_pend_asignacion = df_activos[mask_pend_elab]
-    df_en_proceso = df_activos[df_activos["ESTADO - ELABORACIÓN DE INFORME"].apply(texto_normalizado).str.contains("EN PROCESO") & ~mask_pend_insp]
+df_activos["CLAVE_GLOBAL"] = df_activos.apply(
+    lambda fila: f"{texto_limpio(fila['MES'])}|SIN-CODIGO-GRUPO|{texto_normalizado(fila['GRUPO DE TUBERÍAS'])}"
+    if es_codigo_provisional(fila["CODIGO DE INFORME"])
+    else f"{texto_limpio(fila['MES'])}|{texto_limpio(fila['CODIGO DE INFORME'])}",
+    axis=1,
+)
 
-    dict_unicos, dict_psaim_unicos = {}, set()
-    dict_t3_val, dict_t3_pen, dict_t3_ademinsac, dict_t3_fiabilidad, dict_t3_psaim = {}, {}, {}, {}, {}
-    dict_t4, dict_t5 = {}, {}
-    cnt_revision_fiabilidad, cnt_pend_revision_especialista, cnt_revision_por_especialista = 0, 0, 0
+mask_psaim = df_activos["OBSERVACIÓN"].apply(es_correccion_psaim)
+mask_pend_inspeccion = df_activos.apply(es_pendiente_inspeccion, axis=1)
+mask_pend_elaboracion = df_activos["ESTADO - ELABORACIÓN "].apply(texto_normalizado).str.contains("PENDIENTE ELABORACION")
 
-    for _, row in df_activos.iterrows():
-        mes, cod, grupo = str(row["MES"]).strip(), str(row["CODIGO DE INFORME"]).strip(), str(row["GRUPO DE TUBERÍAS"]).strip()
-        obs = str(row["OBSERVACIÓN"]).strip() if pd.notna(row["OBSERVACIÓN"]) else ""
-        estado_val, clave_global = texto_normalizado(row["ESTADO - VALORIZACIÓN"]), row["CLAVE_GLOBAL"]
+df_psaim = df_activos[mask_psaim]
+df_pend_inspeccion = df_activos[mask_pend_inspeccion]
+df_pend_asignacion = df_activos[mask_pend_elaboracion]
+df_en_proceso = df_activos[df_activos["ESTADO - ELABORACIÓN "].apply(texto_normalizado).str.contains("EN PROCESO") & ~mask_pend_inspeccion]
 
-        if mes and grupo:
-            if not es_codigo_provisional(cod) and es_correccion_psaim(obs):
-                if f"{mes}|{cod}" not in dict_psaim_unicos:
-                    dict_psaim_unicos.add(f"{mes}|{cod}")
-                    dict_t3_psaim[mes] = dict_t3_psaim.get(mes, 0) + 1
+unicos, psaim_unicos = set(), set()
+unicos_finalizados = set()
 
-            if clave_global not in dict_unicos:
-                dict_unicos[clave_global] = True
-                dict_t3_val.setdefault(mes, 0); dict_t3_pen.setdefault(mes, 0)
-                dict_t3_ademinsac.setdefault(mes, 0); dict_t3_fiabilidad.setdefault(mes, 0)
-                obs_norm = texto_normalizado(obs)
+por_mes = {"valorizados": {}, "pendientes": {}, "ademinsac": {}, "fiabilidad": {}, "psaim": {}}
+detalle_pendientes = {}
+revision_fiabilidad = revision_especialista_pendiente = revision_especialista = 0
 
-                if estado_val == "SI":
-                    dict_t3_val[mes] += 1
-                else:
-                    dict_t3_pen[mes] += 1
-                    if "ENTREGADO PARA SU REVISION" in obs_norm and "FIABILIDAD" in obs_norm: cnt_revision_fiabilidad += 1
-                    if "PENDIENTE REVISION POR EL ESPECIALISTA" in obs_norm: cnt_pend_revision_especialista += 1
-                    if ("REV. POR EL ESPECIALISTA" in obs_norm or "REVISION POR EL ESPECIALISTA" in obs_norm) and "PENDIENTE" not in obs_norm: cnt_revision_por_especialista += 1
-                    if "ADEMINSAC" in obs_norm: dict_t3_ademinsac[mes] += 1
-                    else: dict_t3_fiabilidad[mes] += 1
+for _, fila in df_activos.iterrows():
+    mes = texto_limpio(fila["MES"])
+    codigo = texto_limpio(fila["CODIGO DE INFORME"])
+    grupo = texto_limpio(fila["GRUPO DE TUBERÍAS"])
+    observacion = texto_limpio(fila["OBSERVACIÓN"])
+    estado_elab = texto_normalizado(fila["ESTADO - ELABORACIÓN "])
+    clave = fila["CLAVE_GLOBAL"]
+    if not mes or not grupo:
+        continue
+    if not es_codigo_provisional(codigo) and es_correccion_psaim(observacion):
+        clave_psaim = f"{mes}|{codigo}"
+        if clave_psaim not in psaim_unicos:
+            psaim_unicos.add(clave_psaim)
+            por_mes["psaim"][mes] = por_mes["psaim"].get(mes, 0) + 1
+    if clave in unicos:
+        continue
+    unicos.add(clave)
+    
+    if "FINALIZADO" in estado_elab or "100%" in estado_elab:
+        unicos_finalizados.add(clave)
 
-                    obs_key = "(En blanco)" if obs == "" else obs
-                    dict_t4[f"{mes}|{obs_key}"] = dict_t4.get(f"{mes}|{obs_key}", 0) + 1
-                    dict_t5[obs_key] = dict_t5.get(obs_key, 0) + 1
+    for clave_mes in ["valorizados", "pendientes", "ademinsac", "fiabilidad"]:
+        por_mes[clave_mes].setdefault(mes, 0)
+    if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
+        por_mes["valorizados"][mes] += 1
+        continue
+    por_mes["pendientes"][mes] += 1
+    observacion_norm = texto_normalizado(observacion)
+    if es_revision_fiabilidad(observacion):
+        revision_fiabilidad += 1
+    if "PENDIENTE REVISION POR EL ESPECIALISTA" in observacion_norm:
+        revision_especialista_pendiente += 1
+    if ("REV. POR EL ESPECIALISTA" in observacion_norm or "REVISION POR EL ESPECIALISTA" in observacion_norm) and "PENDIENTE" not in observacion_norm:
+        revision_especialista += 1
+    if "ADEMINSAC" in observacion_norm:
+        por_mes["ademinsac"][mes] += 1
+    else:
+        por_mes["fiabilidad"][mes] += 1
+    etiqueta = "(En blanco)" if not observacion else observacion
+    detalle_pendientes[(mes, etiqueta)] = detalle_pendientes.get((mes, etiqueta), 0) + 1
 
-    # -----------------------------------------------------------------
-    # VALORES DE LOS 10 KPI (idénticos a los que ya calculabas)
-    # -----------------------------------------------------------------
-    kpi_informes_totales = len(dict_unicos)
-    kpi_pendientes_total = sum(dict_t3_pen.values())
-    kpi_valorizados = sum(dict_t3_val.values())
-    kpi_pend_asignar = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
-    kpi_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
-    kpi_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
-    kpi_rev_fiabilidad = cnt_revision_fiabilidad
-    kpi_pend_rev_especialista = cnt_pend_revision_especialista
-    kpi_rev_por_especialista = cnt_revision_por_especialista
-    kpi_correccion_psaim = sum(dict_t3_psaim.values())
+# KPIs del Bloque General según Elaboración (REALIZAR Cálculo Estricto)
+total_inf_unicos = len(unicos)
+tot_finalizados = len(unicos_finalizados)
+tot_pendientes_elaborar = max(0, total_inf_unicos - tot_finalizados)
 
-    # -----------------------------------------------------------------
-    # PANEL DE CONTROL — 5 bloques distribuidos en una sola fila horizontal
-    # (usamos st.container(key=...) para tener un contenedor real y
-    # estable en el DOM; con esto el CSS de arriba puede darle el
-    # aspecto de tarjeta con borde, sombra y separación clara)
-    # -----------------------------------------------------------------
-    def item_kpi(titulo, valor, color):
-        return (
-            f"<div class='kpi-item' style='--tone:{color}'>"
-            f"<div class='kpi-item-label'>{titulo}</div>"
-            f"<div class='kpi-item-value'>{valor}</div>"
-            f"</div>"
+# KPIs Secundarios
+tot_valorizados = sum(por_mes["valorizados"].values())
+val_para_asignar = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
+val_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
+val_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
+val_psaim = sum(por_mes["psaim"].values())
+
+# --- RENDERIZADO DEL PANEL DE CONTROL (DISEÑO HORIZONTAL CÓDIGO 2) ---
+def item_kpi(titulo, valor, color):
+    return (
+        f"<div class='kpi-item' style='--tone:{color}'>"
+        f"<div class='kpi-item-label'>{titulo}</div>"
+        f"<div class='kpi-item-value'>{valor}</div>"
+        f"</div>"
+    )
+
+def bloque_kpi(titulo_bloque, emoji, items):
+    filas = "".join(item_kpi(*i) for i in items)
+    return (
+        f"<div class='kpi-block-card'>"
+        f"<div class='kpi-block-title'>{emoji} {titulo_bloque}</div>"
+        f"<div class='kpi-items'>{filas}</div></div>"
+    )
+
+panel_control = st.container(key="panel_control")
+panel_control.markdown("<div class='section-title'>📊 Panel de control de informes</div>", unsafe_allow_html=True)
+
+bloques_html = "".join([
+    bloque_kpi("Bloque general", "📊", [
+        ("Informes totales", total_inf_unicos, "#173F67"),
+        ("Informes finalizados", tot_finalizados, "#159A68"),
+        ("Pendientes elaborar", tot_pendientes_elaborar, "#E38921"),
+    ]),
+    bloque_kpi("Bloque gabinete", "📁", [
+        ("En proceso", val_en_proceso, "#7B61C9"),
+        ("Pend. asignar", val_para_asignar, "#D54D9D"),
+        ("Correc. PSAIM", val_psaim, "#C89716"),
+    ]),
+    bloque_kpi("Bloque especialista", "👤", [
+        ("Revisados", revision_especialista, "#168EAE"),
+        ("Por revisar", revision_especialista_pendiente, "#5564D8"),
+    ]),
+    bloque_kpi("Bloque campo", "📝", [
+        ("Pend. inspección", val_pend_inspeccion, "#D8534F"),
+    ]),
+    bloque_kpi("Bloque cliente", "🏢", [
+        ("Valorizados", tot_valorizados, "#159A68"),
+        ("En revisión", revision_fiabilidad, "#159D99"),
+    ]),
+])
+
+panel_control.markdown(f"<div class='kpi-row'>{bloques_html}</div>", unsafe_allow_html=True)
+
+# --- SISTEMA DE CONTROL Y RESÚMENES (PESTAÑAS PAREJAS) ---
+solicitudes_activas = [solicitud for solicitud in cargar_solicitudes() if solicitud["estado"] == "PENDIENTE"]
+
+sistema_control = st.container(key="sistema_control")
+sistema_control.markdown("<div class='section-title'>🗂️ Sistema de control y resúmenes</div>", unsafe_allow_html=True)
+
+tabs = sistema_control.tabs([
+    f"🔔 Admin ({len(solicitudes_activas)})",
+    "📋 Tabla general",
+    "📇 Pend. asignar",
+    "🔄 En proceso",
+    "⏳ Pend. inspección",
+    "🔍 Rev. fiabilidad",
+    "👤 Revisión especialista",
+    "🛠️ Correc. PSAIM",
+    "📊 Resumen por mes",
+])
+
+# 1. ADMIN
+with tabs[0]:
+    st.subheader("Bandeja de aprobación")
+    if not solicitudes_activas:
+        st.success("No hay solicitudes pendientes.", icon=":material/check_circle:")
+    for solicitud in solicitudes_activas:
+        with st.container(border=True):
+            informacion, aprobar, rechazar = st.columns([5, 1, 1], vertical_alignment="center")
+            informacion.write(f"**{solicitud['tipo']}**  \nCódigo: `{solicitud['codigo']}` | Grupo: `{solicitud['grupo']}` | Solicitante: {solicitud['solicitante']}")
+            if aprobar.button("Aprobar", key=f"aprobar_{solicitud['id']}", icon=":material/check:"):
+                mascara = (df["CODIGO DE INFORME"] == solicitud["codigo"]) & (df["GRUPO DE TUBERÍAS"] == solicitud["grupo"])
+                if solicitud["tipo"] == "INFORME COMPLETADO (GABINETE)":
+                    df.loc[mascara, "ESTADO - ELABORACIÓN "] = "Finalizado"
+                elif solicitud["tipo"] == "CORRECCIÓN PSAIM":
+                    df.loc[mascara, "OBSERVACIÓN"] = "PSAIM CORREGIDO"
+                    df.loc[mascara, "ESTADO - ELABORACIÓN "] = "En proceso"
+                elif solicitud["tipo"] == "REVISIÓN ESPECIALISTA":
+                    df.loc[mascara, "OBSERVACIÓN"] = "INFORME REVISADO POR ESPECIALISTA"
+                solicitudes = cargar_solicitudes()
+                for item in solicitudes:
+                    if item["id"] == solicitud["id"]:
+                        item["estado"] = "APROBADO"
+                guardar_solicitudes(solicitudes)
+                st.session_state.df_data = normalizar_base(df)
+                guardar_datos(st.session_state.df_data)
+                st.rerun()
+            if rechazar.button("Rechazar", key=f"rechazar_{solicitud['id']}", icon=":material/close:"):
+                solicitudes = cargar_solicitudes()
+                for item in solicitudes:
+                    if item["id"] == solicitud["id"]:
+                        item["estado"] = "RECHAZADO"
+                guardar_solicitudes(solicitudes)
+                st.rerun()
+
+# 2. TABLA GENERAL
+with tabs[1]:
+    @st.fragment
+    def vista_tabla_general():
+        filtros = st.columns([1, 1, 2])
+        meses = ["Todos"] + sorted(
+            {texto_limpio(m).upper() for m in df["MES"] if texto_limpio(m)},
+            key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99,
         )
-
-    def bloque_kpi(titulo_bloque, emoji, items):
-        filas = "".join(item_kpi(*i) for i in items)
-        return (
-            f"<div class='kpi-block-card'>"
-            f"<div class='kpi-block-title'>{emoji} {titulo_bloque}</div>"
-            f"<div class='kpi-items'>{filas}</div></div>"
-        )
-
-    panel_control = st.container(key="panel_control")
-    panel_control.markdown(
-        "<div class='section-title'>📊 Panel de control de informes</div>",
-        unsafe_allow_html=True,
-    )
-
-    bloques_html = "".join(
-        [
-            bloque_kpi(
-                "Bloque general",
-                "📊",
-                [
-                    ("Informes totales", kpi_informes_totales, "#173F67"),
-                    ("Valorizados (SI)", kpi_valorizados, "#159A68"),
-                    ("Pendientes total", kpi_pendientes_total, "#E38921"),
-                ],
-            ),
-            bloque_kpi(
-                "Bloque gabinete",
-                "📁",
-                [
-                    ("En proceso", kpi_en_proceso, "#7B61C9"),
-                    ("Pend. asignar", kpi_pend_asignar, "#D54D9D"),
-                    ("Correc. PSAIM", kpi_correccion_psaim, "#C89716"),
-                ],
-            ),
-            bloque_kpi(
-                "Bloque especialista",
-                "👤",
-                [
-                    ("Rev. por especialista", kpi_rev_por_especialista, "#168EAE"),
-                    ("Pend. rev. especialista", kpi_pend_rev_especialista, "#5564D8"),
-                ],
-            ),
-            bloque_kpi(
-                "Bloque campo",
-                "📝",
-                [
-                    ("Pend. inspección", kpi_pend_inspeccion, "#D8534F"),
-                ],
-            ),
-            bloque_kpi(
-                "Bloque cliente",
-                "🏢",
-                [
-                    ("Rev. fiabilidad", kpi_rev_fiabilidad, "#159D99"),
-                ],
-            ),
-        ]
-    )
-    panel_control.markdown(
-        f"<div class='kpi-row'>{bloques_html}</div>", unsafe_allow_html=True
-    )
-
-    solic_activas = [s for s in cargar_solicitudes() if s["estado"] == "PENDIENTE"]
-
-    # -----------------------------------------------------------------
-    # SISTEMA DE CONTROL Y RESÚMENES — segunda tarjeta contenedora,
-    # con pestañas distribuidas parejo en todo el ancho
-    # -----------------------------------------------------------------
-    sistema_control = st.container(key="sistema_control")
-    sistema_control.markdown(
-        "<div class='section-title'>🗂️ Sistema de control y resúmenes</div>",
-        unsafe_allow_html=True,
-    )
-
-    t_admin, t_gen, t_pasig, t_proc, t_pinsp, t_rfiab, t_pesp, t_resp, t_psaim, t_t3, t_t4, t_t5 = sistema_control.tabs([
-        f"🔔 Admin ({len(solic_activas)})" if solic_activas else "🔔 Admin",
-        "📋 Tabla General", "📋 Pend. Asignar", "🔄 En Proceso", "⏳ Pend. Inspección",
-        "🔍 Rev. Fiabilidad", "👨‍🔬 Pend. Rev. Especialista", "🔬 Rev. por Especialista",
-        "🛠️ Correc. PSAIM", "📅 Resumen Mes (T3)", "📊 Pend. Mes/Obs (T4)", "📌 Resumen Obs (T5)"
-    ])
-
-    with t_admin:
-        st.markdown("#### **BANDEJA DE APROBACIÓN (ADMINISTRADOR)**")
-        if solic_activas:
-            for sol in solic_activas:
-                c_inf, c_app, c_rej = st.columns([4, 1, 1])
-                c_inf.markdown(f"📌 **[{sol['tipo']}]** Código: **{sol['codigo']}** | Grupo: **{sol['grupo']}** | Solicitante: **{sol['solicitante']}**")
-
-                if c_app.button("✅ Aprobar", key=f"app_{sol['id']}"):
-                    mask = (df["CODIGO DE INFORME"] == sol["codigo"]) & (df["GRUPO DE TUBERÍAS"] == sol["grupo"])
-                    if sol["tipo"] == "INFORME COMPLETADO (GABINETE)": df.loc[mask, "ESTADO - ELABORACIÓN DE INFORME"] = "FINALIZADO"
-                    elif sol["tipo"] == "CORRECCIÓN PSAIM": df.loc[mask, "OBSERVACIÓN"] = "PSAIM CORREGIDO"; df.loc[mask, "ESTADO - ELABORACIÓN DE INFORME"] = "EN PROCESO"
-                    elif sol["tipo"] == "REVISIÓN ESPECIALISTA": df.loc[mask, "OBSERVACIÓN"] = "INFORME REVISADO POR ESPECIALISTA"
-
-                    solicitudes = cargar_solicitudes()
-                    for s in solicitudes:
-                        if s["id"] == sol["id"]: s["estado"] = "APROBADO"
-                    guardar_solicitudes(solicitudes)
-                    guardar_datos(df)
-                    st.success("Aprobado correctamente.")
-                    st.rerun()
-
-                if c_rej.button("❌ Rechazar", key=f"rej_{sol['id']}"):
-                    solicitudes = cargar_solicitudes()
-                    for s in solicitudes:
-                        if s["id"] == sol["id"]: s["estado"] = "RECHAZADO"
-                    guardar_solicitudes(solicitudes)
-                    st.warning("Rechazado correctamente.")
-                    st.rerun()
-
-                st.divider()
-        else: st.success("✨ No hay solicitudes pendientes.")
-
-    with t_gen:
-        c_m, c_b = st.columns([1, 3])
-        meses_disp = ["Todos"] + sorted([m for m in df["MES"].dropna().astype(str).str.strip().str.upper().unique() if m], key=lambda x: ORDEN_MESES.index(x) if x in ORDEN_MESES else 99)
-        m_sel = c_m.selectbox("Filtrar Mes:", meses_disp)
-        txt_b = c_b.text_input("🔍 Buscador:")
-
-        # Conservar el índice original para evitar desajustes durante los filtros
-        df_dis = df[COLUMNAS_EXCEL].copy()
-
-        # Convierte todos los campos a texto limpio formateado
-        for column in df_dis.columns:
-            df_dis[column] = df_dis[column].apply(formatear_entero_limpio)
-
-        if m_sel != "Todos":
-            df_dis = df_dis[df_dis["MES"].astype(str).str.strip().str.upper() == m_sel]
-        if txt_b.strip():
-            q = texto_normalizado(txt_b)
-            df_dis = df_dis[df_dis.apply(lambda r: q in texto_normalizado(r["LINEAS"]) or q in texto_normalizado(r["SAP"]) or q in texto_normalizado(r["CODIGO DE INFORME"]) or q in texto_normalizado(r["GRUPO DE TUBERÍAS"]), axis=1)]
-
-        df_dis["ESTADO - VALORIZACIÓN"] = df_dis["ESTADO - VALORIZACIÓN"].apply(
-            lambda x: "SI" if texto_normalizado(x) == "SI" else "Pendiente - valorización"
-        )
-
-        # Configuración de columnas con tipos 100% seguros
-        config_columnas = {
-            "ITEM POR MES": st.column_config.TextColumn("ITEM POR MES", width="small"),
-            "IT2": st.column_config.TextColumn("IT2", width="small"),
-            "UNIDAD": st.column_config.TextColumn("UNIDAD", width="small"),
-            "MES": st.column_config.TextColumn("MES", width="small"),
-            "LINEAS": st.column_config.TextColumn("LINEAS", width="large"),
-            "CODIGO DE INFORME": st.column_config.TextColumn("CODIGO DE INFORME", width="medium"),
-            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("GRUPO DE TUBERÍAS", width="medium"),
-            "SAP": st.column_config.TextColumn("SAP", width="small"),
-            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("ALCANCE DEL SERVICIO", width="large"),
-            "ESTADO - ELABORACIÓN DE INFORME": st.column_config.TextColumn("ESTADO - ELABORACIÓN DE INFORME", width="medium"),
-            "RESPONSABLE": st.column_config.TextColumn("RESPONSABLE", width="medium"),
-            "OBSERVACIÓN": st.column_config.TextColumn("OBSERVACIÓN", width="large"),
-            "ESTADO - VALORIZACIÓN": st.column_config.SelectboxColumn(
-                "ESTADO - VALORIZACIÓN",
-                help="Seleccione el estado de valorización",
-                options=["Pendiente - valorización", "SI"],
-                required=True,
-                width="medium"
+        mes = filtros[0].selectbox("Filtrar mes", meses)
+        alcance = filtros[1].selectbox("Alcance del servicio", ["Todos", "LINEAS", "VT-CIRCUITOS"])
+        consulta = filtros[2].text_input("Buscar por líneas, código, grupo, SAP o notas", icon=":material/search:")
+        
+        df_vista = df.copy()
+        if mes != "Todos":
+            df_vista = df_vista[df_vista["MES"].apply(lambda v: texto_normalizado(v) == mes)]
+        if alcance != "Todos":
+            df_vista = df_vista[df_vista["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == alcance]
+        if consulta.strip():
+            consulta_norm = texto_normalizado(consulta)
+            columnas_busqueda = ["LINEAS", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS", "SAP", "NOTAS"]
+            mascara_busqueda = df_vista[columnas_busqueda].apply(
+                lambda fila: any(consulta_norm in texto_normalizado(v) for v in fila), axis=1
             )
+            df_vista = df_vista[mascara_busqueda]
+
+        df_vista = df_vista.map(texto_limpio)
+        df_vista["VALORIZACIÓN"] = df_vista["VALORIZACIÓN"].apply(
+            lambda v: "SI" if texto_normalizado(v) == "SI" else ("Retirado" if texto_normalizado(v) == "RETIRADO" else "Pendiente")
+        )
+        df_vista.insert(0, "SEÑAL", df_vista.apply(senal_visual, axis=1))
+        
+        encabezados = {
+            "SEÑAL": st.column_config.TextColumn("Señal", width=190, disabled=True, pinned=True),
+            "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
+            "IT2": st.column_config.TextColumn("IT2", width=55),
+            "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
+            "MES": st.column_config.TextColumn("Mes", width=80),
+            "LINEAS": st.column_config.TextColumn("Líneas", width=180),
+            "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=190),
+            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=180),
+            "SAP": st.column_config.TextColumn("SAP", width=85),
+            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width=120),
+            "NOTAS": st.column_config.TextColumn("Notas", width=170),
+            "ESTADO - ELABORACIÓN ": st.column_config.TextColumn("Estado de elaboración", width=190),
+            "RESPONSABLE": st.column_config.TextColumn("Responsable", width=135),
+            "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=280),
+            "VALORIZACIÓN": st.column_config.SelectboxColumn(
+                "Valorización", options=["Pendiente", "SI", "Retirado"], required=True, width=145
+            ),
         }
+        
+        st.html("""
+            <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #102E4C; margin-bottom: 10px; display: inline-block;">
+                🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
+            </div>
+        """)
+        
+        boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
-        # Función para aplicar estilos condicionales por fila
-        def resaltar_filas(row):
-            val_estado = str(row.get("ESTADO - VALORIZACIÓN", "")).strip().upper()
-            val_alcance = texto_normalizado(row.get("ALCANCE DEL SERVICIO", ""))
-
-            # 1. Verde claro si ESTADO - VALORIZACIÓN indica SI
-            if val_estado == "SI":
-                return ["background-color: #D1FAE5; color: #065F46;"] * len(row)
-
-            # 2. Amarillo claro para estados específicos de ALCANCE DEL SERVICIO
-            if val_alcance in [
-                "VT-CIRCUITOS - PENDIENTE INSPECCION",
-                "VT-CIRCUITOS - FALTA CARPETA",
-                "LINEAS - PENDIENTE INSPECCION"
-            ]:
-                return ["background-color: #FEF08A; color: #713F12;"] * len(row)
-
-            # 3. Celeste claro para inspección complementaria
-            if val_alcance == "VT-CIRCUITOS - INSPECCION COMPLEMENTARIA":
-                return ["background-color: #BAE6FD; color: #0C4A6E;"] * len(row)
-
-            return [""] * len(row)
-
-        df_styled = df_dis.style.apply(resaltar_filas, axis=1)
-
-        # Usar st.dataframe para visualizar los colores de forma directa manteniendo st.data_editor si se activa edición
-        ed_df = st.data_editor(
-            df_styled,
-            column_config=config_columnas,
+        editado = st.data_editor(
+            df_vista,
+            column_config=encabezados,
             hide_index=True,
             use_container_width=True,
-            key="editor_tabla_general_select"
+            height=600,
+            disabled=["SEÑAL"],
+            key="editor_tabla_general",
         )
-
-        if st.button("💾 Guardar Cambios", key="btn_guardar_gen"):
-            # Mapeo exacto por índice original para evitar duplicaciones al guardar grupos filtrados
-            for real_idx, row in ed_df.iterrows():
-                for col in COLUMNAS_EXCEL:
-                    st.session_state.df_data.at[real_idx, col] = row[col]
-
-                # Limpieza automatizada de la observación si cambia a SI
-                if str(row["ESTADO - VALORIZACIÓN"]).strip().upper() == "SI":
-                    st.session_state.df_data.at[real_idx, "OBSERVACIÓN"] = ""
-
-            st.session_state.df_data = limpiar_estado_y_responsable(st.session_state.df_data[COLUMNAS_EXCEL])
+        if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
+            for indice, fila in editado.iterrows():
+                for columna in COLUMNAS_EXCEL:
+                    df.at[indice, columna] = fila[columna]
+                if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
+                    df.at[indice, "OBSERVACIÓN"] = ""
+            st.session_state.df_data = normalizar_base(df)
             guardar_datos(st.session_state.df_data)
-            st.success("Cambios guardados con éxito en la base de datos.")
+            st.success("Cambios guardados correctamente.")
             st.rerun()
 
-    with t_pasig:
-        if not df_pend_asignacion.empty:
-            # dropna=False permite mantener los registros agrupados aunque CODIGO DE INFORME o RESPONSABLE sean nulos/vacíos
-            res_pasig = df_pend_asignacion.groupby(
-                ["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"],
-                as_index=False,
-                dropna=False
-            ).agg({"LINEAS": "count"})
+    vista_tabla_general()
 
-            # Reemplazar NaN resultantes del groupby por cadenas vacías para visualización limpia
-            res_pasig = res_pasig.fillna("")
-            st.dataframe(preparar_tabla_con_indice_1(res_pasig), use_container_width=True)
-        else:
-            st.info("No hay informes pendientes de asignación.")
+# AUXILIARES PARA AGRUPACIÓN DE TABLAS
+def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
+    if df_origen.empty:
+        st.info("No hay registros para mostrar.", icon=":material/info:")
+        return pd.DataFrame()
+    tabla = df_origen.groupby(columnas, as_index=False, dropna=False).agg(LINEAS=("LINEAS", "count")).fillna("")
+    tabla.index = range(1, len(tabla) + 1)
+    boton_descarga_excel(tabla, nombre_archivo, "Descargar Excel")
+    st.dataframe(tabla, use_container_width=True, hide_index=False, height=600)
+    return tabla
 
-    with t_proc:
-        if not df_en_proceso.empty:
-            tg = df_en_proceso.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False, dropna=False).agg({"LINEAS": "count"}).fillna("")
-            st.dataframe(preparar_tabla_con_indice_1(tg), use_container_width=True)
-            c1, c2, c3 = st.columns([2, 2, 1])
-            cod_s = c1.selectbox("Código:", tg["CODIGO DE INFORME"].unique(), key="spc")
-            resp_s = c2.selectbox("Inspector:", PERSONAL_LISTA, key="spr")
-            if c3.button("🟢 Enviar al 100%", key="b_proc"):
-                ok, m = registrar_solicitud("INFORME COMPLETADO (GABINETE)", cod_s, tg[tg["CODIGO DE INFORME"] == cod_s]["GRUPO DE TUBERÍAS"].values[0], resp_s)
-                st.success(m) if ok else st.warning(m)
+def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
+    if df_resumen.empty:
+        st.info("No hay registros para mostrar.", icon=":material/info:")
+        return
+    
+    df_mostrar = df_resumen.copy()
+    if es_metricas:
+        tot_informes = df_mostrar["TOTAL INFORMES"].sum()
+        tot_elaborados = df_mostrar["INFORMES ELABORADOS"].sum()
+        tot_pendientes = df_mostrar["PENDIENTES POR ELABORAR"].sum()
+        pct_total = (tot_elaborados / tot_informes * 100) if tot_informes > 0 else 0.0
 
-    with t_pinsp:
-        if not df_pend_inspeccion.empty:
-            res_pinsp = df_pend_inspeccion.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"], as_index=False, dropna=False).agg({"LINEAS": "count"}).fillna("")
-            st.dataframe(preparar_tabla_con_indice_1(res_pinsp), use_container_width=True)
+        fila_total = pd.DataFrame({
+            "MES": ["TOTAL"],
+            "TOTAL INFORMES": [tot_informes],
+            "INFORMES ELABORADOS": [tot_elaborados],
+            "PENDIENTES POR ELABORAR": [tot_pendientes],
+            "% AVANCE ELABORACIÓN": [f"{pct_total:.1f}%"]
+        })
+        df_mostrar["% AVANCE ELABORACIÓN"] = df_mostrar["% AVANCE ELABORACIÓN"].apply(
+            lambda v: f"{v:.1f}%" if isinstance(v, (int, float)) else str(v)
+        )
+        df_mostrar = pd.concat([df_mostrar, fila_total], ignore_index=True)
+    elif "CANTIDAD" in df_mostrar.columns:
+        tot_cantidad = df_mostrar["CANTIDAD"].sum()
+        fila_total = pd.DataFrame({
+            "MES": ["TOTAL"],
+            "OBSERVACIÓN PENDIENTE": ["-"],
+            "CANTIDAD": [tot_cantidad]
+        })
+        df_mostrar = pd.concat([df_mostrar, fila_total], ignore_index=True)
 
-    with t_rfiab:
-        df_f = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "ENTREGADO PARA SU REVISION" in texto_normalizado(x) and "FIABILIDAD" in texto_normalizado(x))]
-        if not df_f.empty:
-            res_fiab = df_f.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False, dropna=False).agg({"LINEAS": "count"}).fillna("")
-            st.dataframe(preparar_tabla_con_indice_1(res_fiab), use_container_width=True)
+    df_mostrar.index = range(1, len(df_mostrar) + 1)
+    boton_descarga_excel(df_mostrar, nombre_archivo, "Descargar Excel")
+    st.dataframe(df_mostrar, use_container_width=True, hide_index=False, height=600)
 
-    with t_pesp:
-        df_e = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: "PENDIENTE REVISION POR EL ESPECIALISTA" in texto_normalizado(x))]
-        if not df_e.empty:
-            tg_e = df_e.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False, dropna=False).agg({"LINEAS": "count"}).fillna("")
-            st.dataframe(preparar_tabla_con_indice_1(tg_e), use_container_width=True)
-            c1, c2, c3 = st.columns([2, 2, 1])
-            cod_pe = c1.selectbox("Código:", tg_e["CODIGO DE INFORME"].unique(), key="pesp_c")
-            resp_pe = c2.selectbox("Especialista:", ESPECIALISTAS_LISTA, key="pesp_r")
-            if c3.button("🟢 Enviar a Revisión", key="b_pesp"):
-                grupo_sel = tg_e[tg_e["CODIGO DE INFORME"] == cod_pe]["GRUPO DE TUBERÍAS"].values[0]
-                ok, m = registrar_solicitud("REVISIÓN ESPECIALISTA", cod_pe, grupo_sel, resp_pe)
-                st.success(m) if ok else st.warning(m)
+# 3. PENDIENTE ASIGNAR
+with tabs[2]:
+    tabla_agrupada(
+        df_pend_asignacion,
+        ["MES", "ESTADO - ELABORACIÓN ", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"],
+        "Pendientes_asignar.xlsx", "PEND_ASIGNAR"
+    )
 
-    with t_resp:
-        df_re = df_activos[df_activos["OBSERVACIÓN"].apply(lambda x: ("REV. POR EL ESPECIALISTA" in texto_normalizado(x) or "REVISION POR EL ESPECIALISTA" in texto_normalizado(x)) and "PENDIENTE" not in texto_normalizado(x))]
-        if not df_re.empty:
-            tg_re = df_re.groupby(["MES", "ESTADO - ELABORACIÓN DE INFORME", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"], as_index=False, dropna=False).agg({"LINEAS": "count"}).fillna("")
-            st.dataframe(preparar_tabla_con_indice_1(tg_re), use_container_width=True)
-            c1, c2, c3 = st.columns([2, 2, 1])
-            cod_se = c1.selectbox("Código:", tg_re["CODIGO DE INFORME"].unique(), key="sec")
-            resp_se = c2.selectbox("Especialista:", ESPECIALISTAS_LISTA, key="ser")
-            if c3.button("🟢 Liberar Especialista", key="b_esp"):
-                ok, m = registrar_solicitud("REVISIÓN ESPECIALISTA", cod_se, tg_re[tg_re["CODIGO DE INFORME"] == cod_se]["GRUPO DE TUBERÍAS"].values[0], resp_se)
-                st.success(m) if ok else st.warning(m)
-
-    with t_psaim:
-        if not df_psaim_det.empty:
-            df_psaim_lineas = df_psaim_det[
-                df_psaim_det["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == "LINEAS"
-            ].copy()
-
-            if not df_psaim_lineas.empty:
-                cols_psaim = [
-                    "MES",
-                    "ESTADO - ELABORACIÓN DE INFORME",
-                    "RESPONSABLE",
-                    "ITEM POR MES",
-                    "IT2",
-                    "LINEAS",
-                    "GRUPO DE TUBERÍAS",
-                    "CODIGO DE INFORME",
-                    "OBSERVACIÓN"
-                ]
-
-                cols_disponibles = [c for c in cols_psaim if c in df_psaim_lineas.columns]
-                df_psaim_vista = df_psaim_lineas[cols_disponibles]
-
-                st.dataframe(preparar_tabla_con_indice_1(df_psaim_vista), use_container_width=True)
-
-                c1, c2, c3 = st.columns([2, 2, 1])
-                codigos_unicos = [c for c in df_psaim_vista["CODIGO DE INFORME"].dropna().unique() if str(c).strip()]
-
-                if codigos_unicos:
-                    cod_sp = c1.selectbox("Código:", codigos_unicos, key="spc_p")
-                    resp_sp = c2.selectbox("Revisor PSAIM:", REVISORES_PSAIM_LISTA, key="spr_p")
-
-                    if c3.button("🟢 PSAIM Corregido", key="b_psaim"):
-                        grupo_asociado = df_psaim_vista[df_psaim_vista["CODIGO DE INFORME"] == cod_sp]["GRUPO DE TUBERÍAS"].values[0]
-                        ok, m = registrar_solicitud("CORRECCIÓN PSAIM", cod_sp, grupo_asociado, resp_sp)
-                        if ok:
-                            st.success(m)
-                        else:
-                            st.warning(m)
+# 4. EN PROCESO
+with tabs[3]:
+    tabla_proceso = tabla_agrupada(
+        df_en_proceso,
+        ["MES", "ESTADO - ELABORACIÓN ", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"],
+        "En_proceso.xlsx", "EN_PROCESO"
+    )
+    if not tabla_proceso.empty:
+        responsables = sorted(set(PERSONAL_LISTA_BASE + [texto_limpio(valor) for valor in df["RESPONSABLE"] if texto_limpio(valor)]))
+        codigo, inspector, enviar = st.columns([2, 2, 1], vertical_alignment="bottom")
+        codigo_seleccionado = codigo.selectbox("Código", tabla_proceso["CODIGO DE INFORME"].unique(), key="proceso_codigo")
+        inspector_seleccionado = inspector.selectbox("Inspector", responsables, key="proceso_inspector")
+        if enviar.button("Enviar al 100%", icon=":material/send:"):
+            grupo = tabla_proceso.loc[tabla_proceso["CODIGO DE INFORME"] == codigo_seleccionado, "GRUPO DE TUBERÍAS"].iloc[0]
+            correcto, mensaje = registrar_solicitud("INFORME COMPLETADO (GABINETE)", codigo_seleccionado, grupo, inspector_seleccionado)
+            if correcto:
+                st.success(mensaje)
+                st.rerun()
             else:
-                st.info("No hay registros pendientes de corrección PSAIM con alcance 'LINEAS'.")
+                st.warning(mensaje)
+
+# 5. PENDIENTE INSPECCIÓN
+with tabs[4]:
+    tabla_agrupada(
+        df_pend_inspeccion,
+        ["MES", "ESTADO - ELABORACIÓN ", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"],
+        "Pendientes_inspeccion.xlsx", "PEND_INSPECCION"
+    )
+
+# 6. REV. FIABILIDAD
+with tabs[5]:
+    df_fiabilidad = df_activos[df_activos["OBSERVACIÓN"].apply(es_revision_fiabilidad)]
+    tabla_agrupada(
+        df_fiabilidad,
+        ["MES", "ESTADO - ELABORACIÓN ", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"],
+        "Revision_fiabilidad.xlsx", "REV_FIABILIDAD"
+    )
+
+# 7. REVISIÓN ESPECIALISTA (CON SUB-VISTA RADIO BUTTONS)
+def vista_revision_especialista(condicion, archivo, llave):
+    df_revision = df_activos[df_activos["OBSERVACIÓN"].apply(condicion)]
+    tabla_revision = tabla_agrupada(
+        df_revision,
+        ["MES", "ESTADO - ELABORACIÓN ", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "OBSERVACIÓN"],
+        archivo, llave
+    )
+    if tabla_revision.empty:
+        return
+    codigo, especialista, enviar = st.columns([2, 2, 1], vertical_alignment="bottom")
+    codigo_seleccionado = codigo.selectbox("Código", tabla_revision["CODIGO DE INFORME"].unique(), key=f"codigo_{llave}")
+    especialista_seleccionado = especialista.selectbox("Especialista", ESPECIALISTAS_LISTA, key=f"especialista_{llave}")
+    if enviar.button("Enviar a revisión", key=f"enviar_{llave}", icon=":material/send:"):
+        grupo = tabla_revision.loc[tabla_revision["CODIGO DE INFORME"] == codigo_seleccionado, "GRUPO DE TUBERÍAS"].iloc[0]
+        correcto, mensaje = registrar_solicitud("REVISIÓN ESPECIALISTA", codigo_seleccionado, grupo, especialista_seleccionado)
+        if correcto:
+            st.success(mensaje)
+            st.rerun()
         else:
-            st.info("No hay informes pendientes de corrección PSAIM.")
+            st.warning(mensaje)
 
-    with t_t3:
-        m_u = list(set(list(dict_t3_val.keys()) + list(dict_t3_pen.keys())))
-        f_t3 = [{"MES": m, "GRUPOS": df_activos[df_activos["MES"].astype(str).str.strip() == m]["GRUPO DE TUBERÍAS"].nunique(), "VALORIZADOS": dict_t3_val.get(m, 0), "PENDIENTE VALORIZAR": dict_t3_pen.get(m, 0), "SUMA TOTAL": dict_t3_val.get(m, 0) + dict_t3_pen.get(m, 0), "PENDIENTE ADEMINSAC": dict_t3_ademinsac.get(m, 0), "PENDIENTE FIABILIDAD": dict_t3_fiabilidad.get(m, 0), "CORRECCION PSAIM": dict_t3_psaim.get(m, 0)} for m in m_u]
-        df_t3 = pd.DataFrame(f_t3)
-        if not df_t3.empty:
-            df_t3["MES_CAT"] = pd.Categorical(df_t3["MES"].str.upper(), categories=ORDEN_MESES, ordered=True)
-            st.dataframe(preparar_tabla_con_indice_1(df_t3.sort_values("MES_CAT").drop(columns=["MES_CAT"])), use_container_width=True)
+with tabs[6]:
+    st.subheader("Revisión especialista")
+    @st.fragment
+    def vista_sub_especialista():
+        opcion_especialista = st.radio(
+            "Seleccionar tipo de vista:",
+            ["Pendientes de revisión", "Revisados por el especialista"],
+            horizontal=True,
+            key="radio_especialistas"
+        )
+        if opcion_especialista == "Pendientes de revisión":
+            vista_revision_especialista(
+                lambda valor: "PENDIENTE REVISION POR EL ESPECIALISTA" in texto_normalizado(valor),
+                "Pendientes_revision_especialista.xlsx", "PEND_REV_ESP"
+            )
+        else:
+            vista_revision_especialista(
+                lambda valor: ("REV. POR EL ESPECIALISTA" in texto_normalizado(valor) or "REVISION POR EL ESPECIALISTA" in texto_normalizado(valor))
+                and "PENDIENTE" not in texto_normalizado(valor),
+                "Revision_por_especialista.xlsx", "REV_POR_ESP"
+            )
+    vista_sub_especialista()
 
-    with t_t4:
-        df_t4 = pd.DataFrame([{"MES": k.split("|", 1)[0], "OBSERVACIÓN PENDIENTE": k.split("|", 1)[1], "CANTIDAD": v} for k, v in dict_t4.items()])
-        if not df_t4.empty:
-            df_t4["MES_CAT"] = pd.Categorical(df_t4["MES"].str.upper(), categories=ORDEN_MESES, ordered=True)
-            st.dataframe(preparar_tabla_con_indice_1(df_t4.sort_values(["MES_CAT", "CANTIDAD"], ascending=[True, False]).drop(columns=["MES_CAT"])), use_container_width=True)
+# 8. CORRECCIÓN PSAIM
+with tabs[7]:
+    df_psaim_lineas = df_psaim[df_psaim["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == "LINEAS"].copy()
+    columnas_psaim = [
+        "MES", "ESTADO - ELABORACIÓN ", "RESPONSABLE", "ITEM POR MES", "IT2",
+        "LINEAS", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "NOTAS", "OBSERVACIÓN"
+    ]
+    tabla_psaim = tabla_agrupada(
+        df_psaim_lineas,
+        columnas_psaim[:-3] + ["CODIGO DE INFORME", "NOTAS", "OBSERVACIÓN"],
+        "Correccion_PSAIM.xlsx", "CORRECCION_PSAIM"
+    )
+    if not tabla_psaim.empty:
+        codigo, revisor, enviar = st.columns([2, 2, 1], vertical_alignment="bottom")
+        codigo_seleccionado = codigo.selectbox("Código", tabla_psaim["CODIGO DE INFORME"].unique(), key="psaim_codigo")
+        revisor_seleccionado = revisor.selectbox("Revisor PSAIM", REVISORES_PSAIM_LISTA, key="psaim_revisor")
+        if enviar.button("PSAIM corregido", icon=":material/check_circle:"):
+            grupo = tabla_psaim.loc[tabla_psaim["CODIGO DE INFORME"] == codigo_seleccionado, "GRUPO DE TUBERÍAS"].iloc[0]
+            correcto, mensaje = registrar_solicitud("CORRECCIÓN PSAIM", codigo_seleccionado, grupo, revisor_seleccionado)
+            if correcto:
+                st.success(mensaje)
+                st.rerun()
+            else:
+                st.warning(mensaje)
 
-    with t_t5:
-        df_t5 = pd.DataFrame([{"OBSERVACIÓN PENDIENTE": k, "CANTIDAD TOTAL": v, "RESPONSABLE": ("ADEMINSAC" if "ADEMINSAC" in texto_normalizado(k) else "FIABILIDAD")} for k, v in dict_t5.items()])
-        if not df_t5.empty:
-            st.dataframe(preparar_tabla_con_indice_1(df_t5.sort_values("CANTIDAD TOTAL", ascending=False)), use_container_width=True)
-else:
-    st.info("Haga clic en la sección superior '⚙️ Gestión de Datos' para cargar un archivo Excel o iniciar la base de datos.")
+# 9. RESUMEN POR MES (CON SUB-VISTA RADIO BUTTONS)
+filas_elaboracion = []
+meses_unicos = sorted(
+    set(df_activos["MES"].apply(texto_limpio)),
+    key=lambda m: ORDEN_MESES.index(m.upper()) if m.upper() in ORDEN_MESES else 99,
+)
+
+for mes in meses_unicos:
+    if not mes:
+        continue
+    df_mes = df_activos[df_activos["MES"].apply(lambda v: texto_limpio(v) == mes)]
+    df_mes_unicos = df_mes.drop_duplicates(subset=["CLAVE_GLOBAL"])
+    total_informes = len(df_mes_unicos)
+    
+    elaborados = len(
+        df_mes_unicos[
+            df_mes_unicos["ESTADO - ELABORACIÓN "].apply(
+                lambda v: "FINALIZADO" in texto_normalizado(v) or "100%" in texto_normalizado(v)
+            )
+        ]
+    )
+    pendientes_elaborar = total_informes - elaborados
+    porcentaje = round((elaborados / total_informes * 100), 1) if total_informes > 0 else 0.0
+    
+    filas_elaboracion.append({
+        "MES": mes,
+        "TOTAL INFORMES": total_informes,
+        "INFORMES ELABORADOS": elaborados,
+        "PENDIENTES POR ELABORAR": pendientes_elaborar,
+        "% AVANCE ELABORACIÓN": porcentaje,
+    })
+
+df_metricas_elaboracion = pd.DataFrame(filas_elaboracion)
+
+df_t4 = pd.DataFrame([
+    {"MES": mes, "OBSERVACIÓN PENDIENTE": observacion, "CANTIDAD": cantidad}
+    for (mes, observacion), cantidad in detalle_pendientes.items()
+])
+if not df_t4.empty:
+    df_t4["ORDEN"] = df_t4["MES"].apply(
+        lambda valor: ORDEN_MESES.index(texto_normalizado(valor)) if texto_normalizado(valor) in ORDEN_MESES else 99
+    )
+    df_t4 = df_t4.sort_values(["ORDEN", "CANTIDAD"], ascending=[True, False]).drop(columns="ORDEN")
+
+with tabs[8]:
+    st.subheader("Resumen por mes")
+    @st.fragment
+    def vista_sub_resumen():
+        opcion_resumen = st.radio(
+            "Seleccionar tipo de vista:",
+            ["Métricas por mes", "Detalle pendientes por mes / observación"],
+            horizontal=True,
+            key="radio_resumen"
+        )
+        if opcion_resumen == "Métricas por mes":
+            mostrar_resumen(df_metricas_elaboracion, "Metricas_Elaboracion_Por_Mes.xlsx", es_metricas=True)
+        else:
+            mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx", es_metricas=False)
+
+    vista_sub_resumen()
