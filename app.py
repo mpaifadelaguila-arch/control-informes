@@ -167,18 +167,6 @@ st.markdown(
         margin-top: 10px !important;
     }
     div[data-testid="stExpander"] { background:#fff; border-color:#dbe5ef; border-radius:12px; }
-    
-    .leyenda-box {
-        background-color: #f1f5f9;
-        border: 1px solid #cbd5e1;
-        padding: 8px 14px;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #102E4C;
-        margin-bottom: 10px;
-        display: inline-block;
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -380,12 +368,12 @@ if "df_data" not in st.session_state:
 df = normalizar_base(st.session_state.df_data)
 
 # Banner Principal
-st.markdown("""
+st.html("""
     <div class="header-banner">
         <div class="header-title">CONTROL INTERNO DE INFORMES - ADEMINSAC</div>
         <div class="header-subtitle">Sistema de Monitoreo de Inspección Técnicas y Valorización | Refinería La Pampilla</div>
     </div>
-""", unsafe_allow_html=True)
+""")
 
 # Expander de Carga / Respaldo
 with st.expander("⚙️ Gestión de datos: cargar, restaurar y descargar respaldo", expanded=False):
@@ -488,11 +476,12 @@ for _, fila in df_activos.iterrows():
     etiqueta = "(En blanco)" if not observacion else observacion
     detalle_pendientes[(mes, etiqueta)] = detalle_pendientes.get((mes, etiqueta), 0) + 1
 
-# Cálculo de KPIs
+# KPIs del Bloque General según Elaboración
 total_inf_unicos = len(unicos)
 tot_finalizados = len(unicos_finalizados)
 tot_pendientes_elaborar = max(0, total_inf_unicos - tot_finalizados)
 
+# KPIs Secundarios
 tot_valorizados = sum(por_mes["valorizados"].values())
 val_para_asignar = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
 val_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
@@ -597,87 +586,87 @@ with tabs[0]:
                 guardar_solicitudes(solicitudes)
                 st.rerun()
 
-# 2. TABLA GENERAL (FRAGMENTO ELIMINADO PARA PREVENIR ERROR DE DOM)
+# 2. TABLA GENERAL
 with tabs[1]:
-    filtros = st.columns([1, 1, 2])
-    meses = ["Todos"] + sorted(
-        {texto_limpio(m).upper() for m in df["MES"] if texto_limpio(m)},
-        key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99,
-    )
-    mes = filtros[0].selectbox("Filtrar mes", meses, key="filtro_mes_gen")
-    alcance = filtros[1].selectbox("Alcance del servicio", ["Todos", "LINEAS", "VT-CIRCUITOS"], key="filtro_alcance_gen")
-    consulta = filtros[2].text_input("Buscar por líneas, código, grupo, SAP o notas", icon=":material/search:", key="filtro_busqueda_gen")
-    
-    df_vista = df.copy()
-    if mes != "Todos":
-        df_vista = df_vista[df_vista["MES"].apply(lambda v: texto_normalizado(v) == mes)]
-    if alcance != "Todos":
-        df_vista = df_vista[df_vista["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == alcance]
-    if consulta.strip():
-        consulta_norm = texto_normalizado(consulta)
-        columnas_busqueda = ["LINEAS", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS", "SAP", "NOTAS"]
-        mascara_busqueda = df_vista[columnas_busqueda].apply(
-            lambda fila: any(consulta_norm in texto_normalizado(v) for v in fila), axis=1
+    @st.fragment
+    def vista_tabla_general():
+        filtros = st.columns([1, 1, 2])
+        meses = ["Todos"] + sorted(
+            {texto_limpio(m).upper() for m in df["MES"] if texto_limpio(m)},
+            key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99,
         )
-        df_vista = df_vista[mascara_busqueda]
-
-    df_vista = df_vista.map(texto_limpio)
-    df_vista["VALORIZACIÓN"] = df_vista["VALORIZACIÓN"].apply(
-        lambda v: "SI" if texto_normalizado(v) == "SI" else ("Retirado" if texto_normalizado(v) == "RETIRADO" else "Pendiente")
-    )
-    df_vista.insert(0, "SEÑAL", df_vista.apply(senal_visual, axis=1))
-    
-    encabezados = {
-        "SEÑAL": st.column_config.TextColumn("Señal", width=190, disabled=True, pinned=True),
-        "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
-        "IT2": st.column_config.TextColumn("IT2", width=55),
-        "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
-        "MES": st.column_config.TextColumn("Mes", width=80),
-        "LINEAS": st.column_config.TextColumn("Líneas", width=180),
-        "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=190),
-        "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=180),
-        "SAP": st.column_config.TextColumn("SAP", width=85),
-        "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width=120),
-        "NOTAS": st.column_config.TextColumn("Notas", width=170),
-        "ESTADO - ELABORACIÓN ": st.column_config.TextColumn("Estado de elaboración", width=190),
-        "RESPONSABLE": st.column_config.TextColumn("Responsable", width=135),
-        "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=280),
-        "VALORIZACIÓN": st.column_config.SelectboxColumn(
-            "Valorización", options=["Pendiente", "SI", "Retirado"], required=True, width=145
-        ),
-    }
-    
-    st.markdown("""
-        <div class="leyenda-box">
-            🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
-        </div>
-    """, unsafe_allow_html=True)
-    
-    boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
-
-    editado = st.data_editor(
-        df_vista,
-        column_config=encabezados,
-        hide_index=True,
-        use_container_width=True,
-        height=600,
-        disabled=["SEÑAL"],
-        key="editor_tabla_general",
-    )
-    
-    if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
-        for indice_vista, fila in editado.iterrows():
-            # Mapear índice original para mantener integridad
-            indice_orig = fila.name
-            for columna in COLUMNAS_EXCEL:
-                df.at[indice_orig, columna] = fila[columna]
-            if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
-                df.at[indice_orig, "OBSERVACIÓN"] = ""
+        mes = filtros[0].selectbox("Filtrar mes", meses)
+        alcance = filtros[1].selectbox("Alcance del servicio", ["Todos", "LINEAS", "VT-CIRCUITOS"])
+        consulta = filtros[2].text_input("Buscar por líneas, código, grupo, SAP o notas", icon=":material/search:")
         
-        st.session_state.df_data = normalizar_base(df)
-        guardar_datos(st.session_state.df_data)
-        st.success("Cambios guardados correctamente.")
-        st.rerun()
+        df_vista = df.copy()
+        if mes != "Todos":
+            df_vista = df_vista[df_vista["MES"].apply(lambda v: texto_normalizado(v) == mes)]
+        if alcance != "Todos":
+            df_vista = df_vista[df_vista["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == alcance]
+        if consulta.strip():
+            consulta_norm = texto_normalizado(consulta)
+            columnas_busqueda = ["LINEAS", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS", "SAP", "NOTAS"]
+            mascara_busqueda = df_vista[columnas_busqueda].apply(
+                lambda fila: any(consulta_norm in texto_normalizado(v) for v in fila), axis=1
+            )
+            df_vista = df_vista[mascara_busqueda]
+
+        df_vista = df_vista.map(texto_limpio)
+        df_vista["VALORIZACIÓN"] = df_vista["VALORIZACIÓN"].apply(
+            lambda v: "SI" if texto_normalizado(v) == "SI" else ("Retirado" if texto_normalizado(v) == "RETIRADO" else "Pendiente")
+        )
+        df_vista.insert(0, "SEÑAL", df_vista.apply(senal_visual, axis=1))
+        
+        encabezados = {
+            "SEÑAL": st.column_config.TextColumn("Señal", width=190, disabled=True, pinned=True),
+            "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
+            "IT2": st.column_config.TextColumn("IT2", width=55),
+            "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
+            "MES": st.column_config.TextColumn("Mes", width=80),
+            "LINEAS": st.column_config.TextColumn("Líneas", width=180),
+            "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=190),
+            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=180),
+            "SAP": st.column_config.TextColumn("SAP", width=85),
+            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width=120),
+            "NOTAS": st.column_config.TextColumn("Notas", width=170),
+            "ESTADO - ELABORACIÓN ": st.column_config.TextColumn("Estado de elaboración", width=190),
+            "RESPONSABLE": st.column_config.TextColumn("Responsable", width=135),
+            "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=280),
+            "VALORIZACIÓN": st.column_config.SelectboxColumn(
+                "Valorización", options=["Pendiente", "SI", "Retirado"], required=True, width=145
+            ),
+        }
+        
+        st.html("""
+            <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #102E4C; margin-bottom: 10px; display: inline-block;">
+                🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
+            </div>
+        """)
+        
+        boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
+
+        editado = st.data_editor(
+            df_vista,
+            column_config=encabezados,
+            hide_index=True,
+            use_container_width=True,
+            height=600,
+            disabled=["SEÑAL"],
+            key="editor_tabla_general",
+        )
+        if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
+            for indice, fila in editado.iterrows():
+                for columna in COLUMNAS_EXCEL:
+                    df.at[indice, columna] = fila[columna]
+                if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
+                    df.at[indice, "OBSERVACIÓN"] = ""
+            st.session_state.df_data = normalizar_base(df)
+            guardar_datos(st.session_state.df_data)
+            st.success("Cambios guardados correctamente.")
+            st.rerun()
+
+    vista_tabla_general()
 
 # AUXILIARES PARA AGRUPACIÓN DE TABLAS
 def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
@@ -796,23 +785,26 @@ def vista_revision_especialista(condicion, archivo, llave):
 
 with tabs[6]:
     st.subheader("Revisión especialista")
-    opcion_especialista = st.radio(
-        "Seleccionar tipo de vista:",
-        ["Pendientes de revisión", "Revisados por el especialista"],
-        horizontal=True,
-        key="radio_especialistas"
-    )
-    if opcion_especialista == "Pendientes de revisión":
-        vista_revision_especialista(
-            lambda valor: "PENDIENTE REVISION POR EL ESPECIALISTA" in texto_normalizado(valor),
-            "Pendientes_revision_especialista.xlsx", "PEND_REV_ESP"
+    @st.fragment
+    def vista_sub_especialista():
+        opcion_especialista = st.radio(
+            "Seleccionar tipo de vista:",
+            ["Pendientes de revisión", "Revisados por el especialista"],
+            horizontal=True,
+            key="radio_especialistas"
         )
-    else:
-        vista_revision_especialista(
-            lambda valor: ("REV. POR EL ESPECIALISTA" in texto_normalizado(valor) or "REVISION POR EL ESPECIALISTA" in texto_normalizado(valor))
-            and "PENDIENTE" not in texto_normalizado(valor),
-            "Revision_por_especialista.xlsx", "REV_POR_ESP"
-        )
+        if opcion_especialista == "Pendientes de revisión":
+            vista_revision_especialista(
+                lambda valor: "PENDIENTE REVISION POR EL ESPECIALISTA" in texto_normalizado(valor),
+                "Pendientes_revision_especialista.xlsx", "PEND_REV_ESP"
+            )
+        else:
+            vista_revision_especialista(
+                lambda valor: ("REV. POR EL ESPECIALISTA" in texto_normalizado(valor) or "REVISION POR EL ESPECIALISTA" in texto_normalizado(valor))
+                and "PENDIENTE" not in texto_normalizado(valor),
+                "Revision_por_especialista.xlsx", "REV_POR_ESP"
+            )
+    vista_sub_especialista()
 
 # 8. CORRECCIÓN PSAIM
 with tabs[7]:
@@ -885,13 +877,17 @@ if not df_t4.empty:
 
 with tabs[8]:
     st.subheader("Resumen por mes")
-    opcion_resumen = st.radio(
-        "Seleccionar tipo de vista:",
-        ["Métricas por mes", "Detalle pendientes por mes / observación"],
-        horizontal=True,
-        key="radio_resumen"
-    )
-    if opcion_resumen == "Métricas por mes":
-        mostrar_resumen(df_metricas_elaboracion, "Metricas_Elaboracion_Por_Mes.xlsx", es_metricas=True)
-    else:
-        mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx", es_metricas=False)
+    @st.fragment
+    def vista_sub_resumen():
+        opcion_resumen = st.radio(
+            "Seleccionar tipo de vista:",
+            ["Métricas por mes", "Detalle pendientes por mes / observación"],
+            horizontal=True,
+            key="radio_resumen"
+        )
+        if opcion_resumen == "Métricas por mes":
+            mostrar_resumen(df_metricas_elaboracion, "Metricas_Elaboracion_Por_Mes.xlsx", es_metricas=True)
+        else:
+            mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx", es_metricas=False)
+
+    vista_sub_resumen()
