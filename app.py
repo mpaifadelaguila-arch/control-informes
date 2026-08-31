@@ -317,82 +317,133 @@ def senal_visual(fila):
     return "⚪ Sin alerta"
 
 
+# ---------------------------------------------------------------------------
+# ESTILOS
+# ---------------------------------------------------------------------------
 st.markdown(
     """
 <style>
 header, footer {visibility: hidden;}
 .stAppDeployButton {display: none;}
-.stApp {background: #f4f7fb;}
-[data-testid="stAppViewBlockContainer"] {padding-top: 1.8rem; max-width: 100% !important; padding-left: 2rem; padding-right: 2rem;}
-
-.header-banner {background: linear-gradient(135deg,#0E2A47 0%,#1D4D7D 100%);border-left:6px solid #E7BE30;
-  border-radius:12px;padding:20px 28px;color:#fff;margin-bottom:1.2rem;box-shadow:0 8px 20px rgba(14,42,71,.12);}
-.header-banner h1 {font-size:1.5rem;margin:0;color:#fff;font-weight:700;}.header-banner p {margin:.25rem 0 0;color:#d9e6f3;}
-
-.section-heading {color:#173A5D;font-weight:800;margin:1rem 0 .6rem;font-size:1.05rem;letter-spacing:.1px;}
-
-.block-container-card {
-    background: #edf3f9;
-    border: 1px solid #d5e1ed;
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 12px;
-    height: 100%;
-}
-.block-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.72rem;
-    font-weight: 800;
-    color: #4a637d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 10px;
+.stApp {background: #eef2f7;}
+[data-testid="stAppViewBlockContainer"] {
+    padding-top: 1.6rem; max-width: 100% !important;
+    padding-left: 2.2rem; padding-right: 2.2rem;
 }
 
-.kpi-block-grid {
+/* ---------- HEADER ---------- */
+.header-banner {
+    background: linear-gradient(120deg,#0B2038 0%,#1E4E7E 60%,#2C6494 100%);
+    border-radius: 16px;
+    padding: 24px 30px;
+    color: #fff;
+    margin-bottom: 1.4rem;
+    box-shadow: 0 12px 28px rgba(11,32,56,.18);
+    position: relative;
+    overflow: hidden;
+}
+.header-banner::after {
+    content:"";
+    position:absolute; top:0; right:0; bottom:0; width:6px;
+    background: linear-gradient(180deg,#E7BE30,#C99A1E);
+}
+.header-banner h1 {
+    font-size: 1.55rem; margin:0; font-weight: 800; letter-spacing:.2px; color:#fff;
+}
+.header-banner p {
+    margin:.35rem 0 0; color:#c9dcee; font-size:.92rem; font-weight:500;
+}
+
+/* ---------- CONTENEDORES DE SECCIÓN ---------- */
+.section-container {
+    background:#ffffff;
+    border:1px solid #dbe5ef;
+    border-radius: 16px;
+    padding: 20px 22px 22px;
+    margin-bottom: 1.4rem;
+    box-shadow: 0 4px 14px rgba(15,42,70,.05);
+}
+.section-title {
+    display:flex; align-items:center; gap:9px;
+    font-size: 1.02rem; font-weight: 800; color:#122F4C;
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 1px solid #e7edf3;
+}
+.section-title .mat-ico {
+    font-size: 1.15rem; color:#1E4E7E;
+}
+
+/* ---------- FILA DE BLOQUES KPI (horizontal, 5 columnas) ---------- */
+.kpi-row {
     display: grid;
-    gap: 8px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
 }
-.grid-cols-1 { grid-template-columns: repeat(1, 1fr); }
-.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
-.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
-
-.kpi-card-sub {
-    background: #ffffff;
-    border: 1px solid #dbe5ef;
-    border-top: 3.5px solid var(--tone);
-    border-radius: 8px;
-    padding: 8px 12px;
-    min-height: 68px;
-    box-shadow: 0 2px 6px rgba(15,42,70,.04);
+@media (max-width: 1100px) {
+    .kpi-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-.kpi-label-sub {
-    font-size: 0.65rem;
-    font-weight: 750;
-    text-transform: uppercase;
-    color: #5d7086;
-    line-height: 1.1;
-}
-.kpi-icon-sub {
-    float: right;
-    color: var(--tone);
-    font-size: 0.95rem;
-    font-weight: 800;
-}
-.kpi-value-sub {
-    font-size: 1.45rem;
-    font-weight: 800;
-    line-height: 1.1;
-    color: #102e4c;
-    margin-top: 4px;
+@media (max-width: 700px) {
+    .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-.stTabs [data-baseweb="tab-list"] {gap:4px;background:#e2ebf4;border-radius:9px;padding:4px 5px;}
-.stTabs [data-baseweb="tab"] {border-radius:6px;font-size:.78rem;font-weight:650;padding:0 10px;color:#3d5269;}
-.stTabs [aria-selected="true"] {background:#0E2A47 !important;color:#fff !important;}
-div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radius:10px;}
+.kpi-block-card {
+    background: #f4f8fc;
+    border: 1px solid #e1e9f1;
+    border-radius: 14px;
+    padding: 12px 14px 14px;
+    min-width: 0;
+}
+.kpi-block-title {
+    display:flex; align-items:center; gap:6px;
+    font-size:.68rem; font-weight:800; text-transform:uppercase;
+    letter-spacing:.5px; color:#5d7086; margin-bottom: 10px;
+    white-space: nowrap;
+}
+.kpi-items { display:grid; gap:8px; }
+.kpi-item {
+    background:#ffffff;
+    border:1px solid #e6edf4;
+    border-left: 3.5px solid var(--tone);
+    border-radius: 0 9px 9px 0;
+    padding: 7px 11px;
+    min-width: 0;
+}
+.kpi-item-label {
+    font-size:.63rem; font-weight:750; text-transform:uppercase;
+    color:#5d7086; letter-spacing:.2px; white-space: nowrap;
+    overflow:hidden; text-overflow:ellipsis;
+}
+.kpi-item-value {
+    font-size:1.35rem; font-weight:800; color:#102e4c; line-height:1.15;
+}
+
+/* ---------- PESTAÑAS DE NAVEGACIÓN (distribuidas en fila completa) ---------- */
+.stTabs [data-baseweb="tab-list"] {
+    display:flex; width:100%;
+    gap:6px;
+    background:#eef3f9;
+    border-radius:11px;
+    padding:5px 6px;
+}
+.stTabs [data-baseweb="tab"] {
+    flex: 1 1 0;
+    justify-content:center;
+    border-radius:8px;
+    font-size:.8rem;
+    font-weight:650;
+    padding:8px 6px;
+    color:#3d5269;
+    background:#ffffff;
+    border:1px solid #dfe7ef;
+    text-align:center;
+}
+.stTabs [aria-selected="true"] {
+    background:#0E2A47 !important;
+    color:#fff !important;
+    border-color:#0E2A47 !important;
+}
+
+div[data-testid="stExpander"] {background:#fff;border-color:#cfdbe7;border-radius:12px;}
 
 div[id^="portal"] :has(button[aria-label="Column menu"]),
 .glideDataGrid-column-header-menu,
@@ -405,7 +456,7 @@ div[id^="portal"] :has(button[aria-label="Column menu"]),
 
 div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
     border: 1px solid #dbe5ef;
-    border-radius: 10px;
+    border-radius: 12px;
     background: #fff;
     margin-top: 10px !important;
 }
@@ -557,7 +608,7 @@ for _, fila in df_activos.iterrows():
     if clave in unicos:
         continue
     unicos.add(clave)
-    
+
     # Contabilidad por estado de elaboración para FINALIZADOS
     if "FINALIZADO" in estado_elab or "100%" in estado_elab:
         unicos_finalizados.add(clave)
@@ -587,11 +638,6 @@ for _, fila in df_activos.iterrows():
         detalle_pendientes.get((mes, etiqueta), 0) + 1
     )
 
-st.markdown(
-    "<div class='section-heading'>Panel de control de informes</div>",
-    unsafe_allow_html=True,
-)
-
 # REALIZAR Cálculo estricto del BLOQUE GENERAL basado exclusivamente en elaboración
 total_inf_unicos = len(unicos)
 tot_finalizados = len(unicos_finalizados)
@@ -604,94 +650,102 @@ val_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
 val_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
 val_psaim = sum(por_mes["psaim"].values())
 
-def render_kpi_card(titulo, valor, icono, color):
+
+# ---------------------------------------------------------------------------
+# RENDER DE KPIs — bloques distribuidos en una sola fila horizontal
+# ---------------------------------------------------------------------------
+def item_kpi(titulo, valor, color):
     return (
-        f"<div class='kpi-card-sub' style='--tone:{color}'>"
-        f"<span class='kpi-icon-sub'>{icono}</span>"
-        f"<div class='kpi-label-sub'>{titulo}</div>"
-        f"<div class='kpi-value-sub'>{valor}</div>"
+        f"<div class='kpi-item' style='--tone:{color}'>"
+        f"<div class='kpi-item-label'>{titulo}</div>"
+        f"<div class='kpi-item-value'>{valor}</div>"
         f"</div>"
     )
 
-col1, col2 = st.columns([1.1, 1.25])
 
-with col1:
-    st.markdown(
-        f"""
-        <div class="block-container-card">
-            <div class="block-header">📊 BLOQUE GENERAL</div>
-            <div class="kpi-block-grid grid-cols-3">
-                {render_kpi_card("INFORMES TOTALES", total_inf_unicos, "▤", "#173F67")}
-                {render_kpi_card("INFORMES FINALIZADOS", tot_finalizados, "✓", "#159A68")}
-                {render_kpi_card("INFORMES PENDIENTES", tot_pendientes_elaborar, "📋", "#E38921")}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+def bloque_kpi(titulo_bloque, icono_material, items):
+    filas = "".join(item_kpi(*i) for i in items)
+    return (
+        f"<div class='kpi-block-card'>"
+        f"<div class='kpi-block-title'>"
+        f"<span class='material-symbols-outlined mat-ico' style='font-size:14px;vertical-align:-2px;'>{icono_material}</span> "
+        f"{titulo_bloque}</div>"
+        f"<div class='kpi-items'>{filas}</div></div>"
     )
 
-with col2:
-    st.markdown(
-        f"""
-        <div class="block-container-card">
-            <div class="block-header">📁 BLOQUE GABINETE</div>
-            <div class="kpi-block-grid grid-cols-3">
-                {render_kpi_card("EN PROCESO", val_en_proceso, "↻", "#7B61C9")}
-                {render_kpi_card("PARA ASIGNAR", val_para_asignar, "📇", "#D54D9D")}
-                {render_kpi_card("CORRECCIÓN PSAIM", val_psaim, "✏️", "#C89716")}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
-col3, col4, col5 = st.columns([1.1, 0.7, 0.9])
-
-with col3:
-    st.markdown(
-        f"""
-        <div class="block-container-card">
-            <div class="block-header">👤 BLOQUE ESPECIALISTA</div>
-            <div class="kpi-block-grid grid-cols-2">
-                {render_kpi_card("REVISADOS", revision_especialista, "🗹", "#168EAE")}
-                {render_kpi_card("POR REVISAR", revision_especialista_pendiente, "📌", "#5564D8")}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with col4:
-    st.markdown(
-        f"""
-        <div class="block-container-card">
-            <div class="block-header">📝 BLOQUE CAMPO</div>
-            <div class="kpi-block-grid grid-cols-1">
-                {render_kpi_card("PEND. INSPECCIÓN", val_pend_inspeccion, "📋", "#D8534F")}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-with col5:
-    st.markdown(
-        f"""
-        <div class="block-container-card">
-            <div class="block-header">🏢 BLOQUE CLIENTE</div>
-            <div class="kpi-block-grid grid-cols-2">
-                {render_kpi_card("VALORIZADOS", tot_valorizados, "🏷️", "#159A68")}
-                {render_kpi_card("EN REVISIÓN", revision_fiabilidad, "⏳", "#159D99")}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
+st.markdown('<div class="section-container">', unsafe_allow_html=True)
 st.markdown(
-    "<div class='section-heading'>Sistema de control y resúmenes</div>",
+    """
+    <div class="section-title">
+        <span class="mat-ico">📊</span> Panel de control de informes
+    </div>
+    """,
     unsafe_allow_html=True,
 )
+
+bloques_html = "".join(
+    [
+        bloque_kpi(
+            "Bloque general",
+            "bar_chart",
+            [
+                ("Informes totales", total_inf_unicos, "#173F67"),
+                ("Finalizados", tot_finalizados, "#159A68"),
+                ("Pendientes", tot_pendientes_elaborar, "#E38921"),
+            ],
+        ),
+        bloque_kpi(
+            "Bloque gabinete",
+            "folder",
+            [
+                ("En proceso", val_en_proceso, "#7B61C9"),
+                ("Para asignar", val_para_asignar, "#D54D9D"),
+                ("Correc. PSAIM", val_psaim, "#C89716"),
+            ],
+        ),
+        bloque_kpi(
+            "Bloque especialista",
+            "person",
+            [
+                ("Revisados", revision_especialista, "#168EAE"),
+                ("Por revisar", revision_especialista_pendiente, "#5564D8"),
+            ],
+        ),
+        bloque_kpi(
+            "Bloque campo",
+            "assignment",
+            [
+                ("Pend. inspección", val_pend_inspeccion, "#D8534F"),
+            ],
+        ),
+        bloque_kpi(
+            "Bloque cliente",
+            "apartment",
+            [
+                ("Valorizados", tot_valorizados, "#159A68"),
+                ("En revisión", revision_fiabilidad, "#159D99"),
+            ],
+        ),
+    ]
+)
+
+st.markdown(f"<div class='kpi-row'>{bloques_html}</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)  # cierre section-container (panel)
+
+# ---------------------------------------------------------------------------
+# SISTEMA DE CONTROL Y RESÚMENES (segunda tarjeta contenedora)
+# ---------------------------------------------------------------------------
+st.markdown('<div class="section-container">', unsafe_allow_html=True)
+st.markdown(
+    """
+    <div class="section-title">
+        <span class="mat-ico">🗂️</span> Sistema de control y resúmenes
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
 solicitudes_activas = [
     solicitud
     for solicitud in cargar_solicitudes()
@@ -831,13 +885,13 @@ with tabs[1]:
                 width=145,
             ),
         }
-        
+
         st.html("""
         <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #102E4C; margin-bottom: 10px; display: inline-block;">
             🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
         </div>
         """)
-        
+
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
         editado = st.data_editor(
@@ -882,9 +936,9 @@ def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
     if df_resumen.empty:
         st.info("No hay registros para mostrar.", icon=":material/info:")
         return
-    
+
     df_mostrar = df_resumen.copy()
-    
+
     if es_metricas:
         tot_informes = df_mostrar["TOTAL INFORMES"].sum()
         tot_elaborados = df_mostrar["INFORMES ELABORADOS"].sum()
@@ -1065,7 +1119,7 @@ def vista_revision_especialista(condicion, archivo, llave):
 
 with tabs[6]:
     st.subheader("Revisión especialista")
-    
+
     @st.fragment
     def vista_sub_especialista():
         opcion_especialista = st.radio(
@@ -1074,7 +1128,7 @@ with tabs[6]:
             horizontal=True,
             key="radio_especialistas"
         )
-        
+
         if opcion_especialista == "Pendientes de revisión":
             vista_revision_especialista(
                 lambda valor: "PENDIENTE REVISION POR EL ESPECIALISTA"
@@ -1092,7 +1146,7 @@ with tabs[6]:
                 "Revision_por_especialista.xlsx",
                 "REV_POR_ESP",
             )
-            
+
     vista_sub_especialista()
 
 with tabs[7]:
@@ -1159,7 +1213,7 @@ for mes in meses_unicos:
     df_mes = df_activos[df_activos["MES"].apply(lambda v: texto_limpio(v) == mes)]
     df_mes_unicos = df_mes.drop_duplicates(subset=["CLAVE_GLOBAL"])
     total_informes = len(df_mes_unicos)
-    
+
     elaborados = len(
         df_mes_unicos[
             df_mes_unicos["ESTADO - ELABORACIÓN "].apply(
@@ -1169,7 +1223,7 @@ for mes in meses_unicos:
     )
     pendientes_elaborar = total_informes - elaborados
     porcentaje = round((elaborados / total_informes * 100), 1) if total_informes > 0 else 0.0
-    
+
     filas_elaboracion.append(
         {
             "MES": mes,
@@ -1206,7 +1260,7 @@ if not df_t4.empty:
 
 with tabs[8]:
     st.subheader("Resumen por mes")
-    
+
     @st.fragment
     def vista_sub_resumen():
         opcion_resumen = st.radio(
@@ -1215,10 +1269,12 @@ with tabs[8]:
             horizontal=True,
             key="radio_resumen"
         )
-        
+
         if opcion_resumen == "Métricas por mes":
             mostrar_resumen(df_metricas_elaboracion, "Metricas_Elaboracion_Por_Mes.xlsx", es_metricas=True)
         else:
             mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx", es_metricas=False)
 
     vista_sub_resumen()
+
+st.markdown("</div>", unsafe_allow_html=True)  # cierre section-container (sistema de control)
