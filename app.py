@@ -648,6 +648,30 @@ with tabs[1]:
             </div>
         """)
         
+        # Módulo de Valorización Masiva en Lote
+        with st.expander("⚡ Valorización masiva por Código de Informe", expanded=False):
+            col_cod, col_est, col_btn = st.columns([3, 2, 1], vertical_alignment="bottom")
+            
+            codigos_disponibles = sorted([
+                c for c in df["CODIGO DE INFORME"].unique() 
+                if c and str(c) != "-" and not es_codigo_provisional(c)
+            ])
+            
+            codigo_sel = col_cod.selectbox("Seleccionar Código de Informe", codigos_disponibles, key="val_masiva_cod")
+            estado_sel = col_est.selectbox("Estado a aplicar", ["SI", "Pendiente"], key="val_masiva_est")
+            
+            if col_btn.button("Aplicar a todo", icon=":material/done_all:", type="primary"):
+                mascara_objetivo = (df["CODIGO DE INFORME"] == codigo_sel) & ~mascara_retirado
+                
+                df.loc[mascara_objetivo, "VALORIZACIÓN"] = estado_sel
+                if estado_sel == "SI":
+                    df.loc[mascara_objetivo, "OBSERVACIÓN"] = ""
+                
+                st.session_state.df_data = normalizar_base(df)
+                guardar_datos(st.session_state.df_data)
+                st.success(f"Se actualizó la valorización a '{estado_sel}' para todas las líneas activas de {codigo_sel}.")
+                st.rerun()
+
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
         editado = st.data_editor(
