@@ -406,87 +406,105 @@ if df.empty:
     st.info("Carga un archivo Excel desde Gestión de datos para iniciar el control.", icon=":material/info:")
     st.stop()
 
-# --- CÁLCULOS ESTRICTOS DE AGRUPACIÓN ---
-mascara_retirado = df["OBSERVACIÓN"].apply(lambda v: "RETIRADO" in texto_normalizado(v)) | \
-                   df["NOTAS"].apply(lambda v: "RETIRADO" in texto_normalizado(v)) | \
-                   df["VALORIZACIÓN"].apply(lambda v: texto_normalizado(v) == "RETIRADO")
-df_activos = df[~mascara_retirado].copy()
+# --- OPTIMIZACIÓN CON CACHÉ DE PROCESAMIENTO DE DATOS ---
+@st.cache_data(show_spinner=False)
+def procesar_agrupaciones_y_kpis(df_input):
+    mascara_retirado = df_input["OBSERVACIÓN"].apply(lambda v: "RETIRADO" in texto_normalizado(v)) | \
+                       df_input["NOTAS"].apply(lambda v: "RETIRADO" in texto_normalizado(v)) | \
+                       df_input["VALORIZACIÓN"].apply(lambda v: texto_normalizado(v) == "RETIRADO")
+    df_activos = df_input[~mascara_retirado].copy()
 
-df_activos["CLAVE_GLOBAL"] = df_activos.apply(
-    lambda fila: f"{texto_limpio(fila['MES'])}|SIN-CODIGO-GRUPO|{texto_normalizado(fila['GRUPO DE TUBERÍAS'])}"
-    if es_codigo_provisional(fila["CODIGO DE INFORME"])
-    else f"{texto_limpio(fila['MES'])}|{texto_limpio(fila['CODIGO DE INFORME'])}",
-    axis=1,
-)
+    df_activos["CLAVE_GLOBAL"] = df_activos.apply(
+        lambda fila: f"{texto_limpio(fila['MES'])}|SIN-CODIGO-GRUPO|{texto_normalizado(fila['GRUPO DE TUBERÍAS'])}"
+        if es_codigo_provisional(fila["CODIGO DE INFORME"])
+        else f"{texto_limpio(fila['MES'])}|{texto_limpio(fila['CODIGO DE INFORME'])}",
+        axis=1,
+    )
 
-mask_psaim = df_activos["OBSERVACIÓN"].apply(es_correccion_psaim)
-mask_pend_inspeccion = df_activos.apply(es_pendiente_inspeccion, axis=1)
-mask_pend_elaboracion = df_activos["ESTADO - ELABORACIÓN "].apply(texto_normalizado).str.contains("PENDIENTE ELABORACION")
+    mask_psaim = df_activos["OBSERVACIÓN"].apply(es_correccion_psaim)
+    mask_pend_inspeccion = df_activos.apply(es_pendiente_inspeccion, axis=1)
+    mask_pend_elaboracion = df_activos["ESTADO - ELABORACIÓN "].apply(texto_normalizado).str.contains("PENDIENTE ELABORACION")
 
-df_psaim = df_activos[mask_psaim]
-df_pend_inspeccion = df_activos[mask_pend_inspeccion]
-df_pend_asignacion = df_activos[mask_pend_elaboracion]
-df_en_proceso = df_activos[df_activos["ESTADO - ELABORACIÓN "].apply(texto_normalizado).str.contains("EN PROCESO") & ~mask_pend_inspeccion]
+    df_psaim = df_activos[mask_psaim]
+    df_pend_inspeccion = df_activos[mask_pend_inspeccion]
+    df_pend_asignacion = df_activos[mask_pend_elaboracion]
+    df_en_proceso = df_activos[df_activos["ESTADO - ELABORACIÓN "].apply(texto_normalizado).str.contains("EN PROCESO") & ~mask_pend_inspeccion]
 
-unicos, psaim_unicos = set(), set()
-unicos_finalizados = set()
+    unicos, psaim_unicos = set(), set()
+    unicos_finalizados = set()
 
-por_mes = {"valorizados": {}, "pendientes": {}, "ademinsac": {}, "fiabilidad": {}, "psaim": {}}
-detalle_pendientes = {}
-revision_fiabilidad = revision_especialista_pendiente = revision_especialista = 0
+    por_mes = {"valorizados": {}, "pendientes": {}, "ademinsac": {}, "fiabilidad": {}, "psaim": {}}
+    detalle_pendientes = {}
+    revision_fiabilidad = revision_especialista_pendiente = revision_especialista = 0
 
-for _, fila in df_activos.iterrows():
-    mes = texto_limpio(fila["MES"])
-    codigo = texto_limpio(fila["CODIGO DE INFORME"])
-    grupo = texto_limpio(fila["GRUPO DE TUBERÍAS"])
-    observacion = texto_limpio(fila["OBSERVACIÓN"])
-    estado_elab = texto_normalizado(fila["ESTADO - ELABORACIÓN "])
-    clave = fila["CLAVE_GLOBAL"]
-    if not mes or not grupo:
-        continue
-    if not es_codigo_provisional(codigo) and es_correccion_psaim(observacion):
-        clave_psaim = f"{mes}|{codigo}"
-        if clave_psaim not in psaim_unicos:
-            psaim_unicos.add(clave_psaim)
-            por_mes["psaim"][mes] = por_mes["psaim"].get(mes, 0) + 1
-    if clave in unicos:
-        continue
-    unicos.add(clave)
-    
-    if "FINALIZADO" in estado_elab or "100%" in estado_elab:
-        unicos_finalizados.add(clave)
+    for _, fila in df_activos.iterrows():
+        mes = texto_limpio(fila["MES"])
+        codigo = texto_limpio(fila["CODIGO DE INFORME"])
+        grupo = texto_limpio(fila["GRUPO DE TUBERÍAS"])
+        observacion = texto_limpio(fila["OBSERVACIÓN"])
+        estado_elab = texto_normalizado(fila["ESTADO - ELABORACIÓN "])
+        clave = fila["CLAVE_GLOBAL"]
+        if not mes or not grupo:
+            continue
+        if not es_codigo_provisional(codigo) and es_correccion_psaim(observacion):
+            clave_psaim = f"{mes}|{codigo}"
+            if clave_psaim not in psaim_unicos:
+                psaim_unicos.add(clave_psaim)
+                por_mes["psaim"][mes] = por_mes["psaim"].get(mes, 0) + 1
+        if clave in unicos:
+            continue
+        unicos.add(clave)
+        
+        if "FINALIZADO" in estado_elab or "100%" in estado_elab:
+            unicos_finalizados.add(clave)
 
-    for clave_mes in ["valorizados", "pendientes", "ademinsac", "fiabilidad"]:
-        por_mes[clave_mes].setdefault(mes, 0)
-    if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
-        por_mes["valorizados"][mes] += 1
-        continue
-    por_mes["pendientes"][mes] += 1
-    observacion_norm = texto_normalizado(observacion)
-    if es_revision_fiabilidad(observacion):
-        revision_fiabilidad += 1
-    if "PENDIENTE REVISION POR EL ESPECIALISTA" in observacion_norm:
-        revision_especialista_pendiente += 1
-    if ("REV. POR EL ESPECIALISTA" in observacion_norm or "REVISION POR EL ESPECIALISTA" in observacion_norm) and "PENDIENTE" not in observacion_norm:
-        revision_especialista += 1
-    if "ADEMINSAC" in observacion_norm:
-        por_mes["ademinsac"][mes] += 1
-    else:
-        por_mes["fiabilidad"][mes] += 1
-    etiqueta = "(En blanco)" if not observacion else observacion
-    detalle_pendientes[(mes, etiqueta)] = detalle_pendientes.get((mes, etiqueta), 0) + 1
+        for clave_mes in ["valorizados", "pendientes", "ademinsac", "fiabilidad"]:
+            por_mes[clave_mes].setdefault(mes, 0)
+        if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
+            por_mes["valorizados"][mes] += 1
+            continue
+        por_mes["pendientes"][mes] += 1
+        observacion_norm = texto_normalizado(observacion)
+        if es_revision_fiabilidad(observacion):
+            revision_fiabilidad += 1
+        if "PENDIENTE REVISION POR EL ESPECIALISTA" in observacion_norm:
+            revision_especialista_pendiente += 1
+        if ("REV. POR EL ESPECIALISTA" in observacion_norm or "REVISION POR EL ESPECIALISTA" in observacion_norm) and "PENDIENTE" not in observacion_norm:
+            revision_especialista += 1
+        if "ADEMINSAC" in observacion_norm:
+            por_mes["ademinsac"][mes] += 1
+        else:
+            por_mes["fiabilidad"][mes] += 1
+        etiqueta = "(En blanco)" if not observacion else observacion
+        detalle_pendientes[(mes, etiqueta)] = detalle_pendientes.get((mes, etiqueta), 0) + 1
 
-# KPIs del Bloque General según Elaboración
-total_inf_unicos = len(unicos)
-tot_finalizados = len(unicos_finalizados)
-tot_pendientes_elaborar = max(0, total_inf_unicos - tot_finalizados)
+    total_inf_unicos = len(unicos)
+    tot_finalizados = len(unicos_finalizados)
+    tot_pendientes_elaborar = max(0, total_inf_unicos - tot_finalizados)
 
-# KPIs Secundarios
-tot_valorizados = sum(por_mes["valorizados"].values())
-val_para_asignar = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
-val_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
-val_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
-val_psaim = sum(por_mes["psaim"].values())
+    tot_valorizados = sum(por_mes["valorizados"].values())
+    val_para_asignar = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
+    val_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
+    val_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
+    val_psaim = sum(por_mes["psaim"].values())
+
+    kpis = {
+        "total_inf_unicos": total_inf_unicos,
+        "tot_finalizados": tot_finalizados,
+        "tot_pendientes_elaborar": tot_pendientes_elaborar,
+        "tot_valorizados": tot_valorizados,
+        "val_para_asignar": val_para_asignar,
+        "val_en_proceso": val_en_proceso,
+        "val_pend_inspeccion": val_pend_inspeccion,
+        "val_psaim": val_psaim,
+        "revision_especialista": revision_especialista,
+        "revision_especialista_pendiente": revision_especialista_pendiente,
+        "revision_fiabilidad": revision_fiabilidad
+    }
+
+    return mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes
+
+mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes = procesar_agrupaciones_y_kpis(df)
 
 # --- RENDERIZADO DEL PANEL DE CONTROL ---
 def item_kpi(titulo, valor, color):
@@ -510,25 +528,25 @@ panel_control.markdown("<div class='section-title'>📊 Panel de control de info
 
 bloques_html = "".join([
     bloque_kpi("Bloque general", "📊", [
-        ("Informes totales", total_inf_unicos, "#173F67"),
-        ("Informes finalizados", tot_finalizados, "#159A68"),
-        ("Pendientes elaborar", tot_pendientes_elaborar, "#E38921"),
+        ("Informes totales", kpis["total_inf_unicos"], "#173F67"),
+        ("Informes finalizados", kpis["tot_finalizados"], "#159A68"),
+        ("Pendientes elaborar", kpis["tot_pendientes_elaborar"], "#E38921"),
     ]),
     bloque_kpi("Bloque gabinete", "📁", [
-        ("En proceso", val_en_proceso, "#7B61C9"),
-        ("Pend. asignar", val_para_asignar, "#D54D9D"),
-        ("Correc. PSAIM", val_psaim, "#C89716"),
+        ("En proceso", kpis["val_en_proceso"], "#7B61C9"),
+        ("Pend. asignar", kpis["val_para_asignar"], "#D54D9D"),
+        ("Correc. PSAIM", kpis["val_psaim"], "#C89716"),
     ]),
     bloque_kpi("Bloque especialista", "👤", [
-        ("Revisados", revision_especialista, "#168EAE"),
-        ("Por revisar", revision_especialista_pendiente, "#5564D8"),
+        ("Revisados", kpis["revision_especialista"], "#168EAE"),
+        ("Por revisar", kpis["revision_especialista_pendiente"], "#5564D8"),
     ]),
     bloque_kpi("Bloque campo", "📝", [
-        ("Pend. inspección", val_pend_inspeccion, "#D8534F"),
+        ("Pend. inspección", kpis["val_pend_inspeccion"], "#D8534F"),
     ]),
     bloque_kpi("Bloque cliente", "🏢", [
-        ("Valorizados", tot_valorizados, "#159A68"),
-        ("En revisión", revision_fiabilidad, "#159D99"),
+        ("Valorizados", kpis["tot_valorizados"], "#159A68"),
+        ("En revisión", kpis["revision_fiabilidad"], "#159D99"),
     ]),
 ])
 
@@ -552,7 +570,7 @@ tabs = sistema_control.tabs([
     "📊 Resumen por mes",
 ])
 
-# 1. ADMIN (Aislado con Fragmento)
+# 1. ADMIN
 with tabs[0]:
     @st.fragment
     def vista_admin():
@@ -594,7 +612,7 @@ with tabs[0]:
                     st.rerun()
     vista_admin()
 
-# 2. TABLA GENERAL (Aislado con Fragmento)
+# 2. TABLA GENERAL
 with tabs[1]:
     @st.fragment
     def vista_tabla_general():
@@ -652,7 +670,6 @@ with tabs[1]:
             </div>
         """)
         
-        # Módulo de Valorización Masiva en Lote
         with st.expander("⚡ Valorización masiva por Código de Informe", expanded=False):
             col_cod, col_est, col_btn = st.columns([3, 2, 1], vertical_alignment="bottom")
             
@@ -755,7 +772,7 @@ with tabs[2]:
         "Pendientes_asignar.xlsx", "PEND_ASIGNAR"
     )
 
-# 4. EN PROCESO (Aislado con Fragmento)
+# 4. EN PROCESO
 with tabs[3]:
     @st.fragment
     def vista_en_proceso():
@@ -796,7 +813,7 @@ with tabs[5]:
         "Revision_fiabilidad.xlsx", "REV_FIABILIDAD"
     )
 
-# 7. REVISIÓN ESPECIALISTA (Aislado con Fragmento)
+# 7. REVISIÓN ESPECIALISTA
 def vista_revision_especialista(condicion, archivo, llave):
     df_revision = df_activos[df_activos["OBSERVACIÓN"].apply(condicion)]
     tabla_revision = tabla_agrupada(
@@ -841,7 +858,7 @@ with tabs[6]:
             )
     vista_sub_especialista()
 
-# 8. CORRECCIÓN PSAIM (Aislado con Fragmento)
+# 8. CORRECCIÓN PSAIM
 with tabs[7]:
     @st.fragment
     def vista_correc_psaim():
@@ -870,48 +887,54 @@ with tabs[7]:
     vista_correc_psaim()
 
 # 9. RESUMEN POR MES
-filas_elaboracion = []
-meses_unicos = sorted(
-    set(df_activos["MES"].apply(texto_limpio)),
-    key=lambda m: ORDEN_MESES.index(m.upper()) if m.upper() in ORDEN_MESES else 99,
-)
-
-for mes in meses_unicos:
-    if not mes:
-        continue
-    df_mes = df_activos[df_activos["MES"].apply(lambda v: texto_limpio(v) == mes)]
-    df_mes_unicos = df_mes.drop_duplicates(subset=["CLAVE_GLOBAL"])
-    total_informes = len(df_mes_unicos)
-    
-    elaborados = len(
-        df_mes_unicos[
-            df_mes_unicos["ESTADO - ELABORACIÓN "].apply(
-                lambda v: "FINALIZADO" in texto_normalizado(v) or "100%" in texto_normalizado(v)
-            )
-        ]
+@st.cache_data(show_spinner=False)
+def generar_resumenes_mes(df_activos_input, detalle_pendientes_input):
+    filas_elaboracion = []
+    meses_unicos = sorted(
+        set(df_activos_input["MES"].apply(texto_limpio)),
+        key=lambda m: ORDEN_MESES.index(m.upper()) if m.upper() in ORDEN_MESES else 99,
     )
-    pendientes_elaborar = total_informes - elaborados
-    porcentaje = round((elaborados / total_informes * 100), 1) if total_informes > 0 else 0.0
-    
-    filas_elaboracion.append({
-        "MES": mes,
-        "TOTAL INFORMES": total_informes,
-        "INFORMES ELABORADOS": elaborados,
-        "PENDIENTES POR ELABORAR": pendientes_elaborar,
-        "% AVANCE ELABORACIÓN": porcentaje,
-    })
 
-df_metricas_elaboracion = pd.DataFrame(filas_elaboracion)
+    for mes in meses_unicos:
+        if not mes:
+            continue
+        df_mes = df_activos_input[df_activos_input["MES"].apply(lambda v: texto_limpio(v) == mes)]
+        df_mes_unicos = df_mes.drop_duplicates(subset=["CLAVE_GLOBAL"])
+        total_informes = len(df_mes_unicos)
+        
+        elaborados = len(
+            df_mes_unicos[
+                df_mes_unicos["ESTADO - ELABORACIÓN "].apply(
+                    lambda v: "FINALIZADO" in texto_normalizado(v) or "100%" in texto_normalizado(v)
+                )
+            ]
+        )
+        pendientes_elaborar = total_informes - elaborados
+        porcentaje = round((elaborados / total_informes * 100), 1) if total_informes > 0 else 0.0
+        
+        filas_elaboracion.append({
+            "MES": mes,
+            "TOTAL INFORMES": total_informes,
+            "INFORMES ELABORADOS": elaborados,
+            "PENDIENTES POR ELABORAR": pendientes_elaborar,
+            "% AVANCE ELABORACIÓN": porcentaje,
+        })
 
-df_t4 = pd.DataFrame([
-    {"MES": mes, "OBSERVACIÓN PENDIENTE": observacion, "CANTIDAD": cantidad}
-    for (mes, observacion), cantidad in detalle_pendientes.items()
-])
-if not df_t4.empty:
-    df_t4["ORDEN"] = df_t4["MES"].apply(
-        lambda valor: ORDEN_MESES.index(texto_normalizado(valor)) if texto_normalizado(valor) in ORDEN_MESES else 99
-    )
-    df_t4 = df_t4.sort_values(["ORDEN", "CANTIDAD"], ascending=[True, False]).drop(columns="ORDEN")
+    df_metricas_elaboracion = pd.DataFrame(filas_elaboracion)
+
+    df_t4 = pd.DataFrame([
+        {"MES": mes, "OBSERVACIÓN PENDIENTE": observacion, "CANTIDAD": cantidad}
+        for (mes, observacion), cantidad in detalle_pendientes_input.items()
+    ])
+    if not df_t4.empty:
+        df_t4["ORDEN"] = df_t4["MES"].apply(
+            lambda valor: ORDEN_MESES.index(texto_normalizado(valor)) if texto_normalizado(valor) in ORDEN_MESES else 99
+        )
+        df_t4 = df_t4.sort_values(["ORDEN", "CANTIDAD"], ascending=[True, False]).drop(columns="ORDEN")
+
+    return df_metricas_elaboracion, df_t4
+
+df_metricas_elaboracion, df_t4 = generar_resumenes_mes(df_activos, detalle_pendientes)
 
 with tabs[8]:
     st.subheader("Resumen por mes")
