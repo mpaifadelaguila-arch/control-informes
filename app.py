@@ -552,45 +552,49 @@ tabs = sistema_control.tabs([
     "📊 Resumen por mes",
 ])
 
-# 1. ADMIN
+# 1. ADMIN (Aislado con Fragmento)
 with tabs[0]:
-    st.subheader("Bandeja de aprobación")
-    if not solicitudes_activas:
-        st.success("No hay solicitudes pendientes.", icon=":material/check_circle:")
-    for solicitud in solicitudes_activas:
-        with st.container(border=True):
-            informacion, aprobar, rechazar = st.columns([5, 1, 1], vertical_alignment="center")
-            informacion.write(f"**{solicitud['tipo']}**  \nCódigo: `{solicitud['codigo']}` | Grupo: `{solicitud['grupo']}` | Solicitante: {solicitud['solicitante']}")
-            if aprobar.button("Aprobar", key=f"aprobar_{solicitud['id']}", icon=":material/check:"):
-                mascara_base = (df["CODIGO DE INFORME"] == solicitud["codigo"]) & (df["GRUPO DE TUBERÍAS"] == solicitud["grupo"])
-                
-                if solicitud["tipo"] == "INFORME COMPLETADO (GABINETE)":
-                    mascara_no_retirado = mascara_base & ~mascara_retirado
-                    df.loc[mascara_no_retirado, "ESTADO - ELABORACIÓN "] = "Finalizado"
-                    df.loc[mascara_no_retirado, "OBSERVACIÓN"] = "Pendiente revisión por el especialista - Ademinsac"
-                elif solicitud["tipo"] == "CORRECCIÓN PSAIM":
-                    df.loc[mascara_base, "OBSERVACIÓN"] = "PSAIM CORREGIDO"
-                    df.loc[mascara_base, "ESTADO - ELABORACIÓN "] = "En proceso"
-                elif solicitud["tipo"] == "REVISIÓN ESPECIALISTA":
-                    df.loc[mascara_base, "OBSERVACIÓN"] = "INFORME REVISADO POR ESPECIALISTA"
-                
-                solicitudes = cargar_solicitudes()
-                for item in solicitudes:
-                    if item["id"] == solicitud["id"]:
-                        item["estado"] = "APROBADO"
-                guardar_solicitudes(solicitudes)
-                st.session_state.df_data = normalizar_base(df)
-                guardar_datos(st.session_state.df_data)
-                st.rerun()
-            if rechazar.button("Rechazar", key=f"rechazar_{solicitud['id']}", icon=":material/close:"):
-                solicitudes = cargar_solicitudes()
-                for item in solicitudes:
-                    if item["id"] == solicitud["id"]:
-                        item["estado"] = "RECHAZADO"
-                guardar_solicitudes(solicitudes)
-                st.rerun()
+    @st.fragment
+    def vista_admin():
+        st.subheader("Bandeja de aprobación")
+        sols = [s for s in cargar_solicitudes() if s["estado"] == "PENDIENTE"]
+        if not sols:
+            st.success("No hay solicitudes pendientes.", icon=":material/check_circle:")
+        for solicitud in sols:
+            with st.container(border=True):
+                informacion, aprobar, rechazar = st.columns([5, 1, 1], vertical_alignment="center")
+                informacion.write(f"**{solicitud['tipo']}**  \nCódigo: `{solicitud['codigo']}` | Grupo: `{solicitud['grupo']}` | Solicitante: {solicitud['solicitante']}")
+                if aprobar.button("Aprobar", key=f"aprobar_{solicitud['id']}", icon=":material/check:"):
+                    mascara_base = (df["CODIGO DE INFORME"] == solicitud["codigo"]) & (df["GRUPO DE TUBERÍAS"] == solicitud["grupo"])
+                    
+                    if solicitud["tipo"] == "INFORME COMPLETADO (GABINETE)":
+                        mascara_no_retirado = mascara_base & ~mascara_retirado
+                        df.loc[mascara_no_retirado, "ESTADO - ELABORACIÓN "] = "Finalizado"
+                        df.loc[mascara_no_retirado, "OBSERVACIÓN"] = "Pendiente revisión por el especialista - Ademinsac"
+                    elif solicitud["tipo"] == "CORRECCIÓN PSAIM":
+                        df.loc[mascara_base, "OBSERVACIÓN"] = "PSAIM CORREGIDO"
+                        df.loc[mascara_base, "ESTADO - ELABORACIÓN "] = "En proceso"
+                    elif solicitud["tipo"] == "REVISIÓN ESPECIALISTA":
+                        df.loc[mascara_base, "OBSERVACIÓN"] = "INFORME REVISADO POR ESPECIALISTA"
+                    
+                    solicitudes = cargar_solicitudes()
+                    for item in solicitudes:
+                        if item["id"] == solicitud["id"]:
+                            item["estado"] = "APROBADO"
+                    guardar_solicitudes(solicitudes)
+                    st.session_state.df_data = normalizar_base(df)
+                    guardar_datos(st.session_state.df_data)
+                    st.rerun()
+                if rechazar.button("Rechazar", key=f"rechazar_{solicitud['id']}", icon=":material/close:"):
+                    solicitudes = cargar_solicitudes()
+                    for item in solicitudes:
+                        if item["id"] == solicitud["id"]:
+                            item["estado"] = "RECHAZADO"
+                    guardar_solicitudes(solicitudes)
+                    st.rerun()
+    vista_admin()
 
-# 2. TABLA GENERAL
+# 2. TABLA GENERAL (Aislado con Fragmento)
 with tabs[1]:
     @st.fragment
     def vista_tabla_general():
@@ -751,26 +755,29 @@ with tabs[2]:
         "Pendientes_asignar.xlsx", "PEND_ASIGNAR"
     )
 
-# 4. EN PROCESO
+# 4. EN PROCESO (Aislado con Fragmento)
 with tabs[3]:
-    tabla_proceso = tabla_agrupada(
-        df_en_proceso,
-        ["MES", "ESTADO - ELABORACIÓN ", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"],
-        "En_proceso.xlsx", "EN_PROCESO"
-    )
-    if not tabla_proceso.empty:
-        responsables = sorted(set(PERSONAL_LISTA_BASE + [texto_limpio(valor) for valor in df["RESPONSABLE"] if texto_limpio(valor)]))
-        codigo, inspector, enviar = st.columns([2, 2, 1], vertical_alignment="bottom")
-        codigo_seleccionado = codigo.selectbox("Código", tabla_proceso["CODIGO DE INFORME"].unique(), key="proceso_codigo")
-        inspector_seleccionado = inspector.selectbox("Inspector", responsables, key="proceso_inspector")
-        if enviar.button("Enviar al 100%", icon=":material/send:"):
-            grupo = tabla_proceso.loc[tabla_proceso["CODIGO DE INFORME"] == codigo_seleccionado, "GRUPO DE TUBERÍAS"].iloc[0]
-            correcto, mensaje = registrar_solicitud("INFORME COMPLETADO (GABINETE)", codigo_seleccionado, grupo, inspector_seleccionado)
-            if correcto:
-                st.success(mensaje)
-                st.rerun()
-            else:
-                st.warning(mensaje)
+    @st.fragment
+    def vista_en_proceso():
+        tabla_proceso = tabla_agrupada(
+            df_en_proceso,
+            ["MES", "ESTADO - ELABORACIÓN ", "RESPONSABLE", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME"],
+            "En_proceso.xlsx", "EN_PROCESO"
+        )
+        if not tabla_proceso.empty:
+            responsables = sorted(set(PERSONAL_LISTA_BASE + [texto_limpio(valor) for valor in df["RESPONSABLE"] if texto_limpio(valor)]))
+            codigo, inspector, enviar = st.columns([2, 2, 1], vertical_alignment="bottom")
+            codigo_seleccionado = codigo.selectbox("Código", tabla_proceso["CODIGO DE INFORME"].unique(), key="proceso_codigo")
+            inspector_seleccionado = inspector.selectbox("Inspector", responsables, key="proceso_inspector")
+            if enviar.button("Enviar al 100%", icon=":material/send:"):
+                grupo = tabla_proceso.loc[tabla_proceso["CODIGO DE INFORME"] == codigo_seleccionado, "GRUPO DE TUBERÍAS"].iloc[0]
+                correcto, mensaje = registrar_solicitud("INFORME COMPLETADO (GABINETE)", codigo_seleccionado, grupo, inspector_seleccionado)
+                if correcto:
+                    st.success(mensaje)
+                    st.rerun()
+                else:
+                    st.warning(mensaje)
+    vista_en_proceso()
 
 # 5. PENDIENTE INSPECCIÓN
 with tabs[4]:
@@ -789,7 +796,7 @@ with tabs[5]:
         "Revision_fiabilidad.xlsx", "REV_FIABILIDAD"
     )
 
-# 7. REVISIÓN ESPECIALISTA
+# 7. REVISIÓN ESPECIALISTA (Aislado con Fragmento)
 def vista_revision_especialista(condicion, archivo, llave):
     df_revision = df_activos[df_activos["OBSERVACIÓN"].apply(condicion)]
     tabla_revision = tabla_agrupada(
@@ -834,30 +841,33 @@ with tabs[6]:
             )
     vista_sub_especialista()
 
-# 8. CORRECCIÓN PSAIM
+# 8. CORRECCIÓN PSAIM (Aislado con Fragmento)
 with tabs[7]:
-    df_psaim_lineas = df_psaim[df_psaim["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == "LINEAS"].copy()
-    columnas_psaim = [
-        "MES", "ESTADO - ELABORACIÓN ", "RESPONSABLE", "ITEM POR MES", "IT2",
-        "LINEAS", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "NOTAS", "OBSERVACIÓN"
-    ]
-    tabla_psaim = tabla_agrupada(
-        df_psaim_lineas,
-        columnas_psaim[:-3] + ["CODIGO DE INFORME", "NOTAS", "OBSERVACIÓN"],
-        "Correccion_PSAIM.xlsx", "CORRECCION_PSAIM"
-    )
-    if not tabla_psaim.empty:
-        codigo, revisor, enviar = st.columns([2, 2, 1], vertical_alignment="bottom")
-        codigo_seleccionado = codigo.selectbox("Código", tabla_psaim["CODIGO DE INFORME"].unique(), key="psaim_codigo")
-        revisor_seleccionado = revisor.selectbox("Revisor PSAIM", REVISORES_PSAIM_LISTA, key="psaim_revisor")
-        if enviar.button("PSAIM corregido", icon=":material/check_circle:"):
-            grupo = tabla_psaim.loc[tabla_psaim["CODIGO DE INFORME"] == codigo_seleccionado, "GRUPO DE TUBERÍAS"].iloc[0]
-            correcto, mensaje = registrar_solicitud("CORRECCIÓN PSAIM", codigo_seleccionado, grupo, revisor_seleccionado)
-            if correcto:
-                st.success(mensaje)
-                st.rerun()
-            else:
-                st.warning(mensaje)
+    @st.fragment
+    def vista_correc_psaim():
+        df_psaim_lineas = df_psaim[df_psaim["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == "LINEAS"].copy()
+        columnas_psaim = [
+            "MES", "ESTADO - ELABORACIÓN ", "RESPONSABLE", "ITEM POR MES", "IT2",
+            "LINEAS", "GRUPO DE TUBERÍAS", "CODIGO DE INFORME", "NOTAS", "OBSERVACIÓN"
+        ]
+        tabla_psaim = tabla_agrupada(
+            df_psaim_lineas,
+            columnas_psaim[:-3] + ["CODIGO DE INFORME", "NOTAS", "OBSERVACIÓN"],
+            "Correccion_PSAIM.xlsx", "CORRECCION_PSAIM"
+        )
+        if not tabla_psaim.empty:
+            codigo, revisor, enviar = st.columns([2, 2, 1], vertical_alignment="bottom")
+            codigo_seleccionado = codigo.selectbox("Código", tabla_psaim["CODIGO DE INFORME"].unique(), key="psaim_codigo")
+            revisor_seleccionado = revisor.selectbox("Revisor PSAIM", REVISORES_PSAIM_LISTA, key="psaim_revisor")
+            if enviar.button("PSAIM corregido", icon=":material/check_circle:"):
+                grupo = tabla_psaim.loc[tabla_psaim["CODIGO DE INFORME"] == codigo_seleccionado, "GRUPO DE TUBERÍAS"].iloc[0]
+                correcto, mensaje = registrar_solicitud("CORRECCIÓN PSAIM", codigo_seleccionado, grupo, revisor_seleccionado)
+                if correcto:
+                    st.success(mensaje)
+                    st.rerun()
+                else:
+                    st.warning(mensaje)
+    vista_correc_psaim()
 
 # 9. RESUMEN POR MES
 filas_elaboracion = []
