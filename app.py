@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilos CSS Corporativos (Diseño Visual Código 2 + Scaffolding Código 1)
+# Estilos CSS Corporativos
 st.markdown(
     """
     <style>
@@ -562,14 +562,18 @@ with tabs[0]:
             informacion, aprobar, rechazar = st.columns([5, 1, 1], vertical_alignment="center")
             informacion.write(f"**{solicitud['tipo']}**  \nCódigo: `{solicitud['codigo']}` | Grupo: `{solicitud['grupo']}` | Solicitante: {solicitud['solicitante']}")
             if aprobar.button("Aprobar", key=f"aprobar_{solicitud['id']}", icon=":material/check:"):
-                mascara = (df["CODIGO DE INFORME"] == solicitud["codigo"]) & (df["GRUPO DE TUBERÍAS"] == solicitud["grupo"])
+                mascara_base = (df["CODIGO DE INFORME"] == solicitud["codigo"]) & (df["GRUPO DE TUBERÍAS"] == solicitud["grupo"])
+                
                 if solicitud["tipo"] == "INFORME COMPLETADO (GABINETE)":
-                    df.loc[mascara, "ESTADO - ELABORACIÓN "] = "Finalizado"
+                    mascara_no_retirado = mascara_base & ~mascara_retirado
+                    df.loc[mascara_no_retirado, "ESTADO - ELABORACIÓN "] = "Finalizado"
+                    df.loc[mascara_no_retirado, "OBSERVACIÓN"] = "Pendiente revisión por el especialista - Ademinsac"
                 elif solicitud["tipo"] == "CORRECCIÓN PSAIM":
-                    df.loc[mascara, "OBSERVACIÓN"] = "PSAIM CORREGIDO"
-                    df.loc[mascara, "ESTADO - ELABORACIÓN "] = "En proceso"
+                    df.loc[mascara_base, "OBSERVACIÓN"] = "PSAIM CORREGIDO"
+                    df.loc[mascara_base, "ESTADO - ELABORACIÓN "] = "En proceso"
                 elif solicitud["tipo"] == "REVISIÓN ESPECIALISTA":
-                    df.loc[mascara, "OBSERVACIÓN"] = "INFORME REVISADO POR ESPECIALISTA"
+                    df.loc[mascara_base, "OBSERVACIÓN"] = "INFORME REVISADO POR ESPECIALISTA"
+                
                 solicitudes = cargar_solicitudes()
                 for item in solicitudes:
                     if item["id"] == solicitud["id"]:
