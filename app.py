@@ -28,9 +28,17 @@ FOLDER_ID = "1gUyx6PbtLd7tG_C20x00CVmVdF0oYm_8"
 def conectar_drive():
     try:
         scopes = ['https://www.googleapis.com/auth/drive']
+        
+        # 1. Usar el nombre correcto de la sección en Secrets
         creds_dict = dict(st.secrets["gcp_service_account"])
-        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        return build('drive', 'v3', credentials=creds)
+        
+        # 2. Corregir los saltos de línea de la private_key
+        creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n").replace("\r\n", "\n")
+        
+        # 3. Autenticar
+        credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        service = build('drive', 'v3', credentials=credentials)
+        return service
     except Exception as e:
         st.error(f"Error al conectar con Google Drive: {e}")
         return None
