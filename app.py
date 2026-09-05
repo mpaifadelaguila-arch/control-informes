@@ -6,6 +6,9 @@ from datetime import datetime
 
 import pandas as pd
 import streamlit as st
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
@@ -17,6 +20,61 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed",
 )
+
+# Constantes de Google Drive
+FOLDER_ID = "1gUyx6PbtLd7tG_C20x00CVmVdF0oYm_8"
+
+@st.cache_resource
+def conectar_drive():
+    try:
+        scopes = ['https://www.googleapis.com/auth/drive']
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        return build('drive', 'v3', credentials=creds)
+    except Exception as e:
+        st.error(f"Error al conectar con Google Drive: {e}")
+        return None
+
+drive_service = conectar_drive()
+
+def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json'):
+    if not drive_service:
+        return
+    try:
+        query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
+        res = drive_service.files().list(q=query, fields="files(id)").execute()
+        archivos = res.get('files', [])
+
+        media = MediaFileUpload(ruta_local, mimetype=mime_type, resumable=True)
+
+        if archivos:
+            drive_service.files().update(fileId=archivos[0]['id'], media_body=media).execute()
+        else:
+            file_metadata = {'name': nombre_archivo, 'parents': [FOLDER_ID]}
+            drive_service.files().create(body=file_metadata, media_body=media).execute()
+    except Exception as e:
+        st.error(f"No se pudo guardar el respaldo en Google Drive: {e}")
+
+def descargar_archivo_de_drive(nombre_archivo, ruta_local):
+    if not drive_service:
+        return False
+    try:
+        query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
+        res = drive_service.files().list(q=query, fields="files(id)").execute()
+        archivos = res.get('files', [])
+
+        if archivos:
+            file_id = archivos[0]['id']
+            request = drive_service.files().get_media(fileId=file_id)
+            with open(ruta_local, 'wb') as fh:
+                downloader = MediaIoBaseDownload(fh, request)
+                done = False
+                while not done:
+                    _, done = downloader.next_chunk()
+            return True
+    except Exception as e:
+        st.warning(f"No se pudo sincronizar desde Google Drive: {e}")
+    return False
 
 # Estilos CSS Corporativos
 st.markdown(
@@ -269,16 +327,21 @@ def es_pendiente_inspeccion(fila):
 @st.cache_data(ttl=60, show_spinner=False)
 def cargar_datos():
     if not os.path.exists(DB_FILE):
+        descargar_archivo_de_drive(DB_FILE, DB_FILE)
+    if not os.path.exists(DB_FILE):
         return pd.DataFrame(columns=COLUMNAS_EXCEL)
     with open(DB_FILE, "r", encoding="utf-8") as archivo:
         return normalizar_base(pd.DataFrame(json.load(archivo)))
 
 def guardar_datos(df):
     normalizar_base(df).to_json(DB_FILE, orient="records", force_ascii=False)
+    subir_archivo_a_drive(DB_FILE, DB_FILE)
     st.cache_data.clear()
 
 @st.cache_data(ttl=5, show_spinner=False)
 def cargar_solicitudes():
+    if not os.path.exists(SOLICITUDES_FILE):
+        descargar_archivo_de_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
     if not os.path.exists(SOLICITUDES_FILE):
         return []
     with open(SOLICITUDES_FILE, "r", encoding="utf-8") as archivo:
@@ -287,6 +350,7 @@ def cargar_solicitudes():
 def guardar_solicitudes(solicitudes):
     with open(SOLICITUDES_FILE, "w", encoding="utf-8") as archivo:
         json.dump(solicitudes, archivo, ensure_ascii=False)
+    subir_archivo_a_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
     st.cache_data.clear()
 
 def registrar_solicitud(tipo, codigo, grupo, solicitante):
@@ -391,7 +455,7 @@ with st.expander("⚙️ Gestión de datos: cargar, restaurar y descargar respal
                 df_cargado = df_cargado.rename(columns=renombre)
                 st.session_state.df_data = normalizar_base(df_cargado)
                 guardar_datos(st.session_state.df_data)
-                st.success("Base de datos cargada y migrada correctamente.")
+                st.success("Base de datos cargada, migrada y guardada en Google Drive.")
                 st.rerun()
             except Exception as error:
                 st.error(f"No se pudo cargar el Excel: {error}")
