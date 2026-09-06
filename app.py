@@ -25,11 +25,7 @@ st.set_page_config(
 
 # Prevención del error removeChild (bloquea la traducción automática del navegador que corrompe el DOM de React)
 st.markdown(
-    """
-    <head>
-        <meta name="google" content="notranslate">
-    </head>
-    """,
+    '<meta name="google" content="notranslate">', 
     unsafe_allow_html=True
 )
 
