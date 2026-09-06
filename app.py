@@ -47,7 +47,8 @@ drive_service = conectar_drive()
 
 def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json'):
     if not drive_service:
-        return
+        st.error("No se pudo establecer conexión con Google Drive. Revisa las credenciales.")
+        return False
     try:
         query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
         res = drive_service.files().list(q=query, fields="files(id)").execute()
@@ -56,12 +57,17 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
         media = MediaFileUpload(ruta_local, mimetype=mime_type, resumable=True)
 
         if archivos:
-            drive_service.files().update(fileId=archivos[0]['id'], media_body=media).execute()
+            file_id = archivos[0]['id']
+            drive_service.files().update(fileId=file_id, media_body=media).execute()
+            st.toast(f"✅ Archivo '{nombre_archivo}' actualizado en Google Drive", icon="☁️")
         else:
             file_metadata = {'name': nombre_archivo, 'parents': [FOLDER_ID]}
             drive_service.files().create(body=file_metadata, media_body=media).execute()
+            st.toast(f"✅ Archivo '{nombre_archivo}' creado en Google Drive", icon="☁️")
+        return True
     except Exception as e:
-        st.error(f"No se pudo guardar el respaldo en Google Drive: {e}")
+        st.error(f"Error crítico al guardar en Google Drive: {e}")
+        return False
 
 def descargar_archivo_de_drive(nombre_archivo, ruta_local):
     if not drive_service:
@@ -342,9 +348,15 @@ def cargar_datos():
         return normalizar_base(pd.DataFrame(json.load(archivo)))
 
 def guardar_datos(df):
-    normalizar_base(df).to_json(DB_FILE, orient="records", force_ascii=False)
-    subir_archivo_a_drive(DB_FILE, DB_FILE)
-    st.cache_data.clear()
+    try:
+        df_normalizado = normalizar_base(df)
+        df_normalizado.to_json(DB_FILE, orient="records", force_ascii=False, indent=2)
+        exito = subir_archivo_a_drive(DB_FILE, DB_FILE)
+        st.cache_data.clear()
+        return exito
+    except Exception as e:
+        st.error(f"Error al procesar los datos locales: {e}")
+        return False
 
 @st.cache_data(ttl=5, show_spinner=False)
 def cargar_solicitudes():
@@ -356,10 +368,13 @@ def cargar_solicitudes():
         return json.load(archivo)
 
 def guardar_solicitudes(solicitudes):
-    with open(SOLICITUDES_FILE, "w", encoding="utf-8") as archivo:
-        json.dump(solicitudes, archivo, ensure_ascii=False)
-    subir_archivo_a_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
-    st.cache_data.clear()
+    try:
+        with open(SOLICITUDES_FILE, "w", encoding="utf-8") as archivo:
+            json.dump(solicitudes, archivo, ensure_ascii=False, indent=2)
+        subir_archivo_a_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
+        st.cache_data.clear()
+    except Exception as e:
+        st.error(f"Error al guardar las solicitudes: {e}")
 
 def registrar_solicitud(tipo, codigo, grupo, solicitante):
     solicitudes = cargar_solicitudes()
