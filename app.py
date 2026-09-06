@@ -2,6 +2,7 @@ import io
 import json
 import os
 import re
+import threading
 from datetime import datetime
 
 import pandas as pd
@@ -28,14 +29,8 @@ FOLDER_ID = "1gUyx6PbtLd7tG_C20x00CVmVdF0oYm_8"
 def conectar_drive():
     try:
         scopes = ['https://www.googleapis.com/auth/drive']
-        
-        # 1. Usar el nombre correcto de la sección en Secrets
         creds_dict = dict(st.secrets["gcp_service_account"])
-        
-        # 2. Corregir los saltos de línea de la private_key
         creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n").replace("\r\n", "\n")
-        
-        # 3. Autenticar
         credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         service = build('drive', 'v3', credentials=credentials)
         return service
@@ -45,7 +40,8 @@ def conectar_drive():
 
 drive_service = conectar_drive()
 
-def descargar_archivo_de_drive(nombre_archivo, ruta_destino):
+def descargar_archivo_de_drive(nombre_archivo, ruta_local):
+    """Descarga la versión más reciente del archivo desde Google Drive a la máquina local."""
     if not drive_service:
         return False
     try:
@@ -58,25 +54,22 @@ def descargar_archivo_de_drive(nombre_archivo, ruta_destino):
         ).execute()
         archivos = res.get('files', [])
 
-        if not archivos:
-            return False
-
-        file_id = archivos[0]['id']
-        request = drive_service.files().get_media(fileId=file_id, supportsAllDrives=True)
-        
-        with open(ruta_destino, 'wb') as f:
-            downloader = MediaIoBaseDownload(f, request)
-            done = False
-            while not done:
-                _, done = downloader.next_chunk()
-        return True
+        if archivos:
+            file_id = archivos[0]['id']
+            request = drive_service.files().get_media(fileId=file_id)
+            with open(ruta_local, 'wb') as f:
+                downloader = MediaIoBaseDownload(f, request)
+                done = False
+                while not done:
+                    _, done = downloader.next_chunk()
+            return True
     except Exception as e:
-        st.error(f"Error al descargar {nombre_archivo} de Drive: {e}")
-        return False
+        st.error(f"Error al descargar desde Google Drive ({nombre_archivo}): {e}")
+    return False
 
 def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json'):
+    """Subida síncrona a Google Drive."""
     if not drive_service:
-        st.error("No se pudo establecer conexión con Google Drive.")
         return False
     try:
         query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
@@ -105,7 +98,7 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
                 'name': nombre_archivo, 
                 'parents': [FOLDER_ID]
             }
-            archivo_creado = drive_service.files().create(
+            drive_service.files().create(
                 body=file_metadata, 
                 media_body=media,
                 supportsAllDrives=True,
@@ -114,8 +107,17 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
 
         return True
     except Exception as e:
-        st.error(f"No se pudo guardar el respaldo en Google Drive: {type(e).__name__} - {e}")
+        print(f"Error al respaldar en Google Drive ({nombre_archivo}): {e}")
         return False
+
+def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='application/json'):
+    """Ejecuta la subida a Drive en un hilo secundario para evitar bloqueos en la interfaz."""
+    hilo = threading.Thread(
+        target=subir_archivo_a_drive,
+        args=(nombre_archivo, ruta_local, mime_type),
+        daemon=True
+    )
+    hilo.start()
 
 # Estilos CSS Corporativos
 st.markdown(
@@ -365,33 +367,37 @@ def es_pendiente_inspeccion(fila):
         for texto in ["PENDIENTE COMPLETAR INSPECCION", "PENDIENTE INSPECCION", "FALTA CARPETA", "COMPLETAR INSPECCION"]
     )
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=5, show_spinner=False)
 def cargar_datos():
-    if not os.path.exists(DB_FILE):
-        descargar_archivo_de_drive(DB_FILE, DB_FILE)
+    descargar_archivo_de_drive(DB_FILE, DB_FILE)
     if not os.path.exists(DB_FILE):
         return pd.DataFrame(columns=COLUMNAS_EXCEL)
-    with open(DB_FILE, "r", encoding="utf-8") as archivo:
-        return normalizar_base(pd.DataFrame(json.load(archivo)))
+    try:
+        with open(DB_FILE, "r", encoding="utf-8") as archivo:
+            return normalizar_base(pd.DataFrame(json.load(archivo)))
+    except Exception:
+        return pd.DataFrame(columns=COLUMNAS_EXCEL)
 
 def guardar_datos(df):
     normalizar_base(df).to_json(DB_FILE, orient="records", force_ascii=False)
-    subir_archivo_a_drive(DB_FILE, DB_FILE)
+    subir_a_drive_en_segundo_plano(DB_FILE, DB_FILE)
     st.cache_data.clear()
 
 @st.cache_data(ttl=5, show_spinner=False)
 def cargar_solicitudes():
-    if not os.path.exists(SOLICITUDES_FILE):
-        descargar_archivo_de_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
+    descargar_archivo_de_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
     if not os.path.exists(SOLICITUDES_FILE):
         return []
-    with open(SOLICITUDES_FILE, "r", encoding="utf-8") as archivo:
-        return json.load(archivo)
+    try:
+        with open(SOLICITUDES_FILE, "r", encoding="utf-8") as archivo:
+            return json.load(archivo)
+    except Exception:
+        return []
 
 def guardar_solicitudes(solicitudes):
     with open(SOLICITUDES_FILE, "w", encoding="utf-8") as archivo:
         json.dump(solicitudes, archivo, ensure_ascii=False)
-    subir_archivo_a_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
+    subir_a_drive_en_segundo_plano(SOLICITUDES_FILE, SOLICITUDES_FILE)
     st.cache_data.clear()
 
 def registrar_solicitud(tipo, codigo, grupo, solicitante):
@@ -795,7 +801,7 @@ with tabs[1]:
                 
                 st.session_state.df_data = normalizar_base(df)
                 guardar_datos(st.session_state.df_data)
-                st.success(f"Se actualizó la valorización a '{estado_sel}' para todas las líneas activas de {codigo_sel}.")
+                st.toast(f"Valorización actualizada a '{estado_sel}' para {codigo_sel}", icon="✅")
                 st.rerun()
 
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
@@ -818,7 +824,9 @@ with tabs[1]:
             
             st.session_state.df_data.update(df_actualizado)
             guardar_datos(st.session_state.df_data)
+            
             st.toast("¡Cambios guardados con éxito!", icon="💾")
+            st.rerun()
 
     vista_tabla_general()
 
