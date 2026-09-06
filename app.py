@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -139,7 +140,7 @@ def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='applic
     hilo.start()
 
 # -----------------------------------------------------------------------------
-# ESTILOS CSS CORREGIDOS (CONTRASTE MEJORADO EN BOTONES, PESTAÑAS Y RADIOS)
+# ESTILOS CSS CORREGIDOS
 # -----------------------------------------------------------------------------
 st.markdown(
     """
@@ -193,7 +194,7 @@ st.markdown(
         border-radius: 14px;
         padding: 18px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        min-height: 250px;
+        min-height: 420px;
         margin-bottom: 15px;
     }
 
@@ -228,28 +229,14 @@ st.markdown(
         line-height: 1.1;
     }
 
-    /* FIX PESTAÑAS, RADIO BUTTONS Y BOTONES */
+    /* FIX PESTAÑAS Y TEXTOS */
     label, div[data-testid="stWidgetLabel"] {
         color: #E2E8F0 !important;
         font-weight: 600 !important;
     }
-
-    /* Botones de descarga y acción con texto oscuro explícito para máxima visibilidad */
-    div.stButton > button, div.stDownloadButton > button {
-        color: #0F172A !important;
-        background-color: #F8FAFC !important;
-        border: 1px solid #CBD5E1 !important;
-        font-weight: 700 !important;
-    }
     
-    div.stButton > button:hover, div.stDownloadButton > button:hover {
-        background-color: #E2E8F0 !important;
-        color: #0284C7 !important;
-    }
-
-    /* Pestañas superiores */
     .stTabs [data-baseweb="tab"] {
-        color: #CBD5E1 !important;
+        color: #94A3B8 !important;
         background-color: #131B2E !important;
         border-radius: 8px !important;
         padding: 8px 16px !important;
@@ -260,12 +247,6 @@ st.markdown(
         background-color: #1E293B !important;
         border: 1px solid #38BDF8 !important;
         font-weight: bold !important;
-    }
-
-    /* Radio buttons (Seleccionar tipo de vista) */
-    div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p {
-        color: #F1F5F9 !important;
-        font-weight: 600 !important;
     }
 
     div[data-testid="stExpander"] { 
@@ -475,6 +456,29 @@ def senal_visual(fila):
         return "🔵 Inspección complem."
     return "⚪ Sin alerta"
 
+def render_donut_chart(percentage, label, color_hex):
+    fig = go.Figure(data=[go.Pie(
+        labels=[label, 'Restante'],
+        values=[percentage, max(0, 100 - percentage)],
+        hole=0.72,
+        marker_colors=[color_hex, '#1E293B'],
+        textinfo='none',
+        hoverinfo='label+percent'
+    )])
+    
+    fig.update_layout(
+        showlegend=False,
+        margin=dict(t=5, b=5, l=5, r=5),
+        height=130,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        annotations=[dict(
+            text=f"<b>{percentage}%</b><br><span style='font-size:9px;color:#94A3B8;'>{label}</span>",
+            x=0.5, y=0.5, font_size=15, font_color="#FFFFFF", showarrow=False
+        )]
+    )
+    return fig
+
 # Carga Inicial de Datos
 if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
@@ -602,6 +606,9 @@ def procesar_agrupaciones_y_kpis(df_input):
     val_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
     val_psaim = sum(por_mes["psaim"].values())
 
+    pct_finalizados = round((tot_finalizados / total_inf_unicos * 100)) if total_inf_unicos > 0 else 0
+    pct_en_revision = round((revision_fiabilidad / total_inf_unicos * 100)) if total_inf_unicos > 0 else 0
+
     kpis = {
         "total_inf_unicos": total_inf_unicos,
         "tot_finalizados": tot_finalizados,
@@ -614,13 +621,15 @@ def procesar_agrupaciones_y_kpis(df_input):
         "revision_especialista": revision_especialista,
         "revision_especialista_pendiente": revision_especialista_pendiente,
         "revision_fiabilidad": revision_fiabilidad,
+        "pct_finalizados": pct_finalizados,
+        "pct_en_revision": pct_en_revision
     }
 
     return mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes
 
 mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes = procesar_agrupaciones_y_kpis(df)
 
-# PANEL DE CONTROL (5 COLUMNAS ENCAPSULADAS EN SUS TARJETAS - SIN CÍRCULOS DE %)
+# PANEL DE CONTROL (5 COLUMNAS ENCAPSULADAS EN SUS TARJETAS)
 st.markdown("<div class='section-title'>📊 Panel de control de informes</div>", unsafe_allow_html=True)
 col1, col2, col3, col4, col5 = st.columns(5)
 
@@ -643,6 +652,7 @@ with col1:
             </div>
         </div>
     """, unsafe_allow_html=True)
+    st.plotly_chart(render_donut_chart(kpis["pct_finalizados"], "Finalizados", "#FF8C00"), use_container_width=True, key="donut_gen")
 
 # BLOQUE GABINETE
 with col2:
@@ -707,6 +717,7 @@ with col5:
             </div>
         </div>
     """, unsafe_allow_html=True)
+    st.plotly_chart(render_donut_chart(kpis["pct_en_revision"], "En Revisión", "#06B6D4"), use_container_width=True, key="donut_cli")
 
 # SISTEMA DE CONTROL Y RESÚMENES
 solicitudes_activas = [solicitud for solicitud in cargar_solicitudes() if solicitud["estado"] == "PENDIENTE"]
