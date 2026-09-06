@@ -15,9 +15,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
-# -----------------------------------------------------------------------------
-# CONFIGURACIÓN DE PÁGINA Y EVITACIÓN DE ERRORES DE TRADUCCIÓN
-# -----------------------------------------------------------------------------
+# Configuración de página
 st.set_page_config(
     page_title="Control interno de informes - Ademinsac",
     page_icon=":material/assignment:",
@@ -25,14 +23,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# Prevención del error removeChild (bloquea la traducción automática del navegador que corrompe el DOM de React)
 st.markdown(
     '<meta name="google" content="notranslate">', 
     unsafe_allow_html=True
 )
 
-# -----------------------------------------------------------------------------
-# CONSTANTES Y CONEXIÓN A GOOGLE DRIVE
-# -----------------------------------------------------------------------------
+# Constantes de Google Drive
 FOLDER_ID = "1gUyx6PbtLd7tG_C20x00CVmVdF0oYm_8"
 
 @st.cache_resource
@@ -51,6 +48,7 @@ def conectar_drive():
 drive_service = conectar_drive()
 
 def descargar_archivo_de_drive(nombre_archivo, ruta_local, max_reintentos=3):
+    """Descarga la versión más reciente desde Drive con reintentos automáticos para evitar errores SSL/Network."""
     if not drive_service:
         return False
         
@@ -78,13 +76,14 @@ def descargar_archivo_de_drive(nombre_archivo, ruta_local, max_reintentos=3):
         except Exception as e:
             msg_error = str(e)
             if ("RECORD_LAYER_FAILURE" in msg_error or "SSL" in msg_error or "Connection" in msg_error) and intento < max_reintentos:
-                time.sleep(1.2 * intento)
+                time.sleep(1.2 * intento)  # Espera exponencial progresiva
                 continue
             st.error(f"Error al descargar desde Google Drive ({nombre_archivo}): {e}")
             break
     return False
 
 def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json', max_reintentos=3):
+    """Subida síncrona a Google Drive con reintentos automáticos contra fallos de socket SSL."""
     if not drive_service:
         return False
         
@@ -134,6 +133,7 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
     return False
 
 def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='application/json'):
+    """Ejecuta la subida a Drive en un hilo secundario para evitar bloqueos en la interfaz."""
     hilo = threading.Thread(
         target=subir_archivo_a_drive,
         args=(nombre_archivo, ruta_local, mime_type),
@@ -141,9 +141,7 @@ def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='applic
     )
     hilo.start()
 
-# -----------------------------------------------------------------------------
-# ESTILOS CSS PERSONALIZADOS
-# -----------------------------------------------------------------------------
+# Estilos CSS Corporativos
 st.markdown(
     """
     <style>
@@ -151,136 +149,153 @@ st.markdown(
     .stAppDeployButton {display:none !important;}
     header {visibility: hidden !important;}
 
-    .stApp {
-        background-color: #0A0E1A !important;
-        color: #F3F4F6 !important;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    :root {
+        --primary-navy: #0E2A47;
+        --secondary-navy: #1A3E68;
+        --gold-accent: #D4AF37;
+        --bg-card: #FFFFFF;
+        --border-color: #E2E8F0;
+        --text-main: #1E293B;
+        --text-sub: #64748B;
     }
-    .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem !important; }
+
+    .stApp { background-color: #EEF2F7; }
+    .block-container { padding-top: 1.6rem !important; }
 
     /* HEADER BANNER */
     .header-banner {
-        background: linear-gradient(135deg, #131B2E 0%, #0B132B 100%);
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        border-left: 5px solid #38BDF8;
-        border-radius: 12px;
-        padding: 18px 24px;
-        margin-bottom: 20px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-    }
-    .header-title {
-        color: #FFFFFF;
-        font-size: 1.4rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        margin: 0;
-    }
-    .header-subtitle {
-        color: #94A3B8;
-        font-size: 0.85rem;
-        margin-top: 4px;
-    }
-
-    .section-title {
-        font-size: 1.1rem;
-        font-weight: 800;
-        color: #FFFFFF !important;
-        margin-bottom: 14px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* TARJETAS NEÓN ENCAPSULADAS */
-    .card-container {
-        background: linear-gradient(180deg, #131B2E 0%, #0D1322 100%);
+        background: linear-gradient(120deg, #0B2038 0%, #1E4E7E 60%, #2C6494 100%);
+        padding: 22px 30px;
         border-radius: 14px;
-        padding: 18px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        min-height: 250px;
-        margin-bottom: 15px;
+        color: white;
+        margin-bottom: 20px;
+        box-shadow: 0 12px 28px rgba(11, 32, 56, 0.18);
+        position: relative;
+        overflow: hidden;
+    }
+    .header-banner::after {
+        content: "";
+        position: absolute; top: 0; right: 0; bottom: 0; width: 6px;
+        background: linear-gradient(180deg, #E7BE30, #C99A1E);
+    }
+    .header-title { font-size: 24px; font-weight: 800; letter-spacing: 0.3px; margin: 0; color: #FFFFFF; }
+    .header-subtitle { font-size: 13.5px; color: #C9DCEE; margin-top: 4px; font-weight: 500; }
+
+    /* CONTENEDORES PRINCIPALES */
+    .st-key-panel_control, .st-key-sistema_control {
+        background: #FFFFFF !important;
+        border: 1px solid #DBE5EF;
+        border-radius: 16px;
+        padding: 18px 20px 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 14px rgba(15, 42, 70, 0.05);
+    }
+    .section-title {
+        font-size: 1.02rem;
+        font-weight: 800;
+        color: #122F4C;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #E7EDF3;
     }
 
-    .card-general { border: 1px solid rgba(255, 140, 0, 0.4); box-shadow: 0 0 15px rgba(255, 140, 0, 0.1); }
-    .card-gabinete { border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 0 15px rgba(168, 85, 247, 0.1); }
-    .card-especialista { border: 1px solid rgba(59, 130, 246, 0.4); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
-    .card-campo { border: 1px solid rgba(239, 68, 68, 0.4); box-shadow: 0 0 15px rgba(239, 68, 68, 0.1); }
-    .card-cliente { border: 1px solid rgba(6, 182, 212, 0.4); box-shadow: 0 0 15px rgba(6, 182, 212, 0.1); }
+    /* FILA HORIZONTAL DE BLOQUES KPI */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 12px;
+    }
+    @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 700px) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
-    .card-title {
-        font-size: 0.85rem;
+    .kpi-block-card {
+        background: #F4F8FC;
+        border: 1px solid #E1E9F1;
+        border-radius: 14px;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        box-sizing: border-box;
+    }
+    .kpi-block-title {
+        font-size: .68rem;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: 0.6px;
-        margin-bottom: 16px;
+        letter-spacing: .5px;
+        color: #5D7086;
+        margin-bottom: 10px;
+        white-space: nowrap;
     }
-    .metric-item {
-        padding-left: 10px;
-        margin-bottom: 12px;
+    .kpi-items { display: grid; gap: 8px; flex: 1; align-content: start; }
+    .kpi-item {
+        background: #FFFFFF;
+        border: 1px solid #E6EDF4;
+        border-left: 3.5px solid var(--tone);
+        border-radius: 0 9px 9px 0;
+        padding: 7px 11px;
     }
-    .metric-label {
-        font-size: 0.72rem;
-        color: #94A3B8 !important;
-        font-weight: 700;
+    .kpi-item-label {
+        font-size: .63rem;
+        font-weight: 750;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        color: #5D7086;
+        letter-spacing: .2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-    .metric-value {
-        font-size: 1.6rem;
-        font-weight: 800;
+    .kpi-item-value { font-size: 1.35rem; font-weight: 800; color: #102E4C; line-height: 1.15; }
+
+    /* PESTAÑAS DISTRIBUIDAS PAREJAS */
+    .st-key-sistema_control .stTabs [data-baseweb="tab-list"],
+    .st-key-sistema_control .stTabs [role="tablist"] {
+        display: flex !important;
+        width: 100% !important;
+        gap: 5px !important;
+        flex-wrap: wrap;
+        background-color: #EEF3F9;
+        padding: 6px;
+        border-radius: 10px;
+    }
+    .st-key-sistema_control .stTabs [data-baseweb="tab"],
+    .st-key-sistema_control .stTabs button[role="tab"] {
+        flex: 1 1 auto !important;
+        min-width: 110px;
+        justify-content: center !important;
+        height: 38px;
+        border-radius: 7px;
+        font-size: 11.5px;
+        font-weight: 650;
+        color: #475569;
+        padding: 0 8px !important;
+        background: #FFFFFF;
+        border: 1px solid #DFE7EF;
+        text-align: center;
+        white-space: nowrap;
+    }
+    .st-key-sistema_control .stTabs [aria-selected="true"] {
+        background-color: #0E2A47 !important;
         color: #FFFFFF !important;
-        line-height: 1.1;
+        border-color: #0E2A47 !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
-    /* CONTROLES, PESTAÑAS Y BOTONES */
-    label, div[data-testid="stWidgetLabel"] {
-        color: #E2E8F0 !important;
-        font-weight: 600 !important;
+    div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
+        background-color: #FFFFFF !important;
+        border-radius: 10px;
+        border: 1px solid #E2E8F0;
+        padding: 4px;
+        margin-top: 10px !important;
     }
-
-    div.stButton > button, div.stDownloadButton > button {
-        color: #0F172A !important;
-        background-color: #F8FAFC !important;
-        border: 1px solid #CBD5E1 !important;
-        font-weight: 700 !important;
-    }
-    
-    div.stButton > button:hover, div.stDownloadButton > button:hover {
-        background-color: #E2E8F0 !important;
-        color: #0284C7 !important;
-    }
-
-    .stTabs [data-baseweb="tab"] {
-        color: #CBD5E1 !important;
-        background-color: #131B2E !important;
-        border-radius: 8px !important;
-        padding: 8px 16px !important;
-    }
-    
-    .stTabs [aria-selected="true"] {
-        color: #38BDF8 !important;
-        background-color: #1E293B !important;
-        border: 1px solid #38BDF8 !important;
-        font-weight: bold !important;
-    }
-
-    div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p {
-        color: #F1F5F9 !important;
-        font-weight: 600 !important;
-    }
-
-    div[data-testid="stExpander"] { 
-        background: #131B2E !important; 
-        border: 1px solid rgba(255, 255, 255, 0.1) !important; 
-        border-radius: 10px !important; 
-    }
+    div[data-testid="stExpander"] { background:#fff; border-color:#dbe5ef; border-radius:12px; }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# -----------------------------------------------------------------------------
-# BASES DE DATOS Y CONSTANTES DE TRABAJO
-# -----------------------------------------------------------------------------
+# Constantes y Archivos
 DB_FILE = "database_informes.json"
 SOLICITUDES_FILE = "database_solicitudes.json"
 
@@ -299,9 +314,7 @@ ESPECIALISTAS_LISTA = ["Jesús Rehkoff Díaz", "M. Paifa", "Julio Ponce", "Omar"
 REVISORES_PSAIM_LISTA = ["Franmary Gutierrez", "Alejandro Macury", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
 PERSONAL_LISTA_BASE = ["M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid", "Juan José", "Dante", "Jesús Rehkoff Díaz", "Franmary Gutierrez", "Alejandro Macury", "Otro Inspector"]
 
-# -----------------------------------------------------------------------------
-# FUNCIONES AUXILIARES Y NORMALIZACIÓN DE DATOS
-# -----------------------------------------------------------------------------
+# Funciones de Limpieza y Normalización
 def texto_normalizado(valor):
     if pd.isna(valor) or valor is None:
         return ""
@@ -313,14 +326,6 @@ def texto_limpio(valor):
         return ""
     texto = str(valor).strip()
     return texto[:-2] if texto.endswith(".0") else texto
-
-def formatear_entero_limpio(valor):
-    if pd.isna(valor) or valor is None:
-        return ""
-    v_str = str(valor).strip()
-    if v_str.endswith(".0"):
-        return v_str[:-2]
-    return v_str
 
 def separar_alcance_y_notas(alcance, notas=""):
     alcance_limpio = texto_limpio(alcance)
@@ -489,21 +494,21 @@ def senal_visual(fila):
         return "🔵 Inspección complem."
     return "⚪ Sin alerta"
 
-# -----------------------------------------------------------------------------
-# CARGA INICIAL Y BANNER
-# -----------------------------------------------------------------------------
+# Carga Inicial de Datos
 if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
 
 df = normalizar_base(st.session_state.df_data)
 
+# Banner Principal
 st.html("""
     <div class="header-banner">
         <div class="header-title">CONTROL INTERNO DE INFORMES - ADEMINSAC</div>
-        <div class="header-subtitle">Sistema de Monitoreo de Inspección Técnica y Valorización | Refinería La Pampilla</div>
+        <div class="header-subtitle">Sistema de Monitoreo de Inspección Técnicas y Valorización | Refinería La Pampilla</div>
     </div>
 """)
 
+# Expander de Carga / Respaldo
 with st.expander("⚙️ Gestión de datos: cargar, restaurar y descargar respaldo", expanded=False):
     carga, respaldo = st.columns([1.15, 0.85], vertical_alignment="bottom")
     with carga:
@@ -534,9 +539,7 @@ if df.empty:
     st.info("Carga un archivo Excel desde Gestión de datos para iniciar el control.", icon=":material/info:")
     st.stop()
 
-# -----------------------------------------------------------------------------
-# PROCESAMIENTO DE DATOS Y KPIS
-# -----------------------------------------------------------------------------
+# OPTIMIZACIÓN CON CACHÉ DE PROCESAMIENTO DE DATOS
 @st.cache_data(show_spinner=False)
 def procesar_agrupaciones_y_kpis(df_input):
     mascara_retirado = df_input["OBSERVACIÓN"].apply(lambda v: "RETIRADO" in texto_normalizado(v)) | \
@@ -629,106 +632,66 @@ def procesar_agrupaciones_y_kpis(df_input):
         "val_psaim": val_psaim,
         "revision_especialista": revision_especialista,
         "revision_especialista_pendiente": revision_especialista_pendiente,
-        "revision_fiabilidad": revision_fiabilidad,
+        "revision_fiabilidad": revision_fiabilidad
     }
 
     return mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes
 
 mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes = procesar_agrupaciones_y_kpis(df)
 
-# -----------------------------------------------------------------------------
-# PANEL DE CONTROL (KPIS)
-# -----------------------------------------------------------------------------
-st.markdown("<div class='section-title'>📊 Panel de control de informes</div>", unsafe_allow_html=True)
-col1, col2, col3, col4, col5 = st.columns(5)
+# RENDERIZADO DEL PANEL DE CONTROL
+def item_kpi(titulo, valor, color):
+    return (
+        f"<div class='kpi-item' style='--tone:{color}'>"
+        f"<div class='kpi-item-label'>{titulo}</div>"
+        f"<div class='kpi-item-value'>{valor}</div>"
+        f"</div>"
+    )
 
-with col1:
-    st.markdown(f"""
-        <div class="card-container card-general">
-            <div class="card-title" style="color: #FF8C00;">📊 BLOQUE GENERAL</div>
-            <div class="metric-item" style="border-left: 3px solid #FF8C00;">
-                <div class="metric-label">INFORMES TOTALES</div>
-                <div class="metric-value">{kpis["total_inf_unicos"]}</div>
-            </div>
-            <div class="metric-item" style="border-left: 3px solid #FF8C00;">
-                <div class="metric-label">FINALIZADOS</div>
-                <div class="metric-value">{kpis["tot_finalizados"]}</div>
-            </div>
-            <div class="metric-item" style="border-left: 3px solid #FF8C00;">
-                <div class="metric-label">PENDIENTES ELABORAR</div>
-                <div class="metric-value">{kpis["tot_pendientes_elaborar"]}</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+def bloque_kpi(titulo_bloque, emoji, items):
+    filas = "".join(item_kpi(*i) for i in items)
+    return (
+        f"<div class='kpi-block-card'>"
+        f"<div class='kpi-block-title'>{emoji} {titulo_bloque}</div>"
+        f"<div class='kpi-items'>{filas}</div></div>"
+    )
 
-with col2:
-    st.markdown(f"""
-        <div class="card-container card-gabinete">
-            <div class="card-title" style="color: #A855F7;">📂 BLOQUE GABINETE</div>
-            <div class="metric-item" style="border-left: 3px solid #A855F7;">
-                <div class="metric-label">EN PROCESO</div>
-                <div class="metric-value">{kpis["val_en_proceso"]}</div>
-            </div>
-            <div class="metric-item" style="border-left: 3px solid #A855F7;">
-                <div class="metric-label">PEND. ASIGNAR</div>
-                <div class="metric-value">{kpis["val_para_asignar"]}</div>
-            </div>
-            <div class="metric-item" style="border-left: 3px solid #A855F7;">
-                <div class="metric-label">CORREC. PSAIM</div>
-                <div class="metric-value">{kpis["val_psaim"]}</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+panel_control = st.container(key="panel_control")
+panel_control.markdown("<div class='section-title'>📊 Panel de control de informes</div>", unsafe_allow_html=True)
 
-with col3:
-    st.markdown(f"""
-        <div class="card-container card-especialista">
-            <div class="card-title" style="color: #3B82F6;">👤 BLOQUE ESPECIALISTA</div>
-            <div class="metric-item" style="border-left: 3px solid #3B82F6;">
-                <div class="metric-label">REVISADOS</div>
-                <div class="metric-value">{kpis["revision_especialista"]}</div>
-            </div>
-            <div class="metric-item" style="border-left: 3px solid #3B82F6;">
-                <div class="metric-label">POR REVISAR</div>
-                <div class="metric-value">{kpis["revision_especialista_pendiente"]}</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+bloques_html = "".join([
+    bloque_kpi("Bloque general", "📊", [
+        ("Informes totales", kpis["total_inf_unicos"], "#173F67"),
+        ("Informes finalizados", kpis["tot_finalizados"], "#159A68"),
+        ("Pendientes elaborar", kpis["tot_pendientes_elaborar"], "#E38921"),
+    ]),
+    bloque_kpi("Bloque gabinete", "📁", [
+        ("En proceso", kpis["val_en_proceso"], "#7B61C9"),
+        ("Pend. asignar", kpis["val_para_asignar"], "#D54D9D"),
+        ("Correc. PSAIM", kpis["val_psaim"], "#C89716"),
+    ]),
+    bloque_kpi("Bloque especialista", "👤", [
+        ("Revisados", kpis["revision_especialista"], "#168EAE"),
+        ("Por revisar", kpis["revision_especialista_pendiente"], "#5564D8"),
+    ]),
+    bloque_kpi("Bloque campo", "📝", [
+        ("Pend. inspección", kpis["val_pend_inspeccion"], "#D8534F"),
+    ]),
+    bloque_kpi("Bloque cliente", "🏢", [
+        ("Valorizados", kpis["tot_valorizados"], "#159A68"),
+        ("En revisión", kpis["revision_fiabilidad"], "#159D99"),
+    ]),
+])
 
-with col4:
-    st.markdown(f"""
-        <div class="card-container card-campo">
-            <div class="card-title" style="color: #EF4444;">📝 BLOQUE CAMPO</div>
-            <div class="metric-item" style="border-left: 3px solid #EF4444;">
-                <div class="metric-label">PEND. INSPECCIÓN</div>
-                <div class="metric-value">{kpis["val_pend_inspeccion"]}</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+panel_control.markdown(f"<div class='kpi-row'>{bloques_html}</div>", unsafe_allow_html=True)
 
-with col5:
-    st.markdown(f"""
-        <div class="card-container card-cliente">
-            <div class="card-title" style="color: #06B6D4;">🏢 BLOQUE CLIENTE</div>
-            <div class="metric-item" style="border-left: 3px solid #06B6D4;">
-                <div class="metric-label">VALORIZADOS</div>
-                <div class="metric-value">{kpis["tot_valorizados"]}</div>
-            </div>
-            <div class="metric-item" style="border-left: 3px solid #06B6D4;">
-                <div class="metric-label">PEND. VALORIZAR (REV. CLIENTE)</div>
-                <div class="metric-value">{kpis["revision_fiabilidad"]}</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-# -----------------------------------------------------------------------------
-# SISTEMA DE CONTROL Y PESTAÑAS PRINCIPALES
-# -----------------------------------------------------------------------------
+# SISTEMA DE CONTROL Y RESÚMENES
 solicitudes_activas = [solicitud for solicitud in cargar_solicitudes() if solicitud["estado"] == "PENDIENTE"]
 
-st.markdown("<div class='section-title'>🗂️ Sistema de control y resúmenes</div>", unsafe_allow_html=True)
+sistema_control = st.container(key="sistema_control")
+sistema_control.markdown("<div class='section-title'>🗂️ Sistema de control y resúmenes</div>", unsafe_allow_html=True)
 
-tabs = st.tabs([
+tabs = sistema_control.tabs([
     f"🔔 Admin ({len(solicitudes_activas)})",
     "📋 Tabla general",
     "📇 Pend. asignar",
@@ -782,184 +745,113 @@ with tabs[0]:
                     st.rerun()
     vista_admin()
 
-# 2. TABLA GENERAL (NUEVA IMPLEMENTACIÓN CON SEGMENTACIÓN Y EDICIÓN ALTERNADA)
+# 2. TABLA GENERAL
 with tabs[1]:
     @st.fragment
     def vista_tabla_general():
-        st.markdown("##### 🔍 Segmentación de Datos y Filtros")
-        
-        # 1. Segmentación por MES (Botones interactivos horizontales)
-        meses_disp = ["Todos"] + sorted(
-            [m for m in df["MES"].dropna().astype(str).str.strip().str.upper().unique() if m],
-            key=lambda x: ORDEN_MESES.index(x) if x in ORDEN_MESES else 99
+        filtros = st.columns([1, 1, 2])
+        meses = ["Todos"] + sorted(
+            {texto_limpio(m).upper() for m in df["MES"] if texto_limpio(m)},
+            key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99,
         )
+        mes = filtros[0].selectbox("Filtrar mes", meses)
+        alcance = filtros[1].selectbox("Alcance del servicio", ["Todos", "LINEAS", "VT-CIRCUITOS"])
+        consulta = filtros[2].text_input("Buscar por líneas, código, grupo, SAP, notas o alcance extendido", icon=":material/search:")
         
-        st.write("**MES:**")
-        mes_sel = st.pills(
-            label="Seleccionar Mes",
-            options=meses_disp,
-            default="Todos",
-            key="pills_mes_gen",
-            label_visibility="collapsed"
-        )
-        m_sel = mes_sel if mes_sel else "Todos"
-
-        # 2. Filtrado dinámico de los Grupos según el Mes elegido
-        df_base_grupo = df.copy()
-        if m_sel != "Todos":
-            df_base_grupo = df_base_grupo[df_base_grupo["MES"].astype(str).str.strip().str.upper() == m_sel]
-        
-        grupos_disp = ["Todos"] + sorted([g for g in df_base_grupo["GRUPO DE TUBERÍAS"].dropna().astype(str).str.strip().unique() if g])
-
-        # 3. Segmentación por GRUPO DE TUBERÍAS (Botones dinámicos horizontales)
-        st.write("**GRUPO DE TUBERÍAS:**")
-        grupo_sel = st.pills(
-            label="Seleccionar Grupo",
-            options=grupos_disp,
-            default="Todos",
-            key="pills_grupo_gen",
-            label_visibility="collapsed"
-        )
-        g_sel = grupo_sel if grupo_sel else "Todos"
-
-        st.divider()
-
-        # 4. Buscador ampliado + Switch de Edición
-        c_busc, c_sw = st.columns([4, 1])
-        txt_b = c_busc.text_input("🔍 Buscador por GRUPO, CÓDIGO DE INFORME, SAP, LÍNEAS o ALCANCE DEL SERVICIO:", key="txt_busc_gen")
-        modo_edicion = c_sw.toggle("✏️ Habilitar Edición", value=False, key="sw_edit_gen")
-
-        # --- APLICACIÓN DE FILTROS A LA TABLA GENERAL ---
-        df_dis = df[COLUMNAS_EXCEL].copy()
-        
-        for column in df_dis.columns:
-            df_dis[column] = df_dis[column].apply(formatear_entero_limpio)
-
-        # Filtro 1: Mes
-        if m_sel != "Todos": 
-            df_dis = df_dis[df_dis["MES"].astype(str).str.strip().str.upper() == m_sel]
-        
-        # Filtro 2: Grupo
-        if g_sel != "Todos":
-            df_dis = df_dis[df_dis["GRUPO DE TUBERÍAS"].astype(str).str.strip() == g_sel]
-
-        # Filtro 3: Buscador amplio
-        if txt_b.strip():
-            q = texto_normalizado(txt_b)
-            df_dis = df_dis[df_dis.apply(
-                lambda r: q in texto_normalizado(r["GRUPO DE TUBERÍAS"]) or 
-                          q in texto_normalizado(r["CODIGO DE INFORME"]) or 
-                          q in texto_normalizado(r["SAP"]) or
-                          q in texto_normalizado(r["LINEAS"]) or
-                          q in texto_normalizado(r["ALCANCE DEL SERVICIO"]), 
-                axis=1
-            )]
-        
-        df_dis["VALORIZACIÓN"] = df_dis["VALORIZACIÓN"].apply(
-            lambda x: "SI" if texto_normalizado(x) == "SI" else ("Retirado" if texto_normalizado(x) == "RETIRADO" else "Pendiente")
-        )
-
-        config_columnas = {
-            "ITEM POR MES": st.column_config.TextColumn("Item", width="small"),
-            "IT2": st.column_config.TextColumn("IT2", width="small"),
-            "UNIDAD": st.column_config.TextColumn("Unidad", width="small"),
-            "MES": st.column_config.TextColumn("Mes", width="small"),
-            "LINEAS": st.column_config.TextColumn("Líneas", width="large"),
-            "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width="medium"),
-            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width="medium"),
-            "SAP": st.column_config.TextColumn("SAP", width="small"),
-            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width="medium"),
-            "NOTAS": st.column_config.TextColumn("Notas", width="medium"),
-            "ESTADO - ELABORACIÓN ": st.column_config.TextColumn("Estado de elaboración", width="medium"),
-            "RESPONSABLE": st.column_config.TextColumn("Responsable", width="medium"),
-            "OBSERVACIÓN": st.column_config.TextColumn("Observación", width="large"),
-            "VALORIZACIÓN": st.column_config.SelectboxColumn(
-                "Valorización",
-                options=["Pendiente", "SI", "Retirado"],
-                required=True,
-                width="medium"
+        df_vista = df.copy()
+        if mes != "Todos":
+            df_vista = df_vista[df_vista["MES"].apply(lambda v: texto_normalizado(v) == mes)]
+        if alcance != "Todos":
+            df_vista = df_vista[df_vista["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == alcance]
+        if consulta.strip():
+            consulta_norm = texto_normalizado(consulta)
+            columnas_busqueda = ["LINEAS", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS", "SAP", "NOTAS", "ALCANCE DEL SERVICIO"]
+            mascara_busqueda = df_vista[columnas_busqueda].apply(
+                lambda fila: any(consulta_norm in texto_normalizado(v) for v in fila), axis=1
             )
+            df_vista = df_vista[mascara_busqueda]
+
+        df_vista = df_vista.map(texto_limpio)
+        df_vista["VALORIZACIÓN"] = df_vista["VALORIZACIÓN"].apply(
+            lambda v: "SI" if texto_normalizado(v) == "SI" else ("Retirado" if texto_normalizado(v) == "RETIRADO" else "Pendiente")
+        )
+        df_vista.insert(0, "SEÑAL", df_vista.apply(senal_visual, axis=1))
+        
+        encabezados = {
+            "SEÑAL": st.column_config.TextColumn("Señal", width=190, disabled=True, pinned=True),
+            "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
+            "IT2": st.column_config.TextColumn("IT2", width=55),
+            "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
+            "MES": st.column_config.TextColumn("Mes", width=80),
+            "LINEAS": st.column_config.TextColumn("Líneas", width=180),
+            "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=190),
+            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=180),
+            "SAP": st.column_config.TextColumn("SAP", width=85),
+            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width=120),
+            "NOTAS": st.column_config.TextColumn("Notas", width=170),
+            "ESTADO - ELABORACIÓN ": st.column_config.TextColumn("Estado de elaboración", width=190),
+            "RESPONSABLE": st.column_config.TextColumn("Responsable", width=135),
+            "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=280),
+            "VALORIZACIÓN": st.column_config.SelectboxColumn(
+                "Valorización", options=["Pendiente", "SI", "Retirado"], required=True, width=145
+            ),
         }
-
-        # Función para aplicar estilos condicionales por fila
-        def resaltar_filas(row):
-            val_estado = str(row.get("VALORIZACIÓN", "")).strip().upper()
-            val_alcance = texto_normalizado(row.get("ALCANCE DEL SERVICIO", ""))
-            val_notas = texto_normalizado(row.get("NOTAS", ""))
-
-            if val_estado == "SI":
-                return ["background-color: #D1FAE5; color: #065F46; font-weight: bold;"] * len(row)
-
-            if "PENDIENTE INSPECCION" in val_notas or "FALTA CARPETA" in val_notas or "PENDIENTE INSPECCION" in val_alcance:
-                return ["background-color: #FEF08A; color: #713F12; font-weight: bold;"] * len(row)
-
-            if "INSPECCION COMPLEMENTARIA" in val_notas or "INSPECCION COMPLEMENTARIA" in val_alcance:
-                return ["background-color: #BAE6FD; color: #0C4A6E; font-weight: bold;"] * len(row)
-
-            return [""] * len(row)
-
+        
         st.html("""
-            <div style="background-color: #131B2E; border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #F3F4F6; margin-bottom: 10px; display: inline-block;">
+            <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #102E4C; margin-bottom: 10px; display: inline-block;">
                 🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
             </div>
         """)
-
+        
         with st.expander("⚡ Valorización masiva por Código de Informe", expanded=False):
             col_cod, col_est, col_btn = st.columns([3, 2, 1], vertical_alignment="bottom")
+            
             codigos_disponibles = sorted([
                 c for c in df["CODIGO DE INFORME"].unique() 
                 if c and str(c) != "-" and not es_codigo_provisional(c)
             ])
+            
             codigo_sel = col_cod.selectbox("Seleccionar Código de Informe", codigos_disponibles, key="val_masiva_cod")
             estado_sel = col_est.selectbox("Estado a aplicar", ["SI", "Pendiente"], key="val_masiva_est")
+            
             if col_btn.button("Aplicar a todo", icon=":material/done_all:", type="primary"):
                 mascara_objetivo = (df["CODIGO DE INFORME"] == codigo_sel) & ~mascara_retirado
+                
                 df.loc[mascara_objetivo, "VALORIZACIÓN"] = estado_sel
                 if estado_sel == "SI":
                     df.loc[mascara_objetivo, "OBSERVACIÓN"] = ""
+                
                 st.session_state.df_data = normalizar_base(df)
                 guardar_datos(st.session_state.df_data)
                 st.toast(f"Valorización actualizada a '{estado_sel}' para {codigo_sel}", icon="✅")
                 st.rerun()
 
-        boton_descarga_excel(df_dis, "Tabla_general_informes.xlsx", "Descargar tabla general")
+        boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
-        if modo_edicion:
-            ed_df = st.data_editor(
-                df_dis,
-                column_config=config_columnas,
-                hide_index=True,
-                use_container_width=True, 
-                key="editor_tabla_general_select"
-            )
-
-            if st.button("💾 Guardar Cambios", key="btn_guardar_gen", type="primary"):
-                for real_idx, row in ed_df.iterrows():
-                    for col in COLUMNAS_EXCEL:
-                        st.session_state.df_data.at[real_idx, col] = row[col]
-
-                    if str(row["VALORIZACIÓN"]).strip().upper() == "SI":
-                        st.session_state.df_data.at[real_idx, "OBSERVACIÓN"] = ""
-
-                st.session_state.df_data = normalizar_base(st.session_state.df_data)
-                guardar_datos(st.session_state.df_data)
-                st.toast("¡Cambios guardados con éxito!", icon="💾")
-                st.rerun()
-        else:
-            df_styled = df_dis.style.apply(resaltar_filas, axis=1)
-            st.dataframe(
-                df_styled,
-                column_config=config_columnas,
-                hide_index=True,
-                use_container_width=True,
-                height=600
-            )
+        editado = st.data_editor(
+            df_vista,
+            column_config=encabezados,
+            hide_index=True,
+            width="stretch",
+            height=600,
+            disabled=["SEÑAL"],
+            key="editor_tabla_general",
+        )
+        
+        if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
+            df_actualizado = editado.drop(columns=["SEÑAL"], errors="ignore")
+            
+            mascara_si = df_actualizado["VALORIZACIÓN"].apply(lambda x: texto_normalizado(x) == "SI")
+            df_actualizado.loc[mascara_si, "OBSERVACIÓN"] = ""
+            
+            st.session_state.df_data.update(df_actualizado)
+            guardar_datos(st.session_state.df_data)
+            
+            st.toast("¡Cambios guardados con éxito!", icon="💾")
 
     vista_tabla_general()
 
-# -----------------------------------------------------------------------------
-# FUNCIONES AUXILIARES PARA VISTAS SECUNDARIAS
-# -----------------------------------------------------------------------------
+# AUXILIARES PARA AGRUPACIÓN DE TABLAS
 def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     if df_origen.empty:
         st.info("No hay registros para mostrar.", icon=":material/info:")
@@ -967,7 +859,7 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     tabla = df_origen.groupby(columnas, as_index=False, dropna=False).agg(LINEAS=("LINEAS", "count")).fillna("")
     tabla.index = range(1, len(tabla) + 1)
     boton_descarga_excel(tabla, nombre_archivo, "Descargar Excel")
-    st.dataframe(tabla, use_container_width=True, hide_index=False, height=600)
+    st.dataframe(tabla, width="stretch", hide_index=False, height=600)
     return tabla
 
 def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
@@ -1004,7 +896,7 @@ def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
 
     df_mostrar.index = range(1, len(df_mostrar) + 1)
     boton_descarga_excel(df_mostrar, nombre_archivo, "Descargar Excel")
-    st.dataframe(df_mostrar, use_container_width=True, hide_index=False, height=600)
+    st.dataframe(df_mostrar, width="stretch", hide_index=False, height=600)
 
 # 3. PENDIENTE ASIGNAR
 with tabs[2]:
