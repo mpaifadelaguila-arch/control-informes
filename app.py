@@ -24,7 +24,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Prevención del error removeChild (bloquea la traducción automática del navegador)
+# Prevención del error removeChild
 st.markdown(
     '<meta name="google" content="notranslate">', 
     unsafe_allow_html=True
@@ -49,7 +49,6 @@ def conectar_drive():
 drive_service = conectar_drive()
 
 def descargar_archivo_de_drive(nombre_archivo, ruta_local, max_reintentos=3):
-    """Descarga la versión más reciente desde Drive con reintentos automáticos."""
     if not drive_service:
         return False
         
@@ -84,7 +83,6 @@ def descargar_archivo_de_drive(nombre_archivo, ruta_local, max_reintentos=3):
     return False
 
 def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json', max_reintentos=3):
-    """Subida síncrona a Google Drive con reintentos automáticos."""
     if not drive_service:
         return False
         
@@ -134,7 +132,6 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
     return False
 
 def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='application/json'):
-    """Ejecuta la subida a Drive en un hilo secundario."""
     hilo = threading.Thread(
         target=subir_archivo_a_drive,
         args=(nombre_archivo, ruta_local, mime_type),
@@ -143,7 +140,7 @@ def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='applic
     hilo.start()
 
 # -----------------------------------------------------------------------------
-# ESTILOS CSS TEMA DARK NEÓN
+# ESTILOS CSS CORREGIDOS
 # -----------------------------------------------------------------------------
 st.markdown(
     """
@@ -152,7 +149,6 @@ st.markdown(
     .stAppDeployButton {display:none !important;}
     header {visibility: hidden !important;}
 
-    /* Fondo global */
     .stApp {
         background-color: #0A0E1A !important;
         color: #F3F4F6 !important;
@@ -183,41 +179,33 @@ st.markdown(
         margin-top: 4px;
     }
 
-    /* CONTENEDORES PRINCIPALES */
-    .st-key-panel_control, .st-key-sistema_control {
-        background: transparent !important;
-        border: none !important;
-        padding: 0px !important;
-        margin-bottom: 20px;
-    }
     .section-title {
         font-size: 1.1rem;
         font-weight: 800;
-        color: #F3F4F6;
+        color: #FFFFFF !important;
         margin-bottom: 14px;
         padding-bottom: 8px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    /* TARJETAS DE BLOQUE (NEÓN) */
+    /* TARJETAS NEÓN ENCAPSULADAS */
     .card-container {
         background: linear-gradient(180deg, #131B2E 0%, #0D1322 100%);
         border-radius: 14px;
-        padding: 16px;
+        padding: 18px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        min-height: 380px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        min-height: 420px;
+        margin-bottom: 15px;
     }
-    .card-container:hover { transform: translateY(-2px); }
 
-    .card-general { border: 1px solid rgba(255, 140, 0, 0.35); box-shadow: 0 0 15px rgba(255, 140, 0, 0.1); }
-    .card-gabinete { border: 1px solid rgba(168, 85, 247, 0.35); box-shadow: 0 0 15px rgba(168, 85, 247, 0.1); }
-    .card-especialista { border: 1px solid rgba(59, 130, 246, 0.35); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
-    .card-campo { border: 1px solid rgba(239, 68, 68, 0.35); box-shadow: 0 0 15px rgba(239, 68, 68, 0.1); }
-    .card-cliente { border: 1px solid rgba(6, 182, 212, 0.35); box-shadow: 0 0 15px rgba(6, 182, 212, 0.1); }
+    .card-general { border: 1px solid rgba(255, 140, 0, 0.4); box-shadow: 0 0 15px rgba(255, 140, 0, 0.1); }
+    .card-gabinete { border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 0 15px rgba(168, 85, 247, 0.1); }
+    .card-especialista { border: 1px solid rgba(59, 130, 246, 0.4); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
+    .card-campo { border: 1px solid rgba(239, 68, 68, 0.4); box-shadow: 0 0 15px rgba(239, 68, 68, 0.1); }
+    .card-cliente { border: 1px solid rgba(6, 182, 212, 0.4); box-shadow: 0 0 15px rgba(6, 182, 212, 0.1); }
 
     .card-title {
-        font-size: 0.82rem;
+        font-size: 0.85rem;
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 0.6px;
@@ -225,101 +213,52 @@ st.markdown(
     }
     .metric-item {
         padding-left: 10px;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
     }
     .metric-label {
         font-size: 0.72rem;
-        color: #94A3B8;
+        color: #94A3B8 !important;
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
     .metric-value {
-        font-size: 1.75rem;
+        font-size: 1.6rem;
         font-weight: 800;
-        color: #FFFFFF;
+        color: #FFFFFF !important;
         line-height: 1.1;
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
     }
 
-    /* PESTAÑAS (TABS) CYBERPUNK */
-    .st-key-sistema_control .stTabs [data-baseweb="tab-list"],
-    .st-key-sistema_control .stTabs [role="tablist"] {
-        display: flex !important;
-        width: 100% !important;
-        gap: 6px !important;
-        flex-wrap: wrap;
-        background-color: #0A0E1A !important;
-        padding: 6px;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+    /* FIX PESTAÑAS Y TEXTOS */
+    label, div[data-testid="stWidgetLabel"] {
+        color: #E2E8F0 !important;
+        font-weight: 600 !important;
     }
-    .st-key-sistema_control .stTabs [data-baseweb="tab"],
-    .st-key-sistema_control .stTabs button[role="tab"] {
-        flex: 1 1 auto !important;
-        min-width: 110px;
-        justify-content: center !important;
-        height: 38px;
-        border-radius: 8px !important;
-        font-size: 0.78rem !important;
-        font-weight: 700 !important;
+    
+    .stTabs [data-baseweb="tab"] {
         color: #94A3B8 !important;
-        padding: 0 12px !important;
-        background: transparent !important;
-        border: none !important;
-        text-align: center;
-        white-space: nowrap;
-        transition: all 0.2s ease;
+        background-color: #131B2E !important;
+        border-radius: 8px !important;
+        padding: 8px 16px !important;
     }
-    .st-key-sistema_control .stTabs [aria-selected="true"] {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%) !important;
+    
+    .stTabs [aria-selected="true"] {
         color: #38BDF8 !important;
-        border: 1px solid rgba(56, 189, 248, 0.4) !important;
-        box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+        background-color: #1E293B !important;
+        border: 1px solid #38BDF8 !important;
+        font-weight: bold !important;
     }
 
-    /* EXPANDER & FILTROS */
     div[data-testid="stExpander"] { 
         background: #131B2E !important; 
-        border: 1px solid rgba(255, 255, 255, 0.08) !important; 
+        border: 1px solid rgba(255, 255, 255, 0.1) !important; 
         border-radius: 10px !important; 
-    }
-    div[data-baseweb="select"] > div, .stTextInput > div > div {
-        background-color: #0A0E1A !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 8px !important;
-        color: #F3F4F6 !important;
-    }
-
-    /* TABLAS Y EDITOR */
-    div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
-        background-color: #0A0E1A !important;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        padding: 4px;
-        margin-top: 10px !important;
-    }
-
-    /* BOTONES */
-    .stButton > button, .stDownloadButton > button {
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
-        color: #38BDF8 !important;
-        border: 1px solid rgba(56, 189, 248, 0.3) !important;
-        border-radius: 8px !important;
-        font-weight: 700 !important;
-        transition: all 0.3s ease !important;
-    }
-    .stButton > button:hover, .stDownloadButton > button:hover {
-        border-color: #38BDF8 !important;
-        box-shadow: 0 0 14px rgba(56, 189, 248, 0.4) !important;
-        transform: translateY(-1px);
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# Constantes y Archivos
 DB_FILE = "database_informes.json"
 SOLICITUDES_FILE = "database_solicitudes.json"
 
@@ -338,7 +277,6 @@ ESPECIALISTAS_LISTA = ["Jesús Rehkoff Díaz", "M. Paifa", "Julio Ponce", "Omar"
 REVISORES_PSAIM_LISTA = ["Franmary Gutierrez", "Alejandro Macury", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
 PERSONAL_LISTA_BASE = ["M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid", "Juan José", "Dante", "Jesús Rehkoff Díaz", "Franmary Gutierrez", "Alejandro Macury", "Otro Inspector"]
 
-# Funciones de Limpieza y Normalización
 def texto_normalizado(valor):
     if pd.isna(valor) or valor is None:
         return ""
@@ -691,64 +629,102 @@ def procesar_agrupaciones_y_kpis(df_input):
 
 mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes = procesar_agrupaciones_y_kpis(df)
 
-# PANEL DE CONTROL (5 COLUMNAS NEÓN)
-panel_control = st.container(key="panel_control")
-panel_control.markdown("<div class='section-title'>📊 Panel de control de informes</div>", unsafe_allow_html=True)
+# PANEL DE CONTROL (5 COLUMNAS ENCAPSULADAS EN SUS TARJETAS)
+st.markdown("<div class='section-title'>📊 Panel de control de informes</div>", unsafe_allow_html=True)
+col1, col2, col3, col4, col5 = st.columns(5)
 
-col1, col2, col3, col4, col5 = panel_control.columns(5)
-
-# --- BLOQUE GENERAL ---
+# BLOQUE GENERAL
 with col1:
-    st.markdown('<div class="card-container card-general">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title" style="color: #FF8C00;">📊 BLOQUE GENERAL</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #FF8C00;"><div class="metric-label">INFORMES TOTALES</div><div class="metric-value">{kpis["total_inf_unicos"]}</div></div>', unsafe_allow_html=True)
-    
+    st.markdown(f"""
+        <div class="card-container card-general">
+            <div class="card-title" style="color: #FF8C00;">📊 BLOQUE GENERAL</div>
+            <div class="metric-item" style="border-left: 3px solid #FF8C00;">
+                <div class="metric-label">INFORMES TOTALES</div>
+                <div class="metric-value">{kpis["total_inf_unicos"]}</div>
+            </div>
+            <div class="metric-item" style="border-left: 3px solid #FF8C00;">
+                <div class="metric-label">FINALIZADOS</div>
+                <div class="metric-value">{kpis["tot_finalizados"]}</div>
+            </div>
+            <div class="metric-item" style="border-left: 3px solid #FF8C00;">
+                <div class="metric-label">PENDIENTES ELABORAR</div>
+                <div class="metric-value">{kpis["tot_pendientes_elaborar"]}</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
     st.plotly_chart(render_donut_chart(kpis["pct_finalizados"], "Finalizados", "#FF8C00"), use_container_width=True, key="donut_gen")
-    
-    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #FF8C00;"><div class="metric-label">PENDIENTES ELABORAR</div><div class="metric-value">{kpis["tot_pendientes_elaborar"]}</div></div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- BLOQUE GABINETE ---
+# BLOQUE GABINETE
 with col2:
-    st.markdown('<div class="card-container card-gabinete">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title" style="color: #A855F7;">📂 BLOQUE GABINETE</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #A855F7;"><div class="metric-label">EN PROCESO</div><div class="metric-value">{kpis["val_en_proceso"]}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #A855F7;"><div class="metric-label">PEND. ASIGNAR</div><div class="metric-value">{kpis["val_para_asignar"]}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #A855F7;"><div class="metric-label">CORREC. PSAIM</div><div class="metric-value">{kpis["val_psaim"]}</div></div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class="card-container card-gabinete">
+            <div class="card-title" style="color: #A855F7;">📂 BLOQUE GABINETE</div>
+            <div class="metric-item" style="border-left: 3px solid #A855F7;">
+                <div class="metric-label">EN PROCESO</div>
+                <div class="metric-value">{kpis["val_en_proceso"]}</div>
+            </div>
+            <div class="metric-item" style="border-left: 3px solid #A855F7;">
+                <div class="metric-label">PEND. ASIGNAR</div>
+                <div class="metric-value">{kpis["val_para_asignar"]}</div>
+            </div>
+            <div class="metric-item" style="border-left: 3px solid #A855F7;">
+                <div class="metric-label">CORREC. PSAIM</div>
+                <div class="metric-value">{kpis["val_psaim"]}</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-# --- BLOQUE ESPECIALISTA ---
+# BLOQUE ESPECIALISTA
 with col3:
-    st.markdown('<div class="card-container card-especialista">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title" style="color: #3B82F6;">👤 BLOQUE ESPECIALISTA</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #3B82F6;"><div class="metric-label">REVISADOS</div><div class="metric-value">{kpis["revision_especialista"]}</div></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #3B82F6;"><div class="metric-label">POR REVISAR</div><div class="metric-value">{kpis["revision_especialista_pendiente"]}</div></div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class="card-container card-especialista">
+            <div class="card-title" style="color: #3B82F6;">👤 BLOQUE ESPECIALISTA</div>
+            <div class="metric-item" style="border-left: 3px solid #3B82F6;">
+                <div class="metric-label">REVISADOS</div>
+                <div class="metric-value">{kpis["revision_especialista"]}</div>
+            </div>
+            <div class="metric-item" style="border-left: 3px solid #3B82F6;">
+                <div class="metric-label">POR REVISAR</div>
+                <div class="metric-value">{kpis["revision_especialista_pendiente"]}</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-# --- BLOQUE CAMPO ---
+# BLOQUE CAMPO
 with col4:
-    st.markdown('<div class="card-container card-campo">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title" style="color: #EF4444;">📝 BLOQUE CAMPO</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #EF4444;"><div class="metric-label">PEND. INSPECCIÓN</div><div class="metric-value">{kpis["val_pend_inspeccion"]}</div></div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class="card-container card-campo">
+            <div class="card-title" style="color: #EF4444;">📝 BLOQUE CAMPO</div>
+            <div class="metric-item" style="border-left: 3px solid #EF4444;">
+                <div class="metric-label">PEND. INSPECCIÓN</div>
+                <div class="metric-value">{kpis["val_pend_inspeccion"]}</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-# --- BLOQUE CLIENTE ---
+# BLOQUE CLIENTE (TEXTOS ACTUALIZADOS SEGÚN SOLICITUD)
 with col5:
-    st.markdown('<div class="card-container card-cliente">', unsafe_allow_html=True)
-    st.markdown('<div class="card-title" style="color: #06B6D4;">🏢 BLOQUE CLIENTE</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #06B6D4;"><div class="metric-label">VALORIZADOS</div><div class="metric-value">{kpis["tot_valorizados"]}</div></div>', unsafe_allow_html=True)
-    
+    st.markdown(f"""
+        <div class="card-container card-cliente">
+            <div class="card-title" style="color: #06B6D4;">🏢 BLOQUE CLIENTE</div>
+            <div class="metric-item" style="border-left: 3px solid #06B6D4;">
+                <div class="metric-label">VALORIZADOS</div>
+                <div class="metric-value">{kpis["tot_valorizados"]}</div>
+            </div>
+            <div class="metric-item" style="border-left: 3px solid #06B6D4;">
+                <div class="metric-label">PEND. VALORIZAR (REV. CLIENTE)</div>
+                <div class="metric-value">{kpis["revision_fiabilidad"]}</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
     st.plotly_chart(render_donut_chart(kpis["pct_en_revision"], "En Revisión", "#06B6D4"), use_container_width=True, key="donut_cli")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # SISTEMA DE CONTROL Y RESÚMENES
 solicitudes_activas = [solicitud for solicitud in cargar_solicitudes() if solicitud["estado"] == "PENDIENTE"]
 
-sistema_control = st.container(key="sistema_control")
-sistema_control.markdown("<div class='section-title'>🗂️ Sistema de control y resúmenes</div>", unsafe_allow_html=True)
+st.markdown("<div class='section-title'>🗂️ Sistema de control y resúmenes</div>", unsafe_allow_html=True)
 
-tabs = sistema_control.tabs([
+tabs = st.tabs([
     f"🔔 Admin ({len(solicitudes_activas)})",
     "📋 Tabla general",
     "📇 Pend. asignar",
@@ -908,7 +884,6 @@ with tabs[1]:
 
     vista_tabla_general()
 
-# AUXILIARES PARA AGRUPACIÓN DE TABLAS
 def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     if df_origen.empty:
         st.info("No hay registros para mostrar.", icon=":material/info:")
