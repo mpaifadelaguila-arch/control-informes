@@ -7,7 +7,6 @@ import time
 from datetime import datetime
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -16,7 +15,9 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
-# Configuración de página
+# -----------------------------------------------------------------------------
+# CONFIGURACIÓN DE PÁGINA Y EVITACIÓN DE ERRORES DE TRADUCCIÓN
+# -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Control interno de informes - Ademinsac",
     page_icon=":material/assignment:",
@@ -24,13 +25,14 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Prevención del error removeChild
 st.markdown(
     '<meta name="google" content="notranslate">', 
     unsafe_allow_html=True
 )
 
-# Constantes de Google Drive
+# -----------------------------------------------------------------------------
+# CONSTANTES Y CONEXIÓN A GOOGLE DRIVE
+# -----------------------------------------------------------------------------
 FOLDER_ID = "1gUyx6PbtLd7tG_C20x00CVmVdF0oYm_8"
 
 @st.cache_resource
@@ -140,7 +142,7 @@ def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='applic
     hilo.start()
 
 # -----------------------------------------------------------------------------
-# ESTILOS CSS CORREGIDOS
+# ESTILOS CSS PERSONALIZADOS
 # -----------------------------------------------------------------------------
 st.markdown(
     """
@@ -194,7 +196,7 @@ st.markdown(
         border-radius: 14px;
         padding: 18px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        min-height: 420px;
+        min-height: 250px;
         margin-bottom: 15px;
     }
 
@@ -229,14 +231,26 @@ st.markdown(
         line-height: 1.1;
     }
 
-    /* FIX PESTAÑAS Y TEXTOS */
+    /* CONTROLES, PESTAÑAS Y BOTONES */
     label, div[data-testid="stWidgetLabel"] {
         color: #E2E8F0 !important;
         font-weight: 600 !important;
     }
+
+    div.stButton > button, div.stDownloadButton > button {
+        color: #0F172A !important;
+        background-color: #F8FAFC !important;
+        border: 1px solid #CBD5E1 !important;
+        font-weight: 700 !important;
+    }
     
+    div.stButton > button:hover, div.stDownloadButton > button:hover {
+        background-color: #E2E8F0 !important;
+        color: #0284C7 !important;
+    }
+
     .stTabs [data-baseweb="tab"] {
-        color: #94A3B8 !important;
+        color: #CBD5E1 !important;
         background-color: #131B2E !important;
         border-radius: 8px !important;
         padding: 8px 16px !important;
@@ -249,6 +263,11 @@ st.markdown(
         font-weight: bold !important;
     }
 
+    div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p {
+        color: #F1F5F9 !important;
+        font-weight: 600 !important;
+    }
+
     div[data-testid="stExpander"] { 
         background: #131B2E !important; 
         border: 1px solid rgba(255, 255, 255, 0.1) !important; 
@@ -259,6 +278,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# -----------------------------------------------------------------------------
+# BASES DE DATOS Y CONSTANTES DE TRABAJO
+# -----------------------------------------------------------------------------
 DB_FILE = "database_informes.json"
 SOLICITUDES_FILE = "database_solicitudes.json"
 
@@ -277,6 +299,9 @@ ESPECIALISTAS_LISTA = ["Jesús Rehkoff Díaz", "M. Paifa", "Julio Ponce", "Omar"
 REVISORES_PSAIM_LISTA = ["Franmary Gutierrez", "Alejandro Macury", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
 PERSONAL_LISTA_BASE = ["M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid", "Juan José", "Dante", "Jesús Rehkoff Díaz", "Franmary Gutierrez", "Alejandro Macury", "Otro Inspector"]
 
+# -----------------------------------------------------------------------------
+# FUNCIONES AUXILIARES Y NORMALIZACIÓN DE DATOS
+# -----------------------------------------------------------------------------
 def texto_normalizado(valor):
     if pd.isna(valor) or valor is None:
         return ""
@@ -288,6 +313,14 @@ def texto_limpio(valor):
         return ""
     texto = str(valor).strip()
     return texto[:-2] if texto.endswith(".0") else texto
+
+def formatear_entero_limpio(valor):
+    if pd.isna(valor) or valor is None:
+        return ""
+    v_str = str(valor).strip()
+    if v_str.endswith(".0"):
+        return v_str[:-2]
+    return v_str
 
 def separar_alcance_y_notas(alcance, notas=""):
     alcance_limpio = texto_limpio(alcance)
@@ -456,36 +489,14 @@ def senal_visual(fila):
         return "🔵 Inspección complem."
     return "⚪ Sin alerta"
 
-def render_donut_chart(percentage, label, color_hex):
-    fig = go.Figure(data=[go.Pie(
-        labels=[label, 'Restante'],
-        values=[percentage, max(0, 100 - percentage)],
-        hole=0.72,
-        marker_colors=[color_hex, '#1E293B'],
-        textinfo='none',
-        hoverinfo='label+percent'
-    )])
-    
-    fig.update_layout(
-        showlegend=False,
-        margin=dict(t=5, b=5, l=5, r=5),
-        height=130,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        annotations=[dict(
-            text=f"<b>{percentage}%</b><br><span style='font-size:9px;color:#94A3B8;'>{label}</span>",
-            x=0.5, y=0.5, font_size=15, font_color="#FFFFFF", showarrow=False
-        )]
-    )
-    return fig
-
-# Carga Inicial de Datos
+# -----------------------------------------------------------------------------
+# CARGA INICIAL Y BANNER
+# -----------------------------------------------------------------------------
 if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
 
 df = normalizar_base(st.session_state.df_data)
 
-# Banner Principal
 st.html("""
     <div class="header-banner">
         <div class="header-title">CONTROL INTERNO DE INFORMES - ADEMINSAC</div>
@@ -493,7 +504,6 @@ st.html("""
     </div>
 """)
 
-# Expander de Carga / Respaldo
 with st.expander("⚙️ Gestión de datos: cargar, restaurar y descargar respaldo", expanded=False):
     carga, respaldo = st.columns([1.15, 0.85], vertical_alignment="bottom")
     with carga:
@@ -524,7 +534,9 @@ if df.empty:
     st.info("Carga un archivo Excel desde Gestión de datos para iniciar el control.", icon=":material/info:")
     st.stop()
 
+# -----------------------------------------------------------------------------
 # PROCESAMIENTO DE DATOS Y KPIS
+# -----------------------------------------------------------------------------
 @st.cache_data(show_spinner=False)
 def procesar_agrupaciones_y_kpis(df_input):
     mascara_retirado = df_input["OBSERVACIÓN"].apply(lambda v: "RETIRADO" in texto_normalizado(v)) | \
@@ -606,9 +618,6 @@ def procesar_agrupaciones_y_kpis(df_input):
     val_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
     val_psaim = sum(por_mes["psaim"].values())
 
-    pct_finalizados = round((tot_finalizados / total_inf_unicos * 100)) if total_inf_unicos > 0 else 0
-    pct_en_revision = round((revision_fiabilidad / total_inf_unicos * 100)) if total_inf_unicos > 0 else 0
-
     kpis = {
         "total_inf_unicos": total_inf_unicos,
         "tot_finalizados": tot_finalizados,
@@ -621,19 +630,18 @@ def procesar_agrupaciones_y_kpis(df_input):
         "revision_especialista": revision_especialista,
         "revision_especialista_pendiente": revision_especialista_pendiente,
         "revision_fiabilidad": revision_fiabilidad,
-        "pct_finalizados": pct_finalizados,
-        "pct_en_revision": pct_en_revision
     }
 
     return mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes
 
 mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes = procesar_agrupaciones_y_kpis(df)
 
-# PANEL DE CONTROL (5 COLUMNAS ENCAPSULADAS EN SUS TARJETAS)
+# -----------------------------------------------------------------------------
+# PANEL DE CONTROL (KPIS)
+# -----------------------------------------------------------------------------
 st.markdown("<div class='section-title'>📊 Panel de control de informes</div>", unsafe_allow_html=True)
 col1, col2, col3, col4, col5 = st.columns(5)
 
-# BLOQUE GENERAL
 with col1:
     st.markdown(f"""
         <div class="card-container card-general">
@@ -652,9 +660,7 @@ with col1:
             </div>
         </div>
     """, unsafe_allow_html=True)
-    st.plotly_chart(render_donut_chart(kpis["pct_finalizados"], "Finalizados", "#FF8C00"), use_container_width=True, key="donut_gen")
 
-# BLOQUE GABINETE
 with col2:
     st.markdown(f"""
         <div class="card-container card-gabinete">
@@ -674,7 +680,6 @@ with col2:
         </div>
     """, unsafe_allow_html=True)
 
-# BLOQUE ESPECIALISTA
 with col3:
     st.markdown(f"""
         <div class="card-container card-especialista">
@@ -690,7 +695,6 @@ with col3:
         </div>
     """, unsafe_allow_html=True)
 
-# BLOQUE CAMPO
 with col4:
     st.markdown(f"""
         <div class="card-container card-campo">
@@ -702,7 +706,6 @@ with col4:
         </div>
     """, unsafe_allow_html=True)
 
-# BLOQUE CLIENTE
 with col5:
     st.markdown(f"""
         <div class="card-container card-cliente">
@@ -717,9 +720,10 @@ with col5:
             </div>
         </div>
     """, unsafe_allow_html=True)
-    st.plotly_chart(render_donut_chart(kpis["pct_en_revision"], "En Revisión", "#06B6D4"), use_container_width=True, key="donut_cli")
 
-# SISTEMA DE CONTROL Y RESÚMENES
+# -----------------------------------------------------------------------------
+# SISTEMA DE CONTROL Y PESTAÑAS PRINCIPALES
+# -----------------------------------------------------------------------------
 solicitudes_activas = [solicitud for solicitud in cargar_solicitudes() if solicitud["estado"] == "PENDIENTE"]
 
 st.markdown("<div class='section-title'>🗂️ Sistema de control y resúmenes</div>", unsafe_allow_html=True)
@@ -778,112 +782,184 @@ with tabs[0]:
                     st.rerun()
     vista_admin()
 
-# 2. TABLA GENERAL
+# 2. TABLA GENERAL (NUEVA IMPLEMENTACIÓN CON SEGMENTACIÓN Y EDICIÓN ALTERNADA)
 with tabs[1]:
     @st.fragment
     def vista_tabla_general():
-        filtros = st.columns([1, 1, 2])
-        meses = ["Todos"] + sorted(
-            {texto_limpio(m).upper() for m in df["MES"] if texto_limpio(m)},
-            key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99,
-        )
-        mes = filtros[0].selectbox("Filtrar mes", meses)
-        alcance = filtros[1].selectbox("Alcance del servicio", ["Todos", "LINEAS", "VT-CIRCUITOS"])
-        consulta = filtros[2].text_input("Buscar por líneas, código, grupo, SAP, notas o alcance extendido", icon=":material/search:")
+        st.markdown("##### 🔍 Segmentación de Datos y Filtros")
         
-        df_vista = df.copy()
-        if mes != "Todos":
-            df_vista = df_vista[df_vista["MES"].apply(lambda v: texto_normalizado(v) == mes)]
-        if alcance != "Todos":
-            df_vista = df_vista[df_vista["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == alcance]
-        if consulta.strip():
-            consulta_norm = texto_normalizado(consulta)
-            columnas_busqueda = ["LINEAS", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS", "SAP", "NOTAS", "ALCANCE DEL SERVICIO"]
-            mascara_busqueda = df_vista[columnas_busqueda].apply(
-                lambda fila: any(consulta_norm in texto_normalizado(v) for v in fila), axis=1
-            )
-            df_vista = df_vista[mascara_busqueda]
+        # 1. Segmentación por MES (Botones interactivos horizontales)
+        meses_disp = ["Todos"] + sorted(
+            [m for m in df["MES"].dropna().astype(str).str.strip().str.upper().unique() if m],
+            key=lambda x: ORDEN_MESES.index(x) if x in ORDEN_MESES else 99
+        )
+        
+        st.write("**MES:**")
+        mes_sel = st.pills(
+            label="Seleccionar Mes",
+            options=meses_disp,
+            default="Todos",
+            key="pills_mes_gen",
+            label_visibility="collapsed"
+        )
+        m_sel = mes_sel if mes_sel else "Todos"
 
-        df_vista = df_vista.map(texto_limpio)
-        df_vista["VALORIZACIÓN"] = df_vista["VALORIZACIÓN"].apply(
-            lambda v: "SI" if texto_normalizado(v) == "SI" else ("Retirado" if texto_normalizado(v) == "RETIRADO" else "Pendiente")
+        # 2. Filtrado dinámico de los Grupos según el Mes elegido
+        df_base_grupo = df.copy()
+        if m_sel != "Todos":
+            df_base_grupo = df_base_grupo[df_base_grupo["MES"].astype(str).str.strip().str.upper() == m_sel]
+        
+        grupos_disp = ["Todos"] + sorted([g for g in df_base_grupo["GRUPO DE TUBERÍAS"].dropna().astype(str).str.strip().unique() if g])
+
+        # 3. Segmentación por GRUPO DE TUBERÍAS (Botones dinámicos horizontales)
+        st.write("**GRUPO DE TUBERÍAS:**")
+        grupo_sel = st.pills(
+            label="Seleccionar Grupo",
+            options=grupos_disp,
+            default="Todos",
+            key="pills_grupo_gen",
+            label_visibility="collapsed"
         )
-        df_vista.insert(0, "SEÑAL", df_vista.apply(senal_visual, axis=1))
+        g_sel = grupo_sel if grupo_sel else "Todos"
+
+        st.divider()
+
+        # 4. Buscador ampliado + Switch de Edición
+        c_busc, c_sw = st.columns([4, 1])
+        txt_b = c_busc.text_input("🔍 Buscador por GRUPO, CÓDIGO DE INFORME, SAP, LÍNEAS o ALCANCE DEL SERVICIO:", key="txt_busc_gen")
+        modo_edicion = c_sw.toggle("✏️ Habilitar Edición", value=False, key="sw_edit_gen")
+
+        # --- APLICACIÓN DE FILTROS A LA TABLA GENERAL ---
+        df_dis = df[COLUMNAS_EXCEL].copy()
         
-        encabezados = {
-            "SEÑAL": st.column_config.TextColumn("Señal", width=190, disabled=True, pinned=True),
-            "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
-            "IT2": st.column_config.TextColumn("IT2", width=55),
-            "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
-            "MES": st.column_config.TextColumn("Mes", width=80),
-            "LINEAS": st.column_config.TextColumn("Líneas", width=180),
-            "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=190),
-            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=180),
-            "SAP": st.column_config.TextColumn("SAP", width=85),
-            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width=120),
-            "NOTAS": st.column_config.TextColumn("Notas", width=170),
-            "ESTADO - ELABORACIÓN ": st.column_config.TextColumn("Estado de elaboración", width=190),
-            "RESPONSABLE": st.column_config.TextColumn("Responsable", width=135),
-            "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=280),
+        for column in df_dis.columns:
+            df_dis[column] = df_dis[column].apply(formatear_entero_limpio)
+
+        # Filtro 1: Mes
+        if m_sel != "Todos": 
+            df_dis = df_dis[df_dis["MES"].astype(str).str.strip().str.upper() == m_sel]
+        
+        # Filtro 2: Grupo
+        if g_sel != "Todos":
+            df_dis = df_dis[df_dis["GRUPO DE TUBERÍAS"].astype(str).str.strip() == g_sel]
+
+        # Filtro 3: Buscador amplio
+        if txt_b.strip():
+            q = texto_normalizado(txt_b)
+            df_dis = df_dis[df_dis.apply(
+                lambda r: q in texto_normalizado(r["GRUPO DE TUBERÍAS"]) or 
+                          q in texto_normalizado(r["CODIGO DE INFORME"]) or 
+                          q in texto_normalizado(r["SAP"]) or
+                          q in texto_normalizado(r["LINEAS"]) or
+                          q in texto_normalizado(r["ALCANCE DEL SERVICIO"]), 
+                axis=1
+            )]
+        
+        df_dis["VALORIZACIÓN"] = df_dis["VALORIZACIÓN"].apply(
+            lambda x: "SI" if texto_normalizado(x) == "SI" else ("Retirado" if texto_normalizado(x) == "RETIRADO" else "Pendiente")
+        )
+
+        config_columnas = {
+            "ITEM POR MES": st.column_config.TextColumn("Item", width="small"),
+            "IT2": st.column_config.TextColumn("IT2", width="small"),
+            "UNIDAD": st.column_config.TextColumn("Unidad", width="small"),
+            "MES": st.column_config.TextColumn("Mes", width="small"),
+            "LINEAS": st.column_config.TextColumn("Líneas", width="large"),
+            "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width="medium"),
+            "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width="medium"),
+            "SAP": st.column_config.TextColumn("SAP", width="small"),
+            "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Alcance", width="medium"),
+            "NOTAS": st.column_config.TextColumn("Notas", width="medium"),
+            "ESTADO - ELABORACIÓN ": st.column_config.TextColumn("Estado de elaboración", width="medium"),
+            "RESPONSABLE": st.column_config.TextColumn("Responsable", width="medium"),
+            "OBSERVACIÓN": st.column_config.TextColumn("Observación", width="large"),
             "VALORIZACIÓN": st.column_config.SelectboxColumn(
-                "Valorización", options=["Pendiente", "SI", "Retirado"], required=True, width=145
-            ),
+                "Valorización",
+                options=["Pendiente", "SI", "Retirado"],
+                required=True,
+                width="medium"
+            )
         }
-        
+
+        # Función para aplicar estilos condicionales por fila
+        def resaltar_filas(row):
+            val_estado = str(row.get("VALORIZACIÓN", "")).strip().upper()
+            val_alcance = texto_normalizado(row.get("ALCANCE DEL SERVICIO", ""))
+            val_notas = texto_normalizado(row.get("NOTAS", ""))
+
+            if val_estado == "SI":
+                return ["background-color: #D1FAE5; color: #065F46; font-weight: bold;"] * len(row)
+
+            if "PENDIENTE INSPECCION" in val_notas or "FALTA CARPETA" in val_notas or "PENDIENTE INSPECCION" in val_alcance:
+                return ["background-color: #FEF08A; color: #713F12; font-weight: bold;"] * len(row)
+
+            if "INSPECCION COMPLEMENTARIA" in val_notas or "INSPECCION COMPLEMENTARIA" in val_alcance:
+                return ["background-color: #BAE6FD; color: #0C4A6E; font-weight: bold;"] * len(row)
+
+            return [""] * len(row)
+
         st.html("""
             <div style="background-color: #131B2E; border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #F3F4F6; margin-bottom: 10px; display: inline-block;">
                 🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
             </div>
         """)
-        
+
         with st.expander("⚡ Valorización masiva por Código de Informe", expanded=False):
             col_cod, col_est, col_btn = st.columns([3, 2, 1], vertical_alignment="bottom")
-            
             codigos_disponibles = sorted([
                 c for c in df["CODIGO DE INFORME"].unique() 
                 if c and str(c) != "-" and not es_codigo_provisional(c)
             ])
-            
             codigo_sel = col_cod.selectbox("Seleccionar Código de Informe", codigos_disponibles, key="val_masiva_cod")
             estado_sel = col_est.selectbox("Estado a aplicar", ["SI", "Pendiente"], key="val_masiva_est")
-            
             if col_btn.button("Aplicar a todo", icon=":material/done_all:", type="primary"):
                 mascara_objetivo = (df["CODIGO DE INFORME"] == codigo_sel) & ~mascara_retirado
-                
                 df.loc[mascara_objetivo, "VALORIZACIÓN"] = estado_sel
                 if estado_sel == "SI":
                     df.loc[mascara_objetivo, "OBSERVACIÓN"] = ""
-                
                 st.session_state.df_data = normalizar_base(df)
                 guardar_datos(st.session_state.df_data)
                 st.toast(f"Valorización actualizada a '{estado_sel}' para {codigo_sel}", icon="✅")
                 st.rerun()
 
-        boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
+        boton_descarga_excel(df_dis, "Tabla_general_informes.xlsx", "Descargar tabla general")
 
-        editado = st.data_editor(
-            df_vista,
-            column_config=encabezados,
-            hide_index=True,
-            width="stretch",
-            height=600,
-            disabled=["SEÑAL"],
-            key="editor_tabla_general",
-        )
-        
-        if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
-            df_actualizado = editado.drop(columns=["SEÑAL"], errors="ignore")
-            
-            mascara_si = df_actualizado["VALORIZACIÓN"].apply(lambda x: texto_normalizado(x) == "SI")
-            df_actualizado.loc[mascara_si, "OBSERVACIÓN"] = ""
-            
-            st.session_state.df_data.update(df_actualizado)
-            guardar_datos(st.session_state.df_data)
-            
-            st.toast("¡Cambios guardados con éxito!", icon="💾")
+        if modo_edicion:
+            ed_df = st.data_editor(
+                df_dis,
+                column_config=config_columnas,
+                hide_index=True,
+                use_container_width=True, 
+                key="editor_tabla_general_select"
+            )
+
+            if st.button("💾 Guardar Cambios", key="btn_guardar_gen", type="primary"):
+                for real_idx, row in ed_df.iterrows():
+                    for col in COLUMNAS_EXCEL:
+                        st.session_state.df_data.at[real_idx, col] = row[col]
+
+                    if str(row["VALORIZACIÓN"]).strip().upper() == "SI":
+                        st.session_state.df_data.at[real_idx, "OBSERVACIÓN"] = ""
+
+                st.session_state.df_data = normalizar_base(st.session_state.df_data)
+                guardar_datos(st.session_state.df_data)
+                st.toast("¡Cambios guardados con éxito!", icon="💾")
+                st.rerun()
+        else:
+            df_styled = df_dis.style.apply(resaltar_filas, axis=1)
+            st.dataframe(
+                df_styled,
+                column_config=config_columnas,
+                hide_index=True,
+                use_container_width=True,
+                height=600
+            )
 
     vista_tabla_general()
 
+# -----------------------------------------------------------------------------
+# FUNCIONES AUXILIARES PARA VISTAS SECUNDARIAS
+# -----------------------------------------------------------------------------
 def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     if df_origen.empty:
         st.info("No hay registros para mostrar.", icon=":material/info:")
@@ -891,7 +967,7 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     tabla = df_origen.groupby(columnas, as_index=False, dropna=False).agg(LINEAS=("LINEAS", "count")).fillna("")
     tabla.index = range(1, len(tabla) + 1)
     boton_descarga_excel(tabla, nombre_archivo, "Descargar Excel")
-    st.dataframe(tabla, width="stretch", hide_index=False, height=600)
+    st.dataframe(tabla, use_container_width=True, hide_index=False, height=600)
     return tabla
 
 def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
@@ -928,7 +1004,7 @@ def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
 
     df_mostrar.index = range(1, len(df_mostrar) + 1)
     boton_descarga_excel(df_mostrar, nombre_archivo, "Descargar Excel")
-    st.dataframe(df_mostrar, width="stretch", hide_index=False, height=600)
+    st.dataframe(df_mostrar, use_container_width=True, hide_index=False, height=600)
 
 # 3. PENDIENTE ASIGNAR
 with tabs[2]:
