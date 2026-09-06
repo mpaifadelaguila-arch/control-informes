@@ -290,6 +290,20 @@ st.markdown(
         margin-top: 10px !important;
     }
     div[data-testid="stExpander"] { background:#fff; border-color:#dbe5ef; border-radius:12px; }
+
+    /* EFECTO HOVER EN TODAS LAS TABLAS Y RESÚMENES (DataEditor y DataFrame) */
+    div[data-testid="stDataFrame"] [role="row"]:hover,
+    div[data-testid="stDataEditor"] [role="row"]:hover,
+    div[data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"],
+    div[data-testid="stDataEditor"] [role="row"]:hover [role="gridcell"] {
+        background-color: #E8F5E9 !important;
+        transition: background-color 0.12s ease-in-out;
+    }
+
+    div[data-testid="stDataFrame"] [role="gridcell"],
+    div[data-testid="stDataEditor"] [role="gridcell"] {
+        background-color: inherit !important;
+    }
     </style>
 """,
     unsafe_allow_html=True,
