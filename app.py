@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -23,7 +24,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Prevención del error removeChild (bloquea la traducción automática del navegador que corrompe el DOM de React)
+# Prevención del error removeChild (bloquea la traducción automática del navegador)
 st.markdown(
     '<meta name="google" content="notranslate">', 
     unsafe_allow_html=True
@@ -48,7 +49,7 @@ def conectar_drive():
 drive_service = conectar_drive()
 
 def descargar_archivo_de_drive(nombre_archivo, ruta_local, max_reintentos=3):
-    """Descarga la versión más reciente desde Drive con reintentos automáticos para evitar errores SSL/Network."""
+    """Descarga la versión más reciente desde Drive con reintentos automáticos."""
     if not drive_service:
         return False
         
@@ -76,14 +77,14 @@ def descargar_archivo_de_drive(nombre_archivo, ruta_local, max_reintentos=3):
         except Exception as e:
             msg_error = str(e)
             if ("RECORD_LAYER_FAILURE" in msg_error or "SSL" in msg_error or "Connection" in msg_error) and intento < max_reintentos:
-                time.sleep(1.2 * intento)  # Espera exponencial progresiva
+                time.sleep(1.2 * intento)
                 continue
             st.error(f"Error al descargar desde Google Drive ({nombre_archivo}): {e}")
             break
     return False
 
 def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json', max_reintentos=3):
-    """Subida síncrona a Google Drive con reintentos automáticos contra fallos de socket SSL."""
+    """Subida síncrona a Google Drive con reintentos automáticos."""
     if not drive_service:
         return False
         
@@ -133,7 +134,7 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
     return False
 
 def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='application/json'):
-    """Ejecuta la subida a Drive en un hilo secundario para evitar bloqueos en la interfaz."""
+    """Ejecuta la subida a Drive en un hilo secundario."""
     hilo = threading.Thread(
         target=subir_archivo_a_drive,
         args=(nombre_archivo, ruta_local, mime_type),
@@ -141,7 +142,9 @@ def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='applic
     )
     hilo.start()
 
-# Estilos CSS Corporativos
+# -----------------------------------------------------------------------------
+# ESTILOS CSS TEMA DARK NEÓN
+# -----------------------------------------------------------------------------
 st.markdown(
     """
     <style>
@@ -149,115 +152,107 @@ st.markdown(
     .stAppDeployButton {display:none !important;}
     header {visibility: hidden !important;}
 
-    :root {
-        --primary-navy: #0E2A47;
-        --secondary-navy: #1A3E68;
-        --gold-accent: #D4AF37;
-        --bg-card: #FFFFFF;
-        --border-color: #E2E8F0;
-        --text-main: #1E293B;
-        --text-sub: #64748B;
+    /* Fondo global */
+    .stApp {
+        background-color: #0A0E1A !important;
+        color: #F3F4F6 !important;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
-
-    .stApp { background-color: #EEF2F7; }
-    .block-container { padding-top: 1.6rem !important; }
+    .block-container { padding-top: 1.5rem !important; padding-bottom: 2rem !important; }
 
     /* HEADER BANNER */
     .header-banner {
-        background: linear-gradient(120deg, #0B2038 0%, #1E4E7E 60%, #2C6494 100%);
-        padding: 22px 30px;
-        border-radius: 14px;
-        color: white;
+        background: linear-gradient(135deg, #131B2E 0%, #0B132B 100%);
+        border: 1px solid rgba(56, 189, 248, 0.2);
+        border-left: 5px solid #38BDF8;
+        border-radius: 12px;
+        padding: 18px 24px;
         margin-bottom: 20px;
-        box-shadow: 0 12px 28px rgba(11, 32, 56, 0.18);
-        position: relative;
-        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     }
-    .header-banner::after {
-        content: "";
-        position: absolute; top: 0; right: 0; bottom: 0; width: 6px;
-        background: linear-gradient(180deg, #E7BE30, #C99A1E);
+    .header-title {
+        color: #FFFFFF;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        margin: 0;
     }
-    .header-title { font-size: 24px; font-weight: 800; letter-spacing: 0.3px; margin: 0; color: #FFFFFF; }
-    .header-subtitle { font-size: 13.5px; color: #C9DCEE; margin-top: 4px; font-weight: 500; }
+    .header-subtitle {
+        color: #94A3B8;
+        font-size: 0.85rem;
+        margin-top: 4px;
+    }
 
     /* CONTENEDORES PRINCIPALES */
     .st-key-panel_control, .st-key-sistema_control {
-        background: #FFFFFF !important;
-        border: 1px solid #DBE5EF;
-        border-radius: 16px;
-        padding: 18px 20px 20px;
+        background: transparent !important;
+        border: none !important;
+        padding: 0px !important;
         margin-bottom: 20px;
-        box-shadow: 0 4px 14px rgba(15, 42, 70, 0.05);
     }
     .section-title {
-        font-size: 1.02rem;
+        font-size: 1.1rem;
         font-weight: 800;
-        color: #122F4C;
+        color: #F3F4F6;
         margin-bottom: 14px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #E7EDF3;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    /* FILA HORIZONTAL DE BLOQUES KPI */
-    .kpi-row {
-        display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-        align-items: stretch;
-        gap: 12px;
-    }
-    @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 700px) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-
-    .kpi-block-card {
-        background: #F4F8FC;
-        border: 1px solid #E1E9F1;
+    /* TARJETAS DE BLOQUE (NEÓN) */
+    .card-container {
+        background: linear-gradient(180deg, #131B2E 0%, #0D1322 100%);
         border-radius: 14px;
-        padding: 12px 14px;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        box-sizing: border-box;
+        padding: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        min-height: 380px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .kpi-block-title {
-        font-size: .68rem;
+    .card-container:hover { transform: translateY(-2px); }
+
+    .card-general { border: 1px solid rgba(255, 140, 0, 0.35); box-shadow: 0 0 15px rgba(255, 140, 0, 0.1); }
+    .card-gabinete { border: 1px solid rgba(168, 85, 247, 0.35); box-shadow: 0 0 15px rgba(168, 85, 247, 0.1); }
+    .card-especialista { border: 1px solid rgba(59, 130, 246, 0.35); box-shadow: 0 0 15px rgba(59, 130, 246, 0.1); }
+    .card-campo { border: 1px solid rgba(239, 68, 68, 0.35); box-shadow: 0 0 15px rgba(239, 68, 68, 0.1); }
+    .card-cliente { border: 1px solid rgba(6, 182, 212, 0.35); box-shadow: 0 0 15px rgba(6, 182, 212, 0.1); }
+
+    .card-title {
+        font-size: 0.82rem;
         font-weight: 800;
         text-transform: uppercase;
-        letter-spacing: .5px;
-        color: #5D7086;
-        margin-bottom: 10px;
-        white-space: nowrap;
+        letter-spacing: 0.6px;
+        margin-bottom: 16px;
     }
-    .kpi-items { display: grid; gap: 8px; flex: 1; align-content: start; }
-    .kpi-item {
-        background: #FFFFFF;
-        border: 1px solid #E6EDF4;
-        border-left: 3.5px solid var(--tone);
-        border-radius: 0 9px 9px 0;
-        padding: 7px 11px;
+    .metric-item {
+        padding-left: 10px;
+        margin-bottom: 14px;
     }
-    .kpi-item-label {
-        font-size: .63rem;
-        font-weight: 750;
+    .metric-label {
+        font-size: 0.72rem;
+        color: #94A3B8;
+        font-weight: 700;
         text-transform: uppercase;
-        color: #5D7086;
-        letter-spacing: .2px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        letter-spacing: 0.5px;
     }
-    .kpi-item-value { font-size: 1.35rem; font-weight: 800; color: #102E4C; line-height: 1.15; }
+    .metric-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #FFFFFF;
+        line-height: 1.1;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
+    }
 
-    /* PESTAÑAS DISTRIBUIDAS PAREJAS */
+    /* PESTAÑAS (TABS) CYBERPUNK */
     .st-key-sistema_control .stTabs [data-baseweb="tab-list"],
     .st-key-sistema_control .stTabs [role="tablist"] {
         display: flex !important;
         width: 100% !important;
-        gap: 5px !important;
+        gap: 6px !important;
         flex-wrap: wrap;
-        background-color: #EEF3F9;
+        background-color: #0A0E1A !important;
         padding: 6px;
         border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .st-key-sistema_control .stTabs [data-baseweb="tab"],
     .st-key-sistema_control .stTabs button[role="tab"] {
@@ -265,31 +260,60 @@ st.markdown(
         min-width: 110px;
         justify-content: center !important;
         height: 38px;
-        border-radius: 7px;
-        font-size: 11.5px;
-        font-weight: 650;
-        color: #475569;
-        padding: 0 8px !important;
-        background: #FFFFFF;
-        border: 1px solid #DFE7EF;
+        border-radius: 8px !important;
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+        color: #94A3B8 !important;
+        padding: 0 12px !important;
+        background: transparent !important;
+        border: none !important;
         text-align: center;
         white-space: nowrap;
+        transition: all 0.2s ease;
     }
     .st-key-sistema_control .stTabs [aria-selected="true"] {
-        background-color: #0E2A47 !important;
-        color: #FFFFFF !important;
-        border-color: #0E2A47 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%) !important;
+        color: #38BDF8 !important;
+        border: 1px solid rgba(56, 189, 248, 0.4) !important;
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
     }
 
+    /* EXPANDER & FILTROS */
+    div[data-testid="stExpander"] { 
+        background: #131B2E !important; 
+        border: 1px solid rgba(255, 255, 255, 0.08) !important; 
+        border-radius: 10px !important; 
+    }
+    div[data-baseweb="select"] > div, .stTextInput > div > div {
+        background-color: #0A0E1A !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 8px !important;
+        color: #F3F4F6 !important;
+    }
+
+    /* TABLAS Y EDITOR */
     div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
-        background-color: #FFFFFF !important;
+        background-color: #0A0E1A !important;
         border-radius: 10px;
-        border: 1px solid #E2E8F0;
+        border: 1px solid rgba(255, 255, 255, 0.08);
         padding: 4px;
         margin-top: 10px !important;
     }
-    div[data-testid="stExpander"] { background:#fff; border-color:#dbe5ef; border-radius:12px; }
+
+    /* BOTONES */
+    .stButton > button, .stDownloadButton > button {
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
+        color: #38BDF8 !important;
+        border: 1px solid rgba(56, 189, 248, 0.3) !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        transition: all 0.3s ease !important;
+    }
+    .stButton > button:hover, .stDownloadButton > button:hover {
+        border-color: #38BDF8 !important;
+        box-shadow: 0 0 14px rgba(56, 189, 248, 0.4) !important;
+        transform: translateY(-1px);
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -494,6 +518,29 @@ def senal_visual(fila):
         return "🔵 Inspección complem."
     return "⚪ Sin alerta"
 
+def render_donut_chart(percentage, label, color_hex):
+    fig = go.Figure(data=[go.Pie(
+        labels=[label, 'Restante'],
+        values=[percentage, max(0, 100 - percentage)],
+        hole=0.72,
+        marker_colors=[color_hex, '#1E293B'],
+        textinfo='none',
+        hoverinfo='label+percent'
+    )])
+    
+    fig.update_layout(
+        showlegend=False,
+        margin=dict(t=5, b=5, l=5, r=5),
+        height=130,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        annotations=[dict(
+            text=f"<b>{percentage}%</b><br><span style='font-size:9px;color:#94A3B8;'>{label}</span>",
+            x=0.5, y=0.5, font_size=15, font_color="#FFFFFF", showarrow=False
+        )]
+    )
+    return fig
+
 # Carga Inicial de Datos
 if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
@@ -504,7 +551,7 @@ df = normalizar_base(st.session_state.df_data)
 st.html("""
     <div class="header-banner">
         <div class="header-title">CONTROL INTERNO DE INFORMES - ADEMINSAC</div>
-        <div class="header-subtitle">Sistema de Monitoreo de Inspección Técnicas y Valorización | Refinería La Pampilla</div>
+        <div class="header-subtitle">Sistema de Monitoreo de Inspección Técnica y Valorización | Refinería La Pampilla</div>
     </div>
 """)
 
@@ -539,7 +586,7 @@ if df.empty:
     st.info("Carga un archivo Excel desde Gestión de datos para iniciar el control.", icon=":material/info:")
     st.stop()
 
-# OPTIMIZACIÓN CON CACHÉ DE PROCESAMIENTO DE DATOS
+# PROCESAMIENTO DE DATOS Y KPIS
 @st.cache_data(show_spinner=False)
 def procesar_agrupaciones_y_kpis(df_input):
     mascara_retirado = df_input["OBSERVACIÓN"].apply(lambda v: "RETIRADO" in texto_normalizado(v)) | \
@@ -621,6 +668,9 @@ def procesar_agrupaciones_y_kpis(df_input):
     val_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
     val_psaim = sum(por_mes["psaim"].values())
 
+    pct_finalizados = round((tot_finalizados / total_inf_unicos * 100)) if total_inf_unicos > 0 else 0
+    pct_en_revision = round((revision_fiabilidad / total_inf_unicos * 100)) if total_inf_unicos > 0 else 0
+
     kpis = {
         "total_inf_unicos": total_inf_unicos,
         "tot_finalizados": tot_finalizados,
@@ -632,58 +682,65 @@ def procesar_agrupaciones_y_kpis(df_input):
         "val_psaim": val_psaim,
         "revision_especialista": revision_especialista,
         "revision_especialista_pendiente": revision_especialista_pendiente,
-        "revision_fiabilidad": revision_fiabilidad
+        "revision_fiabilidad": revision_fiabilidad,
+        "pct_finalizados": pct_finalizados,
+        "pct_en_revision": pct_en_revision
     }
 
     return mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes
 
 mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes = procesar_agrupaciones_y_kpis(df)
 
-# RENDERIZADO DEL PANEL DE CONTROL
-def item_kpi(titulo, valor, color):
-    return (
-        f"<div class='kpi-item' style='--tone:{color}'>"
-        f"<div class='kpi-item-label'>{titulo}</div>"
-        f"<div class='kpi-item-value'>{valor}</div>"
-        f"</div>"
-    )
-
-def bloque_kpi(titulo_bloque, emoji, items):
-    filas = "".join(item_kpi(*i) for i in items)
-    return (
-        f"<div class='kpi-block-card'>"
-        f"<div class='kpi-block-title'>{emoji} {titulo_bloque}</div>"
-        f"<div class='kpi-items'>{filas}</div></div>"
-    )
-
+# PANEL DE CONTROL (5 COLUMNAS NEÓN)
 panel_control = st.container(key="panel_control")
 panel_control.markdown("<div class='section-title'>📊 Panel de control de informes</div>", unsafe_allow_html=True)
 
-bloques_html = "".join([
-    bloque_kpi("Bloque general", "📊", [
-        ("Informes totales", kpis["total_inf_unicos"], "#173F67"),
-        ("Informes finalizados", kpis["tot_finalizados"], "#159A68"),
-        ("Pendientes elaborar", kpis["tot_pendientes_elaborar"], "#E38921"),
-    ]),
-    bloque_kpi("Bloque gabinete", "📁", [
-        ("En proceso", kpis["val_en_proceso"], "#7B61C9"),
-        ("Pend. asignar", kpis["val_para_asignar"], "#D54D9D"),
-        ("Correc. PSAIM", kpis["val_psaim"], "#C89716"),
-    ]),
-    bloque_kpi("Bloque especialista", "👤", [
-        ("Revisados", kpis["revision_especialista"], "#168EAE"),
-        ("Por revisar", kpis["revision_especialista_pendiente"], "#5564D8"),
-    ]),
-    bloque_kpi("Bloque campo", "📝", [
-        ("Pend. inspección", kpis["val_pend_inspeccion"], "#D8534F"),
-    ]),
-    bloque_kpi("Bloque cliente", "🏢", [
-        ("Valorizados", kpis["tot_valorizados"], "#159A68"),
-        ("En revisión", kpis["revision_fiabilidad"], "#159D99"),
-    ]),
-])
+col1, col2, col3, col4, col5 = panel_control.columns(5)
 
-panel_control.markdown(f"<div class='kpi-row'>{bloques_html}</div>", unsafe_allow_html=True)
+# --- BLOQUE GENERAL ---
+with col1:
+    st.markdown('<div class="card-container card-general">', unsafe_allow_html=True)
+    st.markdown('<div class="card-title" style="color: #FF8C00;">📊 BLOQUE GENERAL</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #FF8C00;"><div class="metric-label">INFORMES TOTALES</div><div class="metric-value">{kpis["total_inf_unicos"]}</div></div>', unsafe_allow_html=True)
+    
+    st.plotly_chart(render_donut_chart(kpis["pct_finalizados"], "Finalizados", "#FF8C00"), use_container_width=True, key="donut_gen")
+    
+    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #FF8C00;"><div class="metric-label">PENDIENTES ELABORAR</div><div class="metric-value">{kpis["tot_pendientes_elaborar"]}</div></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- BLOQUE GABINETE ---
+with col2:
+    st.markdown('<div class="card-container card-gabinete">', unsafe_allow_html=True)
+    st.markdown('<div class="card-title" style="color: #A855F7;">📂 BLOQUE GABINETE</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #A855F7;"><div class="metric-label">EN PROCESO</div><div class="metric-value">{kpis["val_en_proceso"]}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #A855F7;"><div class="metric-label">PEND. ASIGNAR</div><div class="metric-value">{kpis["val_para_asignar"]}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #A855F7;"><div class="metric-label">CORREC. PSAIM</div><div class="metric-value">{kpis["val_psaim"]}</div></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- BLOQUE ESPECIALISTA ---
+with col3:
+    st.markdown('<div class="card-container card-especialista">', unsafe_allow_html=True)
+    st.markdown('<div class="card-title" style="color: #3B82F6;">👤 BLOQUE ESPECIALISTA</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #3B82F6;"><div class="metric-label">REVISADOS</div><div class="metric-value">{kpis["revision_especialista"]}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #3B82F6;"><div class="metric-label">POR REVISAR</div><div class="metric-value">{kpis["revision_especialista_pendiente"]}</div></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- BLOQUE CAMPO ---
+with col4:
+    st.markdown('<div class="card-container card-campo">', unsafe_allow_html=True)
+    st.markdown('<div class="card-title" style="color: #EF4444;">📝 BLOQUE CAMPO</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #EF4444;"><div class="metric-label">PEND. INSPECCIÓN</div><div class="metric-value">{kpis["val_pend_inspeccion"]}</div></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- BLOQUE CLIENTE ---
+with col5:
+    st.markdown('<div class="card-container card-cliente">', unsafe_allow_html=True)
+    st.markdown('<div class="card-title" style="color: #06B6D4;">🏢 BLOQUE CLIENTE</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="metric-item" style="border-left: 3px solid #06B6D4;"><div class="metric-label">VALORIZADOS</div><div class="metric-value">{kpis["tot_valorizados"]}</div></div>', unsafe_allow_html=True)
+    
+    st.plotly_chart(render_donut_chart(kpis["pct_en_revision"], "En Revisión", "#06B6D4"), use_container_width=True, key="donut_cli")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # SISTEMA DE CONTROL Y RESÚMENES
 solicitudes_activas = [solicitud for solicitud in cargar_solicitudes() if solicitud["estado"] == "PENDIENTE"]
@@ -798,7 +855,7 @@ with tabs[1]:
         }
         
         st.html("""
-            <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #102E4C; margin-bottom: 10px; display: inline-block;">
+            <div style="background-color: #131B2E; border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #F3F4F6; margin-bottom: 10px; display: inline-block;">
                 🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
             </div>
         """)
