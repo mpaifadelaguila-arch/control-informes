@@ -46,6 +46,7 @@ def conectar_drive():
 drive_service = conectar_drive()
 
 def descargar_archivo_de_drive(nombre_archivo, ruta_local):
+    """Descarga la versión más reciente del archivo desde Google Drive a la máquina local."""
     if not drive_service:
         return False
     try:
@@ -58,24 +59,18 @@ def descargar_archivo_de_drive(nombre_archivo, ruta_local):
         ).execute()
         archivos = res.get('files', [])
 
-        if not archivos:
-            return False
-
-        file_id = archivos[0]['id']
-        request = drive_service.files().get_media(fileId=file_id, supportsAllDrives=True)
-        fh = io.BytesIO()
-        downloader = MediaIoBaseDownload(fh, request)
-        done = False
-        while not done:
-            status, done = downloader.next_chunk()
-
-        fh.seek(0)
-        with open(ruta_local, 'wb') as f:
-            f.write(fh.read())
-        return True
+        if archivos:
+            file_id = archivos[0]['id']
+            request = drive_service.files().get_media(fileId=file_id)
+            with open(ruta_local, 'wb') as f:
+                downloader = MediaIoBaseDownload(f, request)
+                done = False
+                while not done:
+                    _, done = downloader.next_chunk()
+            return True
     except Exception as e:
-        st.error(f"Error al descargar {nombre_archivo} de Drive: {e}")
-        return False
+        st.error(f"Error al descargar desde Google Drive ({nombre_archivo}): {e}")
+    return False
 
 def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json'):
     if not drive_service:
@@ -97,7 +92,6 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
         media = MediaIoBaseUpload(contenido_binario, mimetype=mime_type, resumable=True)
 
         if archivos:
-            # Actualiza el archivo existente evitando requerir cuota de almacenamiento propia
             file_id = archivos[0]['id']
             drive_service.files().update(
                 fileId=file_id, 
@@ -105,7 +99,6 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
                 supportsAllDrives=True
             ).execute()
         else:
-            # Intento de creación con metadatos explícitos
             file_metadata = {
                 'name': nombre_archivo, 
                 'parents': [FOLDER_ID]
@@ -370,14 +363,17 @@ def es_pendiente_inspeccion(fila):
         for texto in ["PENDIENTE COMPLETAR INSPECCION", "PENDIENTE INSPECCION", "FALTA CARPETA", "COMPLETAR INSPECCION"]
     )
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=5, show_spinner=False)
 def cargar_datos():
-    if not os.path.exists(DB_FILE):
-        descargar_archivo_de_drive(DB_FILE, DB_FILE)
+    # Se descarga siempre desde Google Drive al inicio
+    descargar_archivo_de_drive(DB_FILE, DB_FILE)
     if not os.path.exists(DB_FILE):
         return pd.DataFrame(columns=COLUMNAS_EXCEL)
-    with open(DB_FILE, "r", encoding="utf-8") as archivo:
-        return normalizar_base(pd.DataFrame(json.load(archivo)))
+    try:
+        with open(DB_FILE, "r", encoding="utf-8") as archivo:
+            return normalizar_base(pd.DataFrame(json.load(archivo)))
+    except Exception:
+        return pd.DataFrame(columns=COLUMNAS_EXCEL)
 
 def guardar_datos(df):
     normalizar_base(df).to_json(DB_FILE, orient="records", force_ascii=False)
@@ -386,12 +382,15 @@ def guardar_datos(df):
 
 @st.cache_data(ttl=5, show_spinner=False)
 def cargar_solicitudes():
-    if not os.path.exists(SOLICITUDES_FILE):
-        descargar_archivo_de_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
+    # Se descarga siempre desde Google Drive al inicio
+    descargar_archivo_de_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
     if not os.path.exists(SOLICITUDES_FILE):
         return []
-    with open(SOLICITUDES_FILE, "r", encoding="utf-8") as archivo:
-        return json.load(archivo)
+    try:
+        with open(SOLICITUDES_FILE, "r", encoding="utf-8") as archivo:
+            return json.load(archivo)
+    except Exception:
+        return []
 
 def guardar_solicitudes(solicitudes):
     with open(SOLICITUDES_FILE, "w", encoding="utf-8") as archivo:
@@ -501,7 +500,7 @@ with st.expander("⚙️ Gestión de datos: cargar, restaurar y descargar respal
                 df_cargado = df_cargado.rename(columns=renombre)
                 st.session_state.df_data = normalizar_base(df_cargado)
                 guardar_datos(st.session_state.df_data)
-                st.success("REALIZAR la verificación de los datos. Base de datos cargada, migrada y guardada en Google Drive.")
+                st.success("Base de datos cargada, migrada y guardada en Google Drive.")
                 st.rerun()
             except Exception as error:
                 st.error(f"No se pudo cargar el Excel: {error}")
@@ -510,10 +509,10 @@ with st.expander("⚙️ Gestión de datos: cargar, restaurar y descargar respal
         if not df.empty:
             boton_descarga_excel(df, "Respaldo_Control_Informes.xlsx", "Descargar copia en Excel")
         else:
-            st.caption("REALIZAR la carga de una base de datos para generar el respaldo.")
+            st.caption("Carga una base de datos para generar el respaldo.")
 
 if df.empty:
-    st.info("REALIZAR la carga de un archivo Excel desde Gestión de datos para iniciar el control.", icon=":material/info:")
+    st.info("Carga un archivo Excel desde Gestión de datos para iniciar el control.", icon=":material/info:")
     st.stop()
 
 # --- OPTIMIZACIÓN CON CACHÉ DE PROCESAMIENTO DE DATOS ---
@@ -800,7 +799,7 @@ with tabs[1]:
                 
                 st.session_state.df_data = normalizar_base(df)
                 guardar_datos(st.session_state.df_data)
-                st.success(f"REALIZAR la actualización correspondiente. Se actualizó la valorización a '{estado_sel}' para todas las líneas activas de {codigo_sel}.")
+                st.success(f"Se actualizó la valorización a '{estado_sel}' para todas las líneas activas de {codigo_sel}.")
                 st.rerun()
 
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
@@ -822,7 +821,7 @@ with tabs[1]:
                     df.at[indice, "OBSERVACIÓN"] = ""
             st.session_state.df_data = normalizar_base(df)
             guardar_datos(st.session_state.df_data)
-            st.success("REALIZAR la verificación de los cambios guardados correctamente.")
+            st.success("Cambios guardados correctamente.")
             st.rerun()
 
     vista_tabla_general()
@@ -830,7 +829,7 @@ with tabs[1]:
 # AUXILIARES PARA AGRUPACIÓN DE TABLAS
 def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     if df_origen.empty:
-        st.info("REALIZAR la revisión correspondiente. No hay registros para mostrar.", icon=":material/info:")
+        st.info("No hay registros para mostrar.", icon=":material/info:")
         return pd.DataFrame()
     tabla = df_origen.groupby(columnas, as_index=False, dropna=False).agg(LINEAS=("LINEAS", "count")).fillna("")
     tabla.index = range(1, len(tabla) + 1)
@@ -840,7 +839,7 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
 
 def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
     if df_resumen.empty:
-        st.info("REALIZAR la revisión correspondiente. No hay registros para mostrar.", icon=":material/info:")
+        st.info("No hay registros para mostrar.", icon=":material/info:")
         return
     
     df_mostrar = df_resumen.copy()
