@@ -3,6 +3,7 @@ import json
 import os
 import re
 import threading
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -20,6 +21,16 @@ st.set_page_config(
     page_icon=":material/assignment:",
     layout="wide",
     initial_sidebar_state="collapsed",
+)
+
+# Prevención del error removeChild (bloquea la traducción automática del navegador que corrompe el DOM de React)
+st.markdown(
+    """
+    <head>
+        <meta name="google" content="notranslate">
+    </head>
+    """,
+    unsafe_allow_html=True
 )
 
 # Constantes de Google Drive
@@ -40,75 +51,90 @@ def conectar_drive():
 
 drive_service = conectar_drive()
 
-def descargar_archivo_de_drive(nombre_archivo, ruta_local):
-    """Descarga la versión más reciente del archivo desde Google Drive a la máquina local."""
+def descargar_archivo_de_drive(nombre_archivo, ruta_local, max_reintentos=3):
+    """Descarga la versión más reciente desde Drive con reintentos automáticos para evitar errores SSL/Network."""
     if not drive_service:
         return False
-    try:
-        query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
-        res = drive_service.files().list(
-            q=query, 
-            fields="files(id)",
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True
-        ).execute()
-        archivos = res.get('files', [])
+        
+    for intento in range(1, max_reintentos + 1):
+        try:
+            query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
+            res = drive_service.files().list(
+                q=query, 
+                fields="files(id)",
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True
+            ).execute()
+            archivos = res.get('files', [])
 
-        if archivos:
-            file_id = archivos[0]['id']
-            request = drive_service.files().get_media(fileId=file_id)
-            with open(ruta_local, 'wb') as f:
-                downloader = MediaIoBaseDownload(f, request)
-                done = False
-                while not done:
-                    _, done = downloader.next_chunk()
-            return True
-    except Exception as e:
-        st.error(f"Error al descargar desde Google Drive ({nombre_archivo}): {e}")
+            if archivos:
+                file_id = archivos[0]['id']
+                request = drive_service.files().get_media(fileId=file_id)
+                with open(ruta_local, 'wb') as f:
+                    downloader = MediaIoBaseDownload(f, request)
+                    done = False
+                    while not done:
+                        _, done = downloader.next_chunk()
+                return True
+            return False
+        except Exception as e:
+            msg_error = str(e)
+            if ("RECORD_LAYER_FAILURE" in msg_error or "SSL" in msg_error or "Connection" in msg_error) and intento < max_reintentos:
+                time.sleep(1.2 * intento)  # Espera exponencial progresiva
+                continue
+            st.error(f"Error al descargar desde Google Drive ({nombre_archivo}): {e}")
+            break
     return False
 
-def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json'):
-    """Subida síncrona a Google Drive."""
+def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json', max_reintentos=3):
+    """Subida síncrona a Google Drive con reintentos automáticos contra fallos de socket SSL."""
     if not drive_service:
         return False
-    try:
-        query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
-        res = drive_service.files().list(
-            q=query, 
-            fields="files(id)",
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True
-        ).execute()
-        archivos = res.get('files', [])
-
-        with open(ruta_local, 'rb') as f:
-            contenido_binario = io.BytesIO(f.read())
-
-        media = MediaIoBaseUpload(contenido_binario, mimetype=mime_type, resumable=True)
-
-        if archivos:
-            file_id = archivos[0]['id']
-            drive_service.files().update(
-                fileId=file_id, 
-                media_body=media,
-                supportsAllDrives=True
-            ).execute()
-        else:
-            file_metadata = {
-                'name': nombre_archivo, 
-                'parents': [FOLDER_ID]
-            }
-            drive_service.files().create(
-                body=file_metadata, 
-                media_body=media,
+        
+    for intento in range(1, max_reintentos + 1):
+        try:
+            query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
+            res = drive_service.files().list(
+                q=query, 
+                fields="files(id)",
                 supportsAllDrives=True,
-                fields='id'
+                includeItemsFromAllDrives=True
             ).execute()
+            archivos = res.get('files', [])
 
-        return True
-    except Exception as e:
-        print(f"Error al respaldar en Google Drive ({nombre_archivo}): {e}")
-        return False
+            with open(ruta_local, 'rb') as f:
+                contenido_binario = io.BytesIO(f.read())
+
+            media = MediaIoBaseUpload(contenido_binario, mimetype=mime_type, resumable=True)
+
+            if archivos:
+                file_id = archivos[0]['id']
+                drive_service.files().update(
+                    fileId=file_id, 
+                    media_body=media,
+                    supportsAllDrives=True
+                ).execute()
+            else:
+                file_metadata = {
+                    'name': nombre_archivo, 
+                    'parents': [FOLDER_ID]
+                }
+                drive_service.files().create(
+                    body=file_metadata, 
+                    media_body=media,
+                    supportsAllDrives=True,
+                    fields='id'
+                ).execute()
+
+            return True
+        except Exception as e:
+            msg_error = str(e)
+            if ("RECORD_LAYER_FAILURE" in msg_error or "SSL" in msg_error or "Connection" in msg_error) and intento < max_reintentos:
+                time.sleep(1.2 * intento)
+                continue
+            print(f"Error al respaldar en Google Drive ({nombre_archivo}): {e}")
+            break
+    return False
 
 def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='application/json'):
     """Ejecuta la subida a Drive en un hilo secundario para evitar bloqueos en la interfaz."""
@@ -517,7 +543,7 @@ if df.empty:
     st.info("Carga un archivo Excel desde Gestión de datos para iniciar el control.", icon=":material/info:")
     st.stop()
 
-# --- OPTIMIZACIÓN CON CACHÉ DE PROCESAMIENTO DE DATOS ---
+# OPTIMIZACIÓN CON CACHÉ DE PROCESAMIENTO DE DATOS
 @st.cache_data(show_spinner=False)
 def procesar_agrupaciones_y_kpis(df_input):
     mascara_retirado = df_input["OBSERVACIÓN"].apply(lambda v: "RETIRADO" in texto_normalizado(v)) | \
@@ -617,7 +643,7 @@ def procesar_agrupaciones_y_kpis(df_input):
 
 mascara_retirado, df_activos, df_psaim, df_pend_inspeccion, df_pend_asignacion, df_en_proceso, kpis, detalle_pendientes = procesar_agrupaciones_y_kpis(df)
 
-# --- RENDERIZADO DEL PANEL DE CONTROL ---
+# RENDERIZADO DEL PANEL DE CONTROL
 def item_kpi(titulo, valor, color):
     return (
         f"<div class='kpi-item' style='--tone:{color}'>"
@@ -663,7 +689,7 @@ bloques_html = "".join([
 
 panel_control.markdown(f"<div class='kpi-row'>{bloques_html}</div>", unsafe_allow_html=True)
 
-# --- SISTEMA DE CONTROL Y RESÚMENES ---
+# SISTEMA DE CONTROL Y RESÚMENES
 solicitudes_activas = [solicitud for solicitud in cargar_solicitudes() if solicitud["estado"] == "PENDIENTE"]
 
 sistema_control = st.container(key="sistema_control")
