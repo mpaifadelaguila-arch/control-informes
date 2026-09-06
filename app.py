@@ -836,7 +836,7 @@ with tabs[1]:
             df_vista,
             column_config=encabezados,
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
             height=600,
             disabled=["SEÑAL"],
             key="editor_tabla_general",
@@ -864,7 +864,7 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     tabla = df_origen.groupby(columnas, as_index=False, dropna=False).agg(LINEAS=("LINEAS", "count")).fillna("")
     tabla.index = range(1, len(tabla) + 1)
     boton_descarga_excel(tabla, nombre_archivo, "Descargar Excel")
-    st.dataframe(tabla, use_container_width=True, hide_index=False, height=600)
+    st.dataframe(tabla, width="stretch", hide_index=False, height=600)
     return tabla
 
 def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
@@ -901,7 +901,7 @@ def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
 
     df_mostrar.index = range(1, len(df_mostrar) + 1)
     boton_descarga_excel(df_mostrar, nombre_archivo, "Descargar Excel")
-    st.dataframe(df_mostrar, use_container_width=True, hide_index=False, height=600)
+    st.dataframe(df_mostrar, width="stretch", hide_index=False, height=600)
 
 # 3. PENDIENTE ASIGNAR
 with tabs[2]:
