@@ -2,6 +2,7 @@ import io
 import json
 import os
 import re
+import threading
 from datetime import datetime
 
 import pandas as pd
@@ -28,14 +29,8 @@ FOLDER_ID = "1gUyx6PbtLd7tG_C20x00CVmVdF0oYm_8"
 def conectar_drive():
     try:
         scopes = ['https://www.googleapis.com/auth/drive']
-        
-        # 1. Usar el nombre correcto de la sección en Secrets
         creds_dict = dict(st.secrets["gcp_service_account"])
-        
-        # 2. Corregir los saltos de línea de la private_key
         creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n").replace("\r\n", "\n")
-        
-        # 3. Autenticar
         credentials = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         service = build('drive', 'v3', credentials=credentials)
         return service
@@ -73,8 +68,8 @@ def descargar_archivo_de_drive(nombre_archivo, ruta_local):
     return False
 
 def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json'):
+    """Subida síncrona a Google Drive."""
     if not drive_service:
-        st.error("No se pudo establecer conexión con Google Drive.")
         return False
     try:
         query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
@@ -112,8 +107,17 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
 
         return True
     except Exception as e:
-        st.error(f"No se pudo guardar el respaldo en Google Drive: {type(e).__name__} - {e}")
+        print(f"Error al respaldar en Google Drive ({nombre_archivo}): {e}")
         return False
+
+def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='application/json'):
+    """Ejecuta la subida a Drive en un hilo secundario para evitar bloqueos en la interfaz."""
+    hilo = threading.Thread(
+        target=subir_archivo_a_drive,
+        args=(nombre_archivo, ruta_local, mime_type),
+        daemon=True
+    )
+    hilo.start()
 
 # Estilos CSS Corporativos
 st.markdown(
@@ -365,7 +369,6 @@ def es_pendiente_inspeccion(fila):
 
 @st.cache_data(ttl=5, show_spinner=False)
 def cargar_datos():
-    # Se descarga siempre desde Google Drive al inicio
     descargar_archivo_de_drive(DB_FILE, DB_FILE)
     if not os.path.exists(DB_FILE):
         return pd.DataFrame(columns=COLUMNAS_EXCEL)
@@ -377,12 +380,11 @@ def cargar_datos():
 
 def guardar_datos(df):
     normalizar_base(df).to_json(DB_FILE, orient="records", force_ascii=False)
-    subir_archivo_a_drive(DB_FILE, DB_FILE)
+    subir_a_drive_en_segundo_plano(DB_FILE, DB_FILE)
     st.cache_data.clear()
 
 @st.cache_data(ttl=5, show_spinner=False)
 def cargar_solicitudes():
-    # Se descarga siempre desde Google Drive al inicio
     descargar_archivo_de_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
     if not os.path.exists(SOLICITUDES_FILE):
         return []
@@ -395,7 +397,7 @@ def cargar_solicitudes():
 def guardar_solicitudes(solicitudes):
     with open(SOLICITUDES_FILE, "w", encoding="utf-8") as archivo:
         json.dump(solicitudes, archivo, ensure_ascii=False)
-    subir_archivo_a_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
+    subir_a_drive_en_segundo_plano(SOLICITUDES_FILE, SOLICITUDES_FILE)
     st.cache_data.clear()
 
 def registrar_solicitud(tipo, codigo, grupo, solicitante):
@@ -799,7 +801,7 @@ with tabs[1]:
                 
                 st.session_state.df_data = normalizar_base(df)
                 guardar_datos(st.session_state.df_data)
-                st.success(f"Se actualizó la valorización a '{estado_sel}' para todas las líneas activas de {codigo_sel}.")
+                st.toast(f"Valorización actualizada a '{estado_sel}' para {codigo_sel}", icon="✅")
                 st.rerun()
 
         boton_descarga_excel(df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general")
@@ -813,15 +815,17 @@ with tabs[1]:
             disabled=["SEÑAL"],
             key="editor_tabla_general",
         )
+        
         if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
-            for indice, fila in editado.iterrows():
-                for columna in COLUMNAS_EXCEL:
-                    df.at[indice, columna] = fila[columna]
-                if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
-                    df.at[indice, "OBSERVACIÓN"] = ""
-            st.session_state.df_data = normalizar_base(df)
+            df_actualizado = editado.drop(columns=["SEÑAL"], errors="ignore")
+            
+            mascara_si = df_actualizado["VALORIZACIÓN"].apply(lambda x: texto_normalizado(x) == "SI")
+            df_actualizado.loc[mascara_si, "OBSERVACIÓN"] = ""
+            
+            st.session_state.df_data.update(df_actualizado)
             guardar_datos(st.session_state.df_data)
-            st.success("Cambios guardados correctamente.")
+            
+            st.toast("¡Cambios guardados con éxito!", icon="💾")
             st.rerun()
 
     vista_tabla_general()
