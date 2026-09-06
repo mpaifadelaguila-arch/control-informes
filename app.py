@@ -97,6 +97,7 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
         media = MediaIoBaseUpload(contenido_binario, mimetype=mime_type, resumable=True)
 
         if archivos:
+            # Actualiza el archivo existente evitando requerir cuota de almacenamiento propia
             file_id = archivos[0]['id']
             drive_service.files().update(
                 fileId=file_id, 
@@ -104,13 +105,12 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
                 supportsAllDrives=True
             ).execute()
         else:
-            # Al crear, forzamos metadata para Drive
+            # Intento de creación con metadatos explícitos
             file_metadata = {
                 'name': nombre_archivo, 
                 'parents': [FOLDER_ID]
             }
-            # Se crea el archivo habilitando compatibilidad de unidades
-            archivo_creado = drive_service.files().create(
+            drive_service.files().create(
                 body=file_metadata, 
                 media_body=media,
                 supportsAllDrives=True,
