@@ -132,15 +132,6 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
             break
     return False
 
-def subir_a_drive_en_segundo_plano(nombre_archivo, ruta_local, mime_type='application/json'):
-    """Ejecuta la subida a Drive en un hilo secundario para evitar bloqueos en la interfaz."""
-    hilo = threading.Thread(
-        target=subir_archivo_a_drive,
-        args=(nombre_archivo, ruta_local, mime_type),
-        daemon=True
-    )
-    hilo.start()
-
 # Estilos CSS Corporativos
 st.markdown(
     """
@@ -416,7 +407,7 @@ def cargar_datos():
 
 def guardar_datos(df):
     normalizar_base(df).to_json(DB_FILE, orient="records", force_ascii=False)
-    subir_a_drive_en_segundo_plano(DB_FILE, DB_FILE)
+    subir_archivo_a_drive(DB_FILE, DB_FILE)
     st.cache_data.clear()
 
 @st.cache_data(ttl=5, show_spinner=False)
@@ -433,7 +424,7 @@ def cargar_solicitudes():
 def guardar_solicitudes(solicitudes):
     with open(SOLICITUDES_FILE, "w", encoding="utf-8") as archivo:
         json.dump(solicitudes, archivo, ensure_ascii=False)
-    subir_a_drive_en_segundo_plano(SOLICITUDES_FILE, SOLICITUDES_FILE)
+    subir_archivo_a_drive(SOLICITUDES_FILE, SOLICITUDES_FILE)
     st.cache_data.clear()
 
 def registrar_solicitud(tipo, codigo, grupo, solicitante):
