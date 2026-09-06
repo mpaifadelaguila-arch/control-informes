@@ -756,7 +756,7 @@ with tabs[1]:
         )
         mes = filtros[0].selectbox("Filtrar mes", meses)
         alcance = filtros[1].selectbox("Alcance del servicio", ["Todos", "LINEAS", "VT-CIRCUITOS"])
-        consulta = filtros[2].text_input("Buscar por líneas, código, grupo, SAP o notas", icon=":material/search:")
+        consulta = filtros[2].text_input("Buscar por líneas, código, grupo, SAP, notas o alcance extendido", icon=":material/search:")
         
         df_vista = df.copy()
         if mes != "Todos":
@@ -765,7 +765,7 @@ with tabs[1]:
             df_vista = df_vista[df_vista["ALCANCE DEL SERVICIO"].apply(texto_normalizado) == alcance]
         if consulta.strip():
             consulta_norm = texto_normalizado(consulta)
-            columnas_busqueda = ["LINEAS", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS", "SAP", "NOTAS"]
+            columnas_busqueda = ["LINEAS", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS", "SAP", "NOTAS", "ALCANCE DEL SERVICIO"]
             mascara_busqueda = df_vista[columnas_busqueda].apply(
                 lambda fila: any(consulta_norm in texto_normalizado(v) for v in fila), axis=1
             )
@@ -848,7 +848,6 @@ with tabs[1]:
             guardar_datos(st.session_state.df_data)
             
             st.toast("¡Cambios guardados con éxito!", icon="💾")
-            st.rerun()
 
     vista_tabla_general()
 
