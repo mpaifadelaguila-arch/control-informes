@@ -50,12 +50,15 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
         st.error("No se pudo establecer conexión con Google Drive.")
         return False
     try:
-        # Buscar si el archivo ya existe
         query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
-        res = drive_service.files().list(q=query, fields="files(id)").execute()
+        res = drive_service.files().list(
+            q=query, 
+            fields="files(id)",
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True
+        ).execute()
         archivos = res.get('files', [])
 
-        # Leer el archivo local en un stream de memoria binario
         with open(ruta_local, 'rb') as f:
             contenido_binario = io.BytesIO(f.read())
 
@@ -63,35 +66,29 @@ def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/jso
 
         if archivos:
             file_id = archivos[0]['id']
-            drive_service.files().update(fileId=file_id, media_body=media).execute()
+            drive_service.files().update(
+                fileId=file_id, 
+                media_body=media,
+                supportsAllDrives=True
+            ).execute()
         else:
-            file_metadata = {'name': nombre_archivo, 'parents': [FOLDER_ID]}
-            drive_service.files().create(body=file_metadata, media_body=media).execute()
+            # Al crear, forzamos metadata para Drive
+            file_metadata = {
+                'name': nombre_archivo, 
+                'parents': [FOLDER_ID]
+            }
+            # Se crea el archivo habilitando compatibilidad de unidades
+            archivo_creado = drive_service.files().create(
+                body=file_metadata, 
+                media_body=media,
+                supportsAllDrives=True,
+                fields='id'
+            ).execute()
+
         return True
     except Exception as e:
         st.error(f"No se pudo guardar el respaldo en Google Drive: {type(e).__name__} - {e}")
         return False
-
-def descargar_archivo_de_drive(nombre_archivo, ruta_local):
-    if not drive_service:
-        return False
-    try:
-        query = f"'{FOLDER_ID}' in parents and name = '{nombre_archivo}' and trashed = false"
-        res = drive_service.files().list(q=query, fields="files(id)").execute()
-        archivos = res.get('files', [])
-
-        if archivos:
-            file_id = archivos[0]['id']
-            request = drive_service.files().get_media(fileId=file_id)
-            with open(ruta_local, 'wb') as fh:
-                downloader = MediaIoBaseDownload(fh, request)
-                done = False
-                while not done:
-                    _, done = downloader.next_chunk()
-            return True
-    except Exception as e:
-        st.warning(f"No se pudo sincronizar desde Google Drive: {e}")
-    return False
 
 # Estilos CSS Corporativos
 st.markdown(
