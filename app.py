@@ -846,23 +846,28 @@ with tabs[1]:
             # 1. Eliminar columna de estado visual no editable
             df_actualizado = editado.drop(columns=["SEÑAL"], errors="ignore")
             
-            # 2. Regla de negocio: si VALORIZACIÓN es SI, vaciar la observación
+            # 2. LIMPIEZA DE 'NONE' Y NULOS EN CELDAS BORRADAS:
+            # Reemplaza cualquier None o texto "None" por una cadena vacía "" para garantizar su borrado
+            df_actualizado = df_actualizado.fillna("")
+            df_actualizado = df_actualizado.replace(["None", "none", "NONE", None], "")
+            
+            # 3. Regla de negocio: si VALORIZACIÓN es SI, vaciar la observación
             mascara_si = df_actualizado["VALORIZACIÓN"].apply(lambda x: texto_normalizado(x) == "SI")
             df_actualizado.loc[mascara_si, "OBSERVACIÓN"] = ""
             
-            # 3. ACTUALIZACIÓN CLAVE: Sincronizar mapeando índices originales sobre el DataFrame maestro
+            # 4. ACTUALIZACIÓN CLAVE: Sincronizar mapeando índices originales sobre el DataFrame maestro
             st.session_state.df_data.update(df_actualizado)
             
-            # 4. Limpiar la memoria caché para forzar el recálculo de KPI y resúmenes
+            # 5. Limpiar la memoria caché para forzar el recálculo de KPI y resúmenes
             st.cache_data.clear()
             
-            # 5. Persistir en archivo local y respaldar en Google Drive
+            # 6. Persistir en archivo local y respaldar en Google Drive
             guardar_datos(st.session_state.df_data)
             
-            # 6. Alerta visual de confirmación
+            # 7. Alerta visual de confirmación
             st.toast("¡Cambios guardados con éxito!", icon="💾")
             
-            # 7. Forzar recarga completa para sincronizar todos los componentes y resúmenes
+            # 8. Forzar recarga completa para sincronizar todos los componentes y resúmenes
             st.rerun()
 
     vista_tabla_general()
