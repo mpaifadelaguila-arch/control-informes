@@ -2,7 +2,6 @@ import io
 import json
 import os
 import re
-import threading
 import time
 from datetime import datetime
 
@@ -282,7 +281,7 @@ st.markdown(
     }
     div[data-testid="stExpander"] { background:#fff; border-color:#dbe5ef; border-radius:12px; }
 
-    /* EFECTO HOVER EN TODAS LAS TABLAS Y RESÚMENES (DataEditor y DataFrame) */
+    /* EFECTO HOVER EN TODAS LAS TABLAS Y RESÚMENES */
     div[data-testid="stDataFrame"] [role="row"]:hover,
     div[data-testid="stDataEditor"] [role="row"]:hover,
     div[data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"],
@@ -844,15 +843,27 @@ with tabs[1]:
         )
         
         if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
+            # 1. Eliminar columna de estado visual no editable
             df_actualizado = editado.drop(columns=["SEÑAL"], errors="ignore")
             
+            # 2. Regla de negocio: si VALORIZACIÓN es SI, vaciar la observación
             mascara_si = df_actualizado["VALORIZACIÓN"].apply(lambda x: texto_normalizado(x) == "SI")
             df_actualizado.loc[mascara_si, "OBSERVACIÓN"] = ""
             
+            # 3. ACTUALIZACIÓN CLAVE: Sincronizar mapeando índices originales sobre el DataFrame maestro
             st.session_state.df_data.update(df_actualizado)
+            
+            # 4. Limpiar la memoria caché para forzar el recálculo de KPI y resúmenes
+            st.cache_data.clear()
+            
+            # 5. Persistir en archivo local y respaldar en Google Drive
             guardar_datos(st.session_state.df_data)
             
+            # 6. Alerta visual de confirmación
             st.toast("¡Cambios guardados con éxito!", icon="💾")
+            
+            # 7. Forzar recarga completa para sincronizar todos los componentes y resúmenes
+            st.rerun()
 
     vista_tabla_general()
 
