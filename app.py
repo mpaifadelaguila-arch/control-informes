@@ -314,7 +314,7 @@ ORDEN_MESES = [
     "JULIO", "AGOSTO", "SETIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
 ]
 
-ESPECIALISTAS_LISTA = ["Jesús Rehkoff Díaz", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
+ESPECIALISTAS_LISTA = ["Jesús Rehkoff Díaz"]
 REVISORES_PSAIM_LISTA = ["Franmary Gutierrez", "Alejandro Macury", "M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid"]
 PERSONAL_LISTA_BASE = ["M. Paifa", "Julio Ponce", "Omar", "Christopher", "Timana", "Ingrid", "Juan José", "Dante", "Jesús Rehkoff Díaz", "Franmary Gutierrez", "Alejandro Macury", "Otro Inspector"]
 
@@ -606,8 +606,8 @@ def procesar_agrupaciones_y_kpis(df_input):
             revision_fiabilidad += 1
         if "PENDIENTE REVISION POR EL ESPECIALISTA" in observacion_norm:
             revision_especialista_pendiente += 1
-        if ("REV. POR EL ESPECIALISTA" in observacion_norm or "REVISION POR EL ESPECIALISTA" in observacion_norm) and "PENDIENTE" not in observacion_norm:
-            revision_especialista += 1
+        if ("REV. POR EL ESPECIALISTA" in observacion_norm or "REVISION POR EL ESPECIALISTA" in observacion_norm or "REVISADO POR ESPECIALISTA" in observacion_norm) and "PENDIENTE" not in observacion_norm:
+        revision_especialista += 1
         if "ADEMINSAC" in observacion_norm:
             por_mes["ademinsac"][mes] += 1
         else:
