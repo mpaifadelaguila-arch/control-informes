@@ -174,7 +174,9 @@ if st.button("🚀 Procesar Generación de Informe", type="primary", use_contain
 # ==============================================================================
 if st.session_state.get("procesado_exito", False):
     st.subheader("📥 Descarga de Resultados Generados")
-    d_col1, d_col2 = st.columns(2)
+    
+    # Modificamos a 3 columnas para incluir los Anexos Separadores
+    d_col1, d_col2, d_col3 = st.columns(3)
 
     with d_col1:
         st.download_button(
@@ -188,10 +190,22 @@ if st.session_state.get("procesado_exito", False):
 
     with d_col2:
         st.download_button(
-            label="📊 Descargar VT-Checklist con Recomendaciones (Excel)",
+            label="📊 Descargar VT-Checklist (Excel)",
             data=st.session_state["resultado_excel"],
-            file_name=f"VT_Checklist_Recomendaciones_{datetime.now():%Y%m%d_%H%M%S}.docx" if False else f"VT_Checklist_Recomendaciones_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
+            file_name=f"VT_Checklist_Recomendaciones_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            icon=":material/download:"
+        )
+
+    with d_col3:
+        # Generación o llamada a los bytes de los anexos separadores
+        bytes_anexos = st.session_state.get("resultado_anexos", st.session_state["resultado_word"]) # Respaldo si se empaqueta junto o independiente
+        st.download_button(
+            label="📑 Descargar Anexos Separadores",
+            data=bytes_anexos,
+            file_name=f"Anexos_Separadores_{datetime.now():%Y%m%d_%H%M%S}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             use_container_width=True,
             icon=":material/download:"
         )
