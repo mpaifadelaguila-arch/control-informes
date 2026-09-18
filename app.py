@@ -4,6 +4,8 @@ import os
 import re
 import time
 from datetime import datetime
+from pathlib import Path
+import sys
 
 import pandas as pd
 import streamlit as st
@@ -13,8 +15,6 @@ from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
-import sys
-from pathlib import Path
 
 # Configuración de rutas para invocar los scripts técnicos
 DIR_CONTROL_INFORME = Path(__file__).resolve().parent
