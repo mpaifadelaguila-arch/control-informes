@@ -1,7 +1,6 @@
 """
-inventario.py — cruce de líneas y generación de documentos consolidados oficiales.
+inventario.py — motor de procesamiento y generación de documentos.
 """
-import datetime
 import io
 import os
 import zipfile
@@ -10,44 +9,6 @@ import pandas as pd
 from docx import Document
 
 PSI_PER_KGCM2 = 14.2233
-
-COL_TAG = "Nº DE LINEA"
-COL_FLUIDO = "NOMBRE DEL FLUIDO"
-COL_MATERIAL = "MATERIAL"
-COL_SCHEDULE = "SCHEDULE"
-COL_DE = "DE"
-COL_HACIA = "HACIA"
-COL_PRES_OPER = "Presión (Kg/cm2"
-COL_TEMP_OPER = "Temp. (°C)"
-COL_PRES_DIS = "Presión (Kg/cm2)"
-COL_TEMP_DIS = "Temp. (°C)2"
-COL_CLASE = "CLASE \nAPI 570"  
-
-SIN_DATO = "SIN DATO"
-SIN_REFERENCIA_MARCAS = {"sin referencia", "sin ref.", "s/r", "n/a", "na"}
-
-def _clean(v):
-    if v is None:
-        return None
-    if isinstance(v, str):
-        v = v.strip()
-        if not v or v.lower() in SIN_REFERENCIA_MARCAS:
-            return None
-    return v
-
-def c_to_f(c):
-    return round(float(c) * 9 / 5 + 32, 1)
-
-def kgcm2_to_psi(kg):
-    return round(float(kg) * PSI_PER_KGCM2, 1)
-
-def _to_num(v):
-    if v is None:
-        return None
-    try:
-        return float(str(v).replace(",", "."))
-    except (TypeError, ValueError):
-        return None
 
 def generar_documentos_completos(df_m3m6, df_cons, fotos_unidad, ruta_plantilla_base, plantilla_excel_obj=None, df_psaim=None):
     grupo_id = "22-GLP-GT-023"
