@@ -6,6 +6,7 @@ import io
 import os
 import zipfile
 import openpyxl
+import pandas as pd
 from docx import Document
 
 PSI_PER_KGCM2 = 14.2233
@@ -158,7 +159,6 @@ def generar_documentos_completos(df_m3m6, df_cons, fotos_unidad, ruta_plantilla_
     # 2. VT-CHECKLIST (EXCEL PRESERVANDO LAS 13 HOJAS Y FORMATO)
     output_excel = io.BytesIO()
     if plantilla_excel_obj is not None:
-        # Si se pasa el archivo subido por el usuario (BytesIO o ruta), lo abrimos directamente para conservar sus 13 pestañas y formatos
         wb_excel = openpyxl.load_workbook(plantilla_excel_obj)
     else:
         wb_excel = openpyxl.Workbook()
