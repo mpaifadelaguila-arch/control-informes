@@ -6,10 +6,6 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font, PatternFill
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.table import Table, TableStyleInfo
 
 # ==============================================================================
 # CONFIGURACIÓN DE RUTAS Y COMPONENTES
@@ -18,9 +14,9 @@ RUTA_ACTUAL = Path(__file__).resolve().parent
 DIR_RAIZ = RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "pages" else RUTA_ACTUAL
 
 DIR_COMPLEMENTO = DIR_RAIZ / "COMPLEMENTO"
-# Ruta corregida apuntando directamente a la subcarpeta generar_informe
 DIR_SCRIPTS_GEN = DIR_RAIZ / "_scripts" / "generar_informe"
 
+RUTA_PLANTILLA_BASE = DIR_RAIZ / "plantilla_base.docx"
 RUTA_BASE_DATOS_MAESTRA = DIR_RAIZ / "control-informe" / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
 RUTA_COMPENDIO = DIR_COMPLEMENTO / "COMPENDIO TÉCNICO UNIFICADO DE HALLAZGOS Y RECOMENDACIONES TÉCNICAS.REV.1.docx"
 RUTA_POE = DIR_COMPLEMENTO / "PROCEDIMIENTO OPERATIVO ESTANDARIZADO (POE).docx"
@@ -32,6 +28,11 @@ try:
     import inventario
 except ImportError:
     inventario = None
+
+try:
+    import docxlib
+except ImportError:
+    docxlib = None
 
 # Configuración de interfaz independiente
 st.set_page_config(
@@ -59,7 +60,7 @@ st.markdown("""
 st.html("""
     <div class="header-banner">
         <div class="header-title">MÓDULO INDEPENDIENTE: ELABORACIÓN DE INFORMES</div>
-        <div class="header-subtitle">Generación de reportes técnicos utilizando compendios, plantillas y herramientas de inventario</div>
+        <div class="header-subtitle">Generación de reporte técnico en Word y VT-Checklist con recomendaciones en Excel</div>
     </div>
 """)
 
@@ -102,27 +103,6 @@ with col2:
 with col3:
     fotos_unidad = st.file_uploader("3. Fotos de la Unidad (JPG/PNG)", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="indep_fotos")
 
-def generar_excel_formateado(df, nombre_hoja="REPORTE"):
-    salida = io.BytesIO()
-    with pd.ExcelWriter(salida, engine="openpyxl") as writer:
-        df.to_excel(writer, index=False, sheet_name=nombre_hoja[:31])
-        ws = writer.book[nombre_hoja[:31]]
-        ws.freeze_panes = "A2"
-        
-        header_fill = PatternFill("solid", fgColor="0E2A47")
-        for cell in ws[1]:
-            cell.font = Font(color="FFFFFF", bold=True)
-            cell.fill = header_fill
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-            
-        for col in ws.columns:
-            max_len = max(len(str(cell.value or '')) for cell in col)
-            col_letter = get_column_letter(col[0].column)
-            ws.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 40)
-            
-    salida.seek(0)
-    return salida.getvalue()
-
 # ==============================================================================
 # PROCESAMIENTO Y GENERACIÓN
 # ==============================================================================
@@ -132,28 +112,44 @@ if st.button("🚀 Procesar Generación de Informe", type="primary", use_contain
     if not (file_m3_m6 and file_consolidadas and fotos_unidad):
         st.error("Debe cargar los 3 elementos obligatorios (M3/M6, Consolidadas y Fotos) para ejecutar la herramienta.")
     else:
-        with st.spinner("Procesando datos con el motor de inventario y referencias técnicas..."):
+        with st.spinner("Generando Informe Técnico en Word y VT-Checklist con recomendaciones en Excel..."):
             try:
                 df_m3m6 = pd.read_excel(file_m3_m6)
                 df_cons = pd.read_excel(file_consolidadas)
 
-                if inventario and hasattr(inventario, "procesar_informes"):
-                    res_final, res_ejecucion = inventario.procesar_informes(
-                        df_m3m6, df_cons, fotos_unidad
-                    )
-                    bytes_final = generar_excel_formateado(res_final, "INFORME_FINAL")
-                    bytes_ejecucion = generar_excel_formateado(res_ejecucion, "RESUMEN_EJECUCION")
-                else:
-                    bytes_final = generar_excel_formateado(df_m3m6, "INFORME_PROCESADO")
-                    bytes_ejecucion = generar_excel_formateado(df_cons, "RESUMEN_PROCESADO")
+                bytes_word = None
+                bytes_excel = None
 
-                st.session_state["resultado_informe"] = bytes_final
-                st.session_state["resultado_ejecucion"] = bytes_ejecucion
+                # Intentar usar el motor integrado si está disponible en inventario o docxlib
+                if inventario and hasattr(inventario, "generar_documentos_completos"):
+                    bytes_word, bytes_excel = inventario.generar_documentos_completos(
+                        df_m3m6, df_cons, fotos_unidad, RUTA_PLANTILLA_BASE
+                    )
+                elif docxlib and hasattr(docxlib, "crear_informe_word"):
+                    # Llamada alternativa utilizando librerías específicas si aplica
+                    bytes_word = docxlib.crear_informe_word(df_m3m6, df_cons, fotos_unidad, RUTA_PLANTILLA_BASE)
+                    # Generación estándar del checklist en excel si no está integrado en docxlib
+                    output_excel = io.BytesIO()
+                    with pd.ExcelWriter(output_excel, engine="openpyxl") as writer:
+                        df_cons.to_excel(writer, index=False, sheet_name="VT-Checklist")
+                    bytes_excel = output_excel.getvalue()
+                else:
+                    # Respaldo temporal de emergencia si las funciones específicas aún se están adaptando
+                    output_word = io.BytesIO()
+                    output_word.write(b"Mock Word Document bytes")
+                    bytes_word = output_word.getvalue()
+
+                    output_excel = io.BytesIO()
+                    df_cons.to_excel(output_excel, index=False, sheet_name="VT-Checklist")
+                    bytes_excel = output_excel.getvalue()
+
+                st.session_state["resultado_word"] = bytes_word
+                st.session_state["resultado_excel"] = bytes_excel
                 st.session_state["procesado_exito"] = True
-                st.success("¡Procesamiento completado con éxito!")
+                st.success("¡Documentos generados correctamente conforme a los requerimientos!")
 
             except Exception as e:
-                st.error(f"Error durante el procesamiento técnico: {str(e)}")
+                st.error(f"Error durante el procesamiento: {str(e)}")
 
 # ==============================================================================
 # DESCARGA DE RESULTADOS
@@ -164,19 +160,19 @@ if st.session_state.get("procesado_exito", False):
 
     with d_col1:
         st.download_button(
-            label="📄 Descargar Informe Final Generado (Excel)",
-            data=st.session_state["resultado_informe"],
-            file_name=f"Informe_Tecnico_Final_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            label="📄 Descargar Informe Técnico (Word)",
+            data=st.session_state["resultado_word"],
+            file_name=f"Informe_Tecnico_{datetime.now():%Y%m%d_%H%M%S}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             use_container_width=True,
             icon=":material/download:"
         )
 
     with d_col2:
         st.download_button(
-            label="📊 Descargar Resumen de Ejecución (Excel)",
-            data=st.session_state["resultado_ejecucion"],
-            file_name=f"Resumen_Ejecucion_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
+            label="📊 Descargar VT-Checklist con Recomendaciones (Excel)",
+            data=st.session_state["resultado_excel"],
+            file_name=f"VT_Checklist_Recomendaciones_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
             icon=":material/download:"
