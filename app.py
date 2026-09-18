@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import time
+import hashlib
 from datetime import datetime
 from pathlib import Path
 
@@ -28,6 +29,9 @@ DIR_SCRIPTS = DIR_CONTROL_INFORME / "_scripts"
 RUTA_BASE_DATOS_MAESTRA = (
     DIR_CONTROL_INFORME / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
 )
+
+# Definir ruta de la plantilla Word
+RUTA_PLANTILLA_DOCX = DIR_SCRIPTS / "assets" / "plantilla_base.docx"
 
 if str(DIR_SCRIPTS) not in sys.path:
     sys.path.append(str(DIR_SCRIPTS))
@@ -1673,6 +1677,12 @@ with tabs[9]:
             "Cargue los archivos requeridos para el procesamiento técnico y la generación de reportes."
         )
 
+        if not RUTA_PLANTILLA_DOCX.exists():
+            st.warning(
+                f"⚠️ No se encontró la plantilla Word en la ruta: `{RUTA_PLANTILLA_DOCX}`. "
+                "Verifique que el archivo exista dentro de la carpeta `_scripts/assets/`."
+            )
+
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown("**Cargar Archivo M3 y M6 (Excel)**")
@@ -1706,18 +1716,45 @@ with tabs[9]:
             st.session_state.informes_procesados = False
             st.session_state.bytes_informe_final = None
             st.session_state.bytes_resumen_ejecucion = None
+            st.session_state.bytes_informe_word = None
 
         if st.button("🚀 Generar Informe", type="primary", use_container_width=True):
             if file_m3_m6 and file_consolidadas and fotos_unidad:
                 with st.spinner("Procesando datos y generando reportes..."):
                     try:
+                        # Filtrar imágenes duplicadas utilizando hash MD5
+                        hashes_vistos = set()
+                        fotos_unicas = []
+                        for foto in fotos_unidad:
+                            contenido = foto.read()
+                            foto.seek(0)
+                            hash_archivo = hashlib.md5(contenido).hexdigest()
+                            if hash_archivo not in hashes_vistos:
+                                hashes_vistos.add(hash_archivo)
+                                fotos_unicas.append(foto)
+
                         df_m3_m6 = pd.read_excel(file_m3_m6)
                         df_consolidadas = pd.read_excel(file_consolidadas)
 
+                        bytes_word = None
                         if inventario and hasattr(inventario, "procesar_informes"):
-                            res_final, res_ejecucion = inventario.procesar_informes(
-                                df_m3_m6, df_consolidadas, fotos_unidad
+                            # Invocar la función técnica con la plantilla docx y fotos filtradas
+                            resultado = inventario.procesar_informes(
+                                df_m3_m6,
+                                df_consolidadas,
+                                fotos_unicas,
+                                RUTA_PLANTILLA_DOCX,
                             )
+
+                            if isinstance(resultado, tuple):
+                                if len(resultado) == 3:
+                                    res_final, res_ejecucion, bytes_word = resultado
+                                else:
+                                    res_final, res_ejecucion = resultado[0], resultado[1]
+                            else:
+                                res_final = resultado
+                                res_ejecucion = df_consolidadas
+
                             bytes_final = excel_con_formato(res_final, "INFORME_FINAL")
                             bytes_ejecucion = excel_con_formato(res_ejecucion, "RESUMEN_EJECUCION")
                         else:
@@ -1726,6 +1763,7 @@ with tabs[9]:
 
                         st.session_state.bytes_informe_final = bytes_final
                         st.session_state.bytes_resumen_ejecucion = bytes_ejecucion
+                        st.session_state.bytes_informe_word = bytes_word
                         st.session_state.informes_procesados = True
                         st.success("¡Informe procesado y generado con éxito!")
 
@@ -1736,7 +1774,7 @@ with tabs[9]:
 
         if st.session_state.informes_procesados:
             st.markdown("### 📥 Descargar Reportes Generados")
-            d_col1, d_col2 = st.columns(2)
+            d_col1, d_col2, d_col3 = st.columns(3)
 
             with d_col1:
                 st.download_button(
@@ -1757,5 +1795,16 @@ with tabs[9]:
                     use_container_width=True,
                     icon=":material/download:",
                 )
+
+            with d_col3:
+                if st.session_state.bytes_informe_word:
+                    st.download_button(
+                        label="📝 Descargar Informe (Word)",
+                        data=st.session_state.bytes_informe_word,
+                        file_name=f"Informe_Tecnico_{datetime.now():%Y%m%d_%H%M%S}.docx",
+                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        use_container_width=True,
+                        icon=":material/download:",
+                    )
 
     vista_elaboracion_informe()
