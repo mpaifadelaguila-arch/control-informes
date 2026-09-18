@@ -20,22 +20,17 @@ from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 # ==============================================================================
 # CONFIGURACIÓN DE RUTAS DINÁMICAS (GITHUB / LOCAL)
 # ==============================================================================
-# 1. Determinar el directorio raíz del repositorio
 RUTA_ACTUAL = Path(__file__).resolve().parent
 DIR_RAIZ = RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "_scripts" else RUTA_ACTUAL
 
-# 2. Rutas a las carpetas subidas a GitHub
 DIR_COMPLEMENTO = DIR_RAIZ / "COMPLEMENTO"
 DIR_CONTROL_INFORME = DIR_RAIZ / "control-informe"
 DIR_SCRIPTS = DIR_RAIZ / "_scripts"
 
-# 3. Rutas específicas a tablas y complementos maestras
 RUTA_BASE_DATOS_MAESTRA = DIR_CONTROL_INFORME / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
 RUTA_COMPENDIO = DIR_COMPLEMENTO / "COMPENDIO TÉCNICO UNIFICADO DE HALLAZGOS Y RECOMENDACIONES TÉCNICAS.REV.1.docx"
 RUTA_POE = DIR_COMPLEMENTO / "PROCEDIMIENTO OPERATIVO ESTANDARIZADO (POE).docx"
 RUTA_ROL = DIR_COMPLEMENTO / "ROL_Y_OBJETIVO.REV2.txt"
-
-# 4. Plantilla base dentro de assets
 RUTA_PLANTILLA_WORD = DIR_SCRIPTS / "assets" / "plantilla_base.docx"
 
 if str(DIR_SCRIPTS) not in sys.path:
@@ -46,7 +41,7 @@ try:
 except ImportError:
     inventario = None
 
-# Configuración de página
+# Configuración de la interfaz Streamlit
 st.set_page_config(
     page_title="Control interno de informes - Ademinsac",
     page_icon=":material/assignment:",
@@ -54,12 +49,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Prevención del error removeChild
 st.markdown(
     '<meta name="google" content="notranslate">', unsafe_allow_html=True
 )
 
-# Constantes de Google Drive
 FOLDER_ID = "1gUyx6PbtLd7tG_C20x00CVmVdF0oYm_8"
 
 
@@ -340,7 +333,6 @@ st.markdown(
     }
     div[data-testid="stExpander"] { background:#fff; border-color:#dbe5ef; border-radius:12px; }
 
-    /* EFECTO HOVER EN TODAS LAS TABLAS Y RESÚMENES */
     div[data-testid="stDataFrame"] [role="row"]:hover,
     div[data-testid="stDataEditor"] [role="row"]:hover,
     div[data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"],
@@ -429,7 +421,6 @@ PERSONAL_LISTA_BASE = [
 ]
 
 
-# Funciones de Limpieza y Normalización
 def texto_normalizado(valor):
     if pd.isna(valor) or valor is None:
         return ""
@@ -677,13 +668,11 @@ def senal_visual(fila):
     return "⚪ Sin alerta"
 
 
-# Carga Inicial de Datos
 if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
 
 df = normalizar_base(st.session_state.df_data)
 
-# Banner Principal
 st.html("""
     <div class="header-banner">
         <div class="header-title">CONTROL INTERNO DE INFORMES - ADEMINSAC</div>
@@ -691,7 +680,6 @@ st.html("""
     </div>
 """)
 
-# Expander de Carga / Respaldo
 with st.expander(
     "⚙️ Gestión de datos: cargar, restaurar y descargar respaldo", expanded=False
 ):
@@ -748,14 +736,12 @@ with st.expander(
 
 if df.empty:
     st.info(
-        "Carga un archivo Excel desde Gestión de datos para iniciar el"
-        " control.",
+        "Carga un archivo Excel desde Gestión de datos para iniciar el control.",
         icon=":material/info:",
     )
     st.stop()
 
 
-# OPTIMIZACIÓN CON CACHÉ DE PROCESAMIENTO DE DATOS
 @st.cache_data(show_spinner=False)
 def procesar_agrupaciones_y_kpis(df_input):
     mascara_retirado = (
@@ -910,7 +896,6 @@ def procesar_agrupaciones_y_kpis(df_input):
 ) = procesar_agrupaciones_y_kpis(df)
 
 
-# RENDERIZADO DEL PANEL DE CONTROL
 def item_kpi(titulo, valor, color):
     return (
         f"<div class='kpi-item' style='--tone:{color}'>"
@@ -987,7 +972,6 @@ panel_control.markdown(
     f"<div class='kpi-row'>{bloques_html}</div>", unsafe_allow_html=True
 )
 
-# SISTEMA DE CONTROL Y RESÚMENES
 solicitudes_activas = [
     solicitud
     for solicitud in cargar_solicitudes()
@@ -1682,7 +1666,6 @@ with tabs[9]:
             "Cargue los archivos requeridos para el procesamiento técnico y la generación de reportes."
         )
 
-        # Verificación del estado de lectura de archivos maestros en GitHub
         if RUTA_BASE_DATOS_MAESTRA.exists():
             st.caption(f"🟢 **Base de datos maestra conectada:** `{RUTA_BASE_DATOS_MAESTRA.name}`")
         else:
