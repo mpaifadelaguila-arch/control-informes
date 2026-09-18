@@ -15,7 +15,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 # CONFIGURACIÓN DE RUTAS Y COMPONENTES
 # ==============================================================================
 RUTA_ACTUAL = Path(__file__).resolve().parent
-DIR_RAIZ = RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "_scripts" else RUTA_ACTUAL
+DIR_RAIZ = RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "pages" else RUTA_ACTUAL
 
 DIR_COMPLEMENTO = DIR_RAIZ / "COMPLEMENTO"
 DIR_SCRIPTS = DIR_RAIZ / "_scripts"
@@ -136,7 +136,6 @@ if st.button("🚀 Procesar Generación de Informe", type="primary", use_contain
                 df_m3m6 = pd.read_excel(file_m3_m6)
                 df_cons = pd.read_excel(file_consolidadas)
 
-                # Ejecución mediante el módulo de inventario e integración de datos
                 if inventario and hasattr(inventario, "procesar_informes"):
                     res_final, res_ejecucion = inventario.procesar_informes(
                         df_m3m6, df_cons, fotos_unidad
@@ -144,7 +143,6 @@ if st.button("🚀 Procesar Generación de Informe", type="primary", use_contain
                     bytes_final = generar_excel_formateado(res_final, "INFORME_FINAL")
                     bytes_ejecucion = generar_excel_formateado(res_ejecucion, "RESUMEN_EJECUCION")
                 else:
-                    # Lógica de respaldo directo si el módulo no expone la función
                     bytes_final = generar_excel_formateado(df_m3m6, "INFORME_PROCESADO")
                     bytes_ejecucion = generar_excel_formateado(df_cons, "RESUMEN_PROCESADO")
 
