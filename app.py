@@ -32,7 +32,10 @@ RUTA_BASE_DATOS_MAESTRA = (
 if str(DIR_SCRIPTS) not in sys.path:
     sys.path.append(str(DIR_SCRIPTS))
 
-import inventario
+try:
+    import inventario
+except ImportError:
+    inventario = None
 
 # Configuración de página
 st.set_page_config(
@@ -1666,40 +1669,93 @@ with tabs[9]:
 
     @st.fragment
     def vista_elaboracion_informe():
-        codigos_unicos = sorted([
-            c
-            for c in df["CODIGO DE INFORME"].unique()
-            if str(c).strip() and str(c).strip() != "-"
-        ])
+        st.markdown(
+            "Cargue los 3 archivos requeridos para el procesamiento técnico y la generación de reportes."
+        )
 
-        with st.form("form_elaboracion_informe"):
-            col1, col2 = st.columns(2)
-            with col1:
-                codigo_solicitud = st.selectbox(
-                    "Seleccionar Código de Informe", options=codigos_unicos
-                )
-                especialista = st.selectbox(
-                    "Especialista / Inspector", options=ESPECIALISTAS_LISTA
-                )
-            with col2:
-                fecha_elaboracion = st.date_input(
-                    "Fecha de elaboración", value=datetime.now()
-                )
-                archivo_adjunto = st.file_uploader(
-                    "Cargar Informe Adjunto (PDF/Word)", type=["pdf", "docx"]
-                )
-
-            hallazgos = st.text_area("Hallazgos / Observaciones")
-            conclusiones = st.text_area("Conclusiones del Especialista")
-
-            btn_guardar = st.form_submit_button(
-                "Guardar Informe", type="primary", icon=":material/save:"
+        # 3 Cargadores de archivos Excel
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            file_m3_m6 = st.file_uploader(
+                "Cargar Archivo M3 y M6 (Excel)",
+                type=["xlsx", "xls"],
+                key="uploader_m3_m6",
+            )
+        with col2:
+            file_consolidadas = st.file_uploader(
+                "Cargar Archivo Consolidadas (Excel)",
+                type=["xlsx", "xls"],
+                key="uploader_consolidadas",
+            )
+        with col3:
+            file_historico = st.file_uploader(
+                "Cargar Histórico de Asignaciones (Excel)",
+                type=["xlsx", "xls"],
+                key="uploader_historico",
             )
 
-            if btn_guardar:
-                st.success(
-                    f"El informe `{codigo_solicitud}` ha sido registrado"
-                    " correctamente."
+        st.markdown("---")
+
+        # Estado de sesión para los reportes generados
+        if "informes_procesados" not in st.session_state:
+            st.session_state.informes_procesados = False
+            st.session_state.bytes_informe_final = None
+            st.session_state.bytes_resumen_ejecucion = None
+
+        # Botón de Procesamiento Principal
+        if st.button("🚀 Generar Informe", type="primary", use_container_width=True):
+            if file_m3_m6 and file_consolidadas and file_historico:
+                with st.spinner("Procesando datos y generando reportes..."):
+                    try:
+                        df_m3_m6 = pd.read_excel(file_m3_m6)
+                        df_consolidadas = pd.read_excel(file_consolidadas)
+                        df_historico = pd.read_excel(file_historico)
+
+                        # Ejecución usando el script técnico 'inventario' si está disponible
+                        if inventario and hasattr(inventario, "procesar_informes"):
+                            res_final, res_ejecucion = inventario.procesar_informes(
+                                df_m3_m6, df_consolidadas, df_historico
+                            )
+                            bytes_final = excel_con_formato(res_final, "INFORME_FINAL")
+                            bytes_ejecucion = excel_con_formato(res_ejecucion, "RESUMEN_EJECUCION")
+                        else:
+                            # Procesamiento de reserva / salida directa
+                            bytes_final = excel_con_formato(df_m3_m6, "M3_M6")
+                            bytes_ejecucion = excel_con_formato(df_consolidadas, "CONSOLIDADAS")
+
+                        st.session_state.bytes_informe_final = bytes_final
+                        st.session_state.bytes_resumen_ejecucion = bytes_ejecucion
+                        st.session_state.informes_procesados = True
+                        st.success("¡Informe procesado y generado con éxito!")
+
+                    except Exception as e:
+                        st.error(f"Error al procesar los archivos: {e}")
+            else:
+                st.warning("Debe cargar los 3 archivos requeridos antes de procesar.")
+
+        # Botones de descarga de reportes
+        if st.session_state.informes_procesados:
+            st.markdown("### 📥 Descargar Reportes Generados")
+            d_col1, d_col2 = st.columns(2)
+
+            with d_col1:
+                st.download_button(
+                    label="📄 Descargar Informe Final (Excel)",
+                    data=st.session_state.bytes_informe_final,
+                    file_name=f"Informe_Final_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                    icon=":material/download:",
+                )
+
+            with d_col2:
+                st.download_button(
+                    label="📊 Descargar Resumen Ejecución (Excel)",
+                    data=st.session_state.bytes_resumen_ejecucion,
+                    file_name=f"Resumen_Ejecucion_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                    icon=":material/download:",
                 )
 
     vista_elaboracion_informe()
