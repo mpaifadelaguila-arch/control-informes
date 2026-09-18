@@ -18,14 +18,15 @@ RUTA_ACTUAL = Path(__file__).resolve().parent
 DIR_RAIZ = RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "pages" else RUTA_ACTUAL
 
 DIR_COMPLEMENTO = DIR_RAIZ / "COMPLEMENTO"
-DIR_SCRIPTS = DIR_RAIZ / "_scripts"
+# Ruta corregida apuntando directamente a la subcarpeta generar_informe
+DIR_SCRIPTS_GEN = DIR_RAIZ / "_scripts" / "generar_informe"
 
 RUTA_BASE_DATOS_MAESTRA = DIR_RAIZ / "control-informe" / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
 RUTA_COMPENDIO = DIR_COMPLEMENTO / "COMPENDIO TÉCNICO UNIFICADO DE HALLAZGOS Y RECOMENDACIONES TÉCNICAS.REV.1.docx"
 RUTA_POE = DIR_COMPLEMENTO / "PROCEDIMIENTO OPERATIVO ESTANDARIZADO (POE).docx"
 
-if str(DIR_SCRIPTS) not in sys.path:
-    sys.path.append(str(DIR_SCRIPTS))
+if str(DIR_SCRIPTS_GEN) not in sys.path:
+    sys.path.append(str(DIR_SCRIPTS_GEN))
 
 try:
     import inventario
