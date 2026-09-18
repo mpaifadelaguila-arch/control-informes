@@ -742,7 +742,7 @@ if df.empty:
     st.stop()
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(ttl=5, show_spinner=False)
 def procesar_agrupaciones_y_kpis(df_input):
     mascara_retirado = (
         df_input["OBSERVACIÓN"].apply(
@@ -994,7 +994,6 @@ tabs = sistema_control.tabs([
     "👤 Revisión especialista",
     "🛠️ Correc. PSAIM",
     "📊 Resumen por mes",
-    "📝 Elaboración de Informe",
 ])
 
 # 1. ADMIN
@@ -1655,105 +1654,3 @@ with tabs[8]:
             )
 
     vista_sub_resumen()
-
-# 10. ELABORACIÓN DE INFORME
-with tabs[9]:
-    st.subheader("📝 Elaboración de Informe")
-
-    @st.fragment
-    def vista_elaboracion_informe():
-        st.markdown(
-            "Cargue los archivos requeridos para el procesamiento técnico y la generación de reportes."
-        )
-
-        if RUTA_BASE_DATOS_MAESTRA.exists():
-            st.caption(f"🟢 **Base de datos maestra conectada:** `{RUTA_BASE_DATOS_MAESTRA.name}`")
-        else:
-            st.caption(f"🔴 **Base maestra no localizada en la ruta:** `{RUTA_BASE_DATOS_MAESTRA}`")
-
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.markdown("**Cargar Archivo M3 y M6 (Excel)**")
-            file_m3_m6 = st.file_uploader(
-                "M3_M6",
-                type=["xlsx", "xls"],
-                key="m3_m6",
-                label_visibility="collapsed",
-            )
-        with col2:
-            st.markdown("**Cargar Archivo Consolidadas (Excel)**")
-            file_consolidadas = st.file_uploader(
-                "Consolidadas",
-                type=["xlsx", "xls"],
-                key="consolidadas",
-                label_visibility="collapsed",
-            )
-        with col3:
-            st.markdown("**Cargar Fotos de la Unidad (JPG, PNG)**")
-            fotos_unidad = st.file_uploader(
-                "Fotos_Unidad",
-                type=["jpg", "jpeg", "png"],
-                accept_multiple_files=True,
-                key="fotos_unidad",
-                label_visibility="collapsed",
-            )
-
-        st.markdown("---")
-
-        if "informes_procesados" not in st.session_state:
-            st.session_state.informes_procesados = False
-            st.session_state.bytes_informe_final = None
-            st.session_state.bytes_resumen_ejecucion = None
-
-        if st.button("🚀 Generar Informe", type="primary", use_container_width=True):
-            if file_m3_m6 and file_consolidadas and fotos_unidad:
-                with st.spinner("Procesando datos y generando reportes..."):
-                    try:
-                        df_m3_m6 = pd.read_excel(file_m3_m6)
-                        df_consolidadas = pd.read_excel(file_consolidadas)
-
-                        if inventario and hasattr(inventario, "procesar_informes"):
-                            res_final, res_ejecucion = inventario.procesar_informes(
-                                df_m3_m6, df_consolidadas, fotos_unidad
-                            )
-                            bytes_final = excel_con_formato(res_final, "INFORME_FINAL")
-                            bytes_ejecucion = excel_con_formato(res_ejecucion, "RESUMEN_EJECUCION")
-                        else:
-                            bytes_final = excel_con_formato(df_m3_m6, "M3_M6")
-                            bytes_ejecucion = excel_con_formato(df_consolidadas, "CONSOLIDADAS")
-
-                        st.session_state.bytes_informe_final = bytes_final
-                        st.session_state.bytes_resumen_ejecucion = bytes_ejecucion
-                        st.session_state.informes_procesados = True
-                        st.success("¡Informe procesado y generado con éxito!")
-
-                    except Exception as e:
-                        st.error(f"Error al procesar los archivos: {e}")
-            else:
-                st.warning("Debe cargar los 3 elementos requeridos (archivos Excel y fotos) antes de procesar.")
-
-        if st.session_state.informes_procesados:
-            st.markdown("### 📥 Descargar Reportes Generados")
-            d_col1, d_col2 = st.columns(2)
-
-            with d_col1:
-                st.download_button(
-                    label="📄 Descargar Informe Final (Excel)",
-                    data=st.session_state.bytes_informe_final,
-                    file_name=f"Informe_Final_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True,
-                    icon=":material/download:",
-                )
-
-            with d_col2:
-                st.download_button(
-                    label="📊 Descargar Resumen Ejecución (Excel)",
-                    data=st.session_state.bytes_resumen_ejecucion,
-                    file_name=f"Resumen_Ejecucion_{datetime.now():%Y%m%d_%H%M%S}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True,
-                    icon=":material/download:",
-                )
-
-    vista_elaboracion_informe()
