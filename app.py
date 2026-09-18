@@ -7,31 +7,39 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-import pandas as pd
 import openpyxl
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
-import streamlit as st
+import pandas as pd
+import streamlit as strlit_base  # alias interno o uso de st
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
+import streamlit as st
 
 # ==============================================================================
 # CONFIGURACIÓN DE RUTAS DINÁMICAS (GITHUB / LOCAL)
 # ==============================================================================
 RUTA_ACTUAL = Path(__file__).resolve().parent
-DIR_RAIZ = RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "_scripts" else RUTA_ACTUAL
+DIR_RAIZ = (
+    RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "_scripts" else RUTA_ACTUAL
+)
 
 DIR_COMPLEMENTO = DIR_RAIZ / "COMPLEMENTO"
 DIR_CONTROL_INFORME = DIR_RAIZ / "control-informe"
 DIR_SCRIPTS = DIR_RAIZ / "_scripts"
 
-RUTA_BASE_DATOS_MAESTRA = DIR_CONTROL_INFORME / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
-RUTA_COMPENDIO = DIR_COMPLEMENTO / "COMPENDIO TÉCNICO UNIFICADO DE HALLAZGOS Y RECOMENDACIONES TÉCNICAS.REV.1.docx"
+RUTA_BASE_DATOS_MAESTRA = (
+    DIR_CONTROL_INFORME / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
+)
+RUTA_COMPENDIO = (
+    DIR_COMPLEMENTO
+    / "COMPENDIO TÉCNICO UNIFICADO DE HALLAZGOS Y RECOMENDACIONES TÉCNICAS.REV.1.docx"
+)
 RUTA_POE = DIR_COMPLEMENTO / "PROCEDIMIENTO OPERATIVO ESTANDARIZADO (POE).docx"
 RUTA_ROL = DIR_COMPLEMENTO / "ROL_Y_OBJETIVO.REV2.txt"
-RUTA_PLANTILLA_WORD = DIR_SCRIPTS / "assets" / "plantilla_base.docx"
+RUTA_PLANTILLA_WORD = DIR_RAIZ / "plantilla_base.docx"
 
 if str(DIR_SCRIPTS) not in sys.path:
     sys.path.append(str(DIR_SCRIPTS))
@@ -1667,9 +1675,13 @@ with tabs[9]:
         )
 
         if RUTA_BASE_DATOS_MAESTRA.exists():
-            st.caption(f"🟢 **Base de datos maestra conectada:** `{RUTA_BASE_DATOS_MAESTRA.name}`")
+            st.caption(
+                f"🟢 **Base de datos maestra conectada:** `{RUTA_BASE_DATOS_MAESTRA.name}`"
+            )
         else:
-            st.caption(f"🔴 **Base maestra no localizada en la ruta:** `{RUTA_BASE_DATOS_MAESTRA}`")
+            st.caption(
+                f"🔴 **Base maestra no localizada en la ruta:** `{RUTA_BASE_DATOS_MAESTRA}`"
+            )
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -1705,32 +1717,48 @@ with tabs[9]:
             st.session_state.bytes_informe_final = None
             st.session_state.bytes_resumen_ejecucion = None
 
-        if st.button("🚀 Generar Informe", type="primary", use_container_width=True):
+        if st.button(
+            "🚀 Generar Informe", type="primary", use_container_width=True
+        ):
             if file_m3_m6 and file_consolidadas and fotos_unidad:
                 with st.spinner("Procesando datos y generando reportes..."):
                     try:
                         df_m3_m6 = pd.read_excel(file_m3_m6)
                         df_consolidadas = pd.read_excel(file_consolidadas)
 
-                        if inventario and hasattr(inventario, "procesar_informes"):
-                            res_final, res_ejecucion = inventario.procesar_informes(
-                                df_m3_m6, df_consolidadas, fotos_unidad
+                        if inventario and hasattr(
+                            inventario, "procesar_informes"
+                        ):
+                            res_final, res_ejecucion = (
+                                inventario.procesar_informes(
+                                    df_m3_m6, df_consolidadas, fotos_unidad
+                                )
                             )
-                            bytes_final = excel_con_formato(res_final, "INFORME_FINAL")
-                            bytes_ejecucion = excel_con_formato(res_ejecucion, "RESUMEN_EJECUCION")
+                            bytes_final = excel_con_formato(
+                                res_final, "INFORME_FINAL"
+                            )
+                            bytes_ejecucion = excel_con_formato(
+                                res_ejecucion, "RESUMEN_EJECUCION"
+                            )
                         else:
                             bytes_final = excel_con_formato(df_m3_m6, "M3_M6")
-                            bytes_ejecucion = excel_con_formato(df_consolidadas, "CONSOLIDADAS")
+                            bytes_ejecucion = excel_con_formato(
+                                df_consolidadas, "CONSOLIDADAS"
+                            )
 
                         st.session_state.bytes_informe_final = bytes_final
-                        st.session_state.bytes_resumen_ejecucion = bytes_ejecucion
+                        st.session_state.bytes_resumen_ejecucion = (
+                            bytes_ejecucion
+                        )
                         st.session_state.informes_procesados = True
                         st.success("¡Informe procesado y generado con éxito!")
 
                     except Exception as e:
                         st.error(f"Error al procesar los archivos: {e}")
             else:
-                st.warning("Debe cargar los 3 elementos requeridos (archivos Excel y fotos) antes de procesar.")
+                st.warning(
+                    "Debe cargar los 3 elementos requeridos (archivos Excel y fotos) antes de procesar."
+                )
 
         if st.session_state.informes_procesados:
             st.markdown("### 📥 Descargar Reportes Generados")
