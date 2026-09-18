@@ -195,10 +195,10 @@ if st.session_state.get("procesado_exito", False):
 
     with d_col3:
         st.download_button(
-            label="📑 Descargar Anexos Separadores",
+            label="📑 Descargar Anexos Separadores (ZIP)",
             data=st.session_state["resultado_anexos"],
-            file_name=f"Anexos_Separadores_{datetime.now():%Y%m%d_%H%M%S}.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            file_name=f"Anexos_Separadores_{datetime.now():%Y%m%d_%H%M%S}.zip",
+            mime="application/zip",
             use_container_width=True,
             icon=":material/download:"
         )
