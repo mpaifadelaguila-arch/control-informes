@@ -11,12 +11,11 @@ import streamlit as st
 from docx import Document
 
 # ==============================================================================
-# 1. CONFIGURACIÓN DE RUTAS Y SYS.PATH (CRÍTICO PARA PAGINACIÓN EN SUBPÁGINAS)
+# CONFIGURACIÓN DE RUTAS
 # ==============================================================================
 RUTA_ACTUAL = Path(__file__).resolve().parent
 DIR_RAIZ = RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "pages" else RUTA_ACTUAL
 
-# Forzar a Python a buscar módulos (como inventario.py) en el directorio raíz
 if str(DIR_RAIZ) not in sys.path:
     sys.path.insert(0, str(DIR_RAIZ))
 
@@ -26,22 +25,8 @@ RUTA_BASE_DATOS_MAESTRA = DIR_RAIZ / "control-informe" / "BASE_DE_DATOS_DE_LINEA
 RUTA_COMPENDIO = DIR_COMPLEMENTO / "COMPENDIO TÉCNICO UNIFICADO DE HALLAZGOS Y RECOMENDACIONES TÉCNICAS.REV.1.docx"
 RUTA_POE = DIR_COMPLEMENTO / "PROCEDIMIENTO OPERATIVO ESTANDARIZADO (POE).docx"
 
-# Importación protegida del módulo de inventario
-try:
-    import inventario
-    from inventario import (
-        cargar_inventario,
-        cargar_alcance,
-        cruzar_linea,
-        derivar_fecha_y_examinadores
-    )
-    INVENTARIO_OK = True
-except Exception as err_inv:
-    INVENTARIO_OK = False
-    ERR_INV_MSG = str(err_inv)
-
 # ==============================================================================
-# 2. CONFIGURACIÓN DE PÁGINA E INTERFAZ
+# CONFIGURACIÓN DE PÁGINA
 # ==============================================================================
 st.set_page_config(
     page_title="Elaboración de Informes - Ademinsac",
@@ -71,11 +56,10 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# ==============================================================================
-# 3. EJECUCIÓN CON CAPTURA TOTAL DE ERRORES (EVITA LA PANTALLA EN BLANCO)
-# ==============================================================================
 try:
-    # --- ESTADO DE RECURSOS ---
+    # ==============================================================================
+    # VERIFICACIÓN DE RECURSOS
+    # ==============================================================================
     st.subheader("🛠️ Estado de Herramientas y Recursos")
 
     col_e1, col_e2, col_e3 = st.columns(3)
@@ -92,14 +76,13 @@ try:
             st.warning("⚠️ Falta Compendio o POE en COMPLEMENTO")
 
     with col_e3:
-        if INVENTARIO_OK:
-            st.success("🟢 Módulo Inventario Conectado")
-        else:
-            st.error(f"🔴 Módulo Inventario: {ERR_INV_MSG}")
+        st.success("🟢 Módulo de Procesamiento Conectado")
 
     st.markdown("---")
 
-    # --- MOTOR INTEGRADO DE PROCESAMIENTO ---
+    # ==============================================================================
+    # MOTOR INTEGRADO DE PROCESAMIENTO
+    # ==============================================================================
     def generar_documentos_completos(df_m3m6, df_cons, fotos_unidad, ruta_plantilla_base, plantilla_excel_obj=None, df_psaim=None):
         grupo_id = "22-GLP-GT-023"
         if df_cons is not None and len(df_cons) > 0:
@@ -153,7 +136,7 @@ try:
                     b"5 0 obj\n<< /Length 62 >>\nstream\n"
                     f"BT /F1 16 Tf 50 700 Td (ANEXO DE INSPECCION VISUAL - LINEA {i:02d}) Tj ET\n".encode("latin-1") +
                     b"endstream\nendobj\n"
-                    b"xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000115 00000 n \n0000000228 00000 n \n0000000317 00000 n \n"
+                    b"xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000228 00000 n \n0000000317 00000 n \n"
                     b"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n410\n%%EOF"
                 )
                 zipf.writestr(nombre_anexo, contenido_pdf)
@@ -161,7 +144,9 @@ try:
 
         return bytes_word, bytes_excel, bytes_anexos
 
-    # --- CARGA DE ARCHIVOS ---
+    # ==============================================================================
+    # CARGA DE ARCHIVOS
+    # ==============================================================================
     st.subheader("📁 Carga de Archivos Requeridos")
 
     col1, col2, col3, col4 = st.columns(4)
@@ -174,9 +159,11 @@ try:
     with col4:
         file_psaim = st.file_uploader("4. Archivo PSAIM (Opcional)", type=["xlsx", "xls"], key="indep_psaim")
 
+    # ==============================================================================
+    # PROCESAMIENTO
+    # ==============================================================================
     st.markdown("---")
 
-    # --- PROCESAMIENTO ---
     if st.button("🚀 Procesar Generación de Informe", type="primary", use_container_width=True):
         if not (file_m3_m6 and file_consolidadas and fotos_unidad):
             st.error("Debe cargar los elementos obligatorios (M3/M6, Consolidadas y Fotos) para ejecutar la herramienta.")
@@ -202,7 +189,9 @@ try:
                 except Exception as e:
                     st.error(f"Error durante el procesamiento: {str(e)}")
 
-    # --- SECCIÓN DE DESCARGA ---
+    # ==============================================================================
+    # DESCARGA
+    # ==============================================================================
     if st.session_state.get("procesado_exito", False):
         st.subheader("📥 Descarga de Resultados Generados")
         
@@ -235,6 +224,6 @@ try:
                 use_container_width=True
             )
 
-except Exception as err_global:
-    st.error("Ocurrió un detalle al cargar esta vista:")
-    st.exception(err_global)
+except Exception as err_general:
+    st.error("Ocurrió un error en la interfaz de Elaboración de Informes:")
+    st.exception(err_general)
