@@ -1670,56 +1670,57 @@ with tabs[9]:
     @st.fragment
     def vista_elaboracion_informe():
         st.markdown(
-            "Cargue los 3 archivos requeridos para el procesamiento técnico y la generación de reportes."
+            "Cargue los archivos requeridos para el procesamiento técnico y la generación de reportes."
         )
 
-        # 3 Cargadores de archivos Excel
         col1, col2, col3 = st.columns(3)
         with col1:
+            st.markdown("**Cargar Archivo M3 y M6 (Excel)**")
             file_m3_m6 = st.file_uploader(
-                "Cargar Archivo M3 y M6 (Excel)",
+                "M3_M6",
                 type=["xlsx", "xls"],
-                key="uploader_m3_m6",
+                key="m3_m6",
+                label_visibility="collapsed",
             )
         with col2:
+            st.markdown("**Cargar Archivo Consolidadas (Excel)**")
             file_consolidadas = st.file_uploader(
-                "Cargar Archivo Consolidadas (Excel)",
+                "Consolidadas",
                 type=["xlsx", "xls"],
-                key="uploader_consolidadas",
+                key="consolidadas",
+                label_visibility="collapsed",
             )
         with col3:
-            file_historico = st.file_uploader(
-                "Cargar Histórico de Asignaciones (Excel)",
-                type=["xlsx", "xls"],
-                key="uploader_historico",
+            st.markdown("**Cargar Fotos de la Unidad (JPG, PNG)**")
+            fotos_unidad = st.file_uploader(
+                "Fotos_Unidad",
+                type=["jpg", "jpeg", "png"],
+                accept_multiple_files=True,
+                key="fotos_unidad",
+                label_visibility="collapsed",
             )
 
         st.markdown("---")
 
-        # Estado de sesión para los reportes generados
         if "informes_procesados" not in st.session_state:
             st.session_state.informes_procesados = False
             st.session_state.bytes_informe_final = None
             st.session_state.bytes_resumen_ejecucion = None
 
-        # Botón de Procesamiento Principal
         if st.button("🚀 Generar Informe", type="primary", use_container_width=True):
-            if file_m3_m6 and file_consolidadas and file_historico:
+            if file_m3_m6 and file_consolidadas and fotos_unidad:
                 with st.spinner("Procesando datos y generando reportes..."):
                     try:
                         df_m3_m6 = pd.read_excel(file_m3_m6)
                         df_consolidadas = pd.read_excel(file_consolidadas)
-                        df_historico = pd.read_excel(file_historico)
 
-                        # Ejecución usando el script técnico 'inventario' si está disponible
                         if inventario and hasattr(inventario, "procesar_informes"):
                             res_final, res_ejecucion = inventario.procesar_informes(
-                                df_m3_m6, df_consolidadas, df_historico
+                                df_m3_m6, df_consolidadas, fotos_unidad
                             )
                             bytes_final = excel_con_formato(res_final, "INFORME_FINAL")
                             bytes_ejecucion = excel_con_formato(res_ejecucion, "RESUMEN_EJECUCION")
                         else:
-                            # Procesamiento de reserva / salida directa
                             bytes_final = excel_con_formato(df_m3_m6, "M3_M6")
                             bytes_ejecucion = excel_con_formato(df_consolidadas, "CONSOLIDADAS")
 
@@ -1731,9 +1732,8 @@ with tabs[9]:
                     except Exception as e:
                         st.error(f"Error al procesar los archivos: {e}")
             else:
-                st.warning("Debe cargar los 3 archivos requeridos antes de procesar.")
+                st.warning("Debe cargar los 3 elementos requeridos (archivos Excel y fotos) antes de procesar.")
 
-        # Botones de descarga de reportes
         if st.session_state.informes_procesados:
             st.markdown("### 📥 Descargar Reportes Generados")
             d_col1, d_col2 = st.columns(2)
