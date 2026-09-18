@@ -124,7 +124,7 @@ if st.button("🚀 Procesar Generación de Informe", type="primary", use_contain
                 bytes_excel = None
                 bytes_anexos = None
 
-                # Ejecución utilizando la plantilla de excel de 13 hojas subida por el usuario
+                # Ejecución utilizando la plantilla de excel subida por el usuario
                 if inventario and hasattr(inventario, "generar_documentos_completos"):
                     try:
                         bytes_word, bytes_excel, bytes_anexos = inventario.generar_documentos_completos(
