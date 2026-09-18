@@ -13,7 +13,19 @@ from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
+import sys
+from pathlib import Path
 
+# Configuración de rutas para invocar los scripts técnicos
+DIR_CONTROL_INFORME = Path(__file__).resolve().parent
+DIR_RAIZ_PROYECTO = DIR_CONTROL_INFORME.parent if DIR_CONTROL_INFORME.name == "control-informe" else DIR_CONTROL_INFORME
+DIR_SCRIPTS = DIR_CONTROL_INFORME / "_scripts"
+RUTA_BASE_DATOS_MAESTRA = DIR_CONTROL_INFORME / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
+
+if str(DIR_SCRIPTS) not in sys.path:
+    sys.path.append(str(DIR_SCRIPTS))
+
+import inventario
 # Configuración de página
 st.set_page_config(
     page_title="Control interno de informes - Ademinsac",
