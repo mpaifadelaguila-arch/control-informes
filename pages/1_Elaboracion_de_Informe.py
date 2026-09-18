@@ -111,7 +111,6 @@ with col4:
 st.markdown("---")
 
 if st.button("🚀 Procesar Generación de Informe", type="primary", use_container_width=True):
-    # Validamos obligatoriamente M3/M6, Consolidadas y Fotos. PSAIM es opcional y no bloqueante.
     if not (file_m3_m6 and file_consolidadas and fotos_unidad):
         st.error("Debe cargar los elementos obligatorios (M3/M6, Consolidadas y Fotos) para ejecutar la herramienta.")
     else:
@@ -125,19 +124,17 @@ if st.button("🚀 Procesar Generación de Informe", type="primary", use_contain
                 bytes_excel = None
                 bytes_anexos = None
 
-                # Ejecución mediante el motor de inventario o respaldos robustos
+                # Ejecución utilizando la plantilla de excel de 13 hojas subida por el usuario
                 if inventario and hasattr(inventario, "generar_documentos_completos"):
                     try:
                         bytes_word, bytes_excel, bytes_anexos = inventario.generar_documentos_completos(
-                            df_m3m6, df_cons, fotos_unidad, RUTA_PLANTILLA_BASE, df_psaim=df_psaim
+                            df_m3m6, df_cons, fotos_unidad, RUTA_PLANTILLA_BASE, plantilla_excel_obj=file_consolidadas, df_psaim=df_psaim
                         )
                     except TypeError:
-                        # Si la función del módulo no retorna anexos por separado o no acepta psaim aún
                         res = inventario.generar_documentos_completos(df_m3m6, df_cons, fotos_unidad, RUTA_PLANTILLA_BASE)
                         bytes_word, bytes_excel = res[0], res[1]
                         bytes_anexos = res[2] if len(res) > 2 else res[0]
                 else:
-                    # Generación estándar / respaldo funcional de emergencia
                     output_word = io.BytesIO()
                     output_word.write(b"Informe Tecnico Word Generado Exitosamente")
                     bytes_word = output_word.getvalue()
@@ -150,7 +147,7 @@ if st.button("🚀 Procesar Generación de Informe", type="primary", use_contain
                     bytes_excel = output_excel.getvalue()
 
                     output_anexos = io.BytesIO()
-                    output_anexos.write(b"Anexos Separadores A, B y C Normalizados")
+                    output_anexos.write(b"Anexos Separadores Normalizados")
                     bytes_anexos = output_anexos.getvalue()
 
                 # Guardado en Session State
