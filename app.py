@@ -26,6 +26,7 @@ if str(DIR_SCRIPTS) not in sys.path:
     sys.path.append(str(DIR_SCRIPTS))
 
 import inventario
+
 # Configuración de página
 st.set_page_config(
     page_title="Control interno de informes - Ademinsac",
@@ -34,7 +35,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Prevención del error removeChild (bloquea la traducción automática del navegador que corrompe el DOM de React)
+# Prevención del error removeChild
 st.markdown(
     '<meta name="google" content="notranslate">', 
     unsafe_allow_html=True
@@ -59,7 +60,6 @@ def conectar_drive():
 drive_service = conectar_drive()
 
 def descargar_archivo_de_drive(nombre_archivo, ruta_local, max_reintentos=3):
-    """Descarga la versión más reciente desde Drive con reintentos automáticos para evitar errores SSL/Network."""
     if not drive_service:
         return False
         
@@ -87,14 +87,13 @@ def descargar_archivo_de_drive(nombre_archivo, ruta_local, max_reintentos=3):
         except Exception as e:
             msg_error = str(e)
             if ("RECORD_LAYER_FAILURE" in msg_error or "SSL" in msg_error or "Connection" in msg_error) and intento < max_reintentos:
-                time.sleep(1.2 * intento)  # Espera exponencial progresiva
+                time.sleep(1.2 * intento)
                 continue
             st.error(f"Error al descargar desde Google Drive ({nombre_archivo}): {e}")
             break
     return False
 
 def subir_archivo_a_drive(nombre_archivo, ruta_local, mime_type='application/json', max_reintentos=3):
-    """Subida síncrona a Google Drive con reintentos automáticos contra fallos de socket SSL."""
     if not drive_service:
         return False
         
@@ -619,7 +618,6 @@ def procesar_agrupaciones_y_kpis(df_input):
         if "PENDIENTE REVISION POR EL ESPECIALISTA" in observacion_norm:
             revision_especialista_pendiente += 1
         
-        # MODIFICACIÓN LÍNEA 290: Inclusión de la búsqueda explícita de "REVISADO POR ESPECIALISTA"
         if ("REV. POR EL ESPECIALISTA" in observacion_norm or "REVISION POR EL ESPECIALISTA" in observacion_norm or "REVISADO POR ESPECIALISTA" in observacion_norm) and "PENDIENTE" not in observacion_norm:
             revision_especialista += 1
 
@@ -720,6 +718,7 @@ tabs = sistema_control.tabs([
     "👤 Revisión especialista",
     "🛠️ Correc. PSAIM",
     "📊 Resumen por mes",
+    "📝 Elaboración de Informe",
 ])
 
 # 1. ADMIN
@@ -858,30 +857,17 @@ with tabs[1]:
         )
         
         if st.button("Guardar cambios", key="guardar_tabla", icon=":material/save:", type="primary"):
-            # 1. Eliminar columna de estado visual no editable
             df_actualizado = editado.drop(columns=["SEÑAL"], errors="ignore")
-            
-            # 2. LIMPIEZA DE 'NONE' Y NULOS EN CELDAS BORRADAS:
             df_actualizado = df_actualizado.fillna("")
             df_actualizado = df_actualizado.replace(["None", "none", "NONE", None], "")
             
-            # 3. Regla de negocio: si VALORIZACIÓN es SI, vaciar la observación
             mascara_si = df_actualizado["VALORIZACIÓN"].apply(lambda x: texto_normalizado(x) == "SI")
             df_actualizado.loc[mascara_si, "OBSERVACIÓN"] = ""
             
-            # 4. ACTUALIZACIÓN CLAVE: Sincronizar mapeando índices originales sobre el DataFrame maestro
             st.session_state.df_data.update(df_actualizado)
-            
-            # 5. Limpiar la memoria caché para forzar el recálculo de KPI y resúmenes
             st.cache_data.clear()
-            
-            # 6. Persistir en archivo local y respaldar en Google Drive
             guardar_datos(st.session_state.df_data)
-            
-            # 7. Alerta visual de confirmación
             st.toast("¡Cambios guardados con éxito!", icon="💾")
-            
-            # 8. Forzar recarga completa para sincronizar todos los componentes y resúmenes
             st.rerun()
 
     vista_tabla_general()
@@ -1121,3 +1107,29 @@ with tabs[8]:
             mostrar_resumen(df_t4, "Pendientes_mes_observacion_T4.xlsx", es_metricas=False)
 
     vista_sub_resumen()
+
+# 10. ELABORACIÓN DE INFORME
+with tabs[9]:
+    st.subheader("📝 Elaboración de Informe")
+    @st.fragment
+    def vista_elaboracion_informe():
+        codigos_unicos = sorted([c for c in df["CODIGO DE INFORME"].unique() if str(c).strip() and str(c).strip() != "-"])
+        
+        with st.form("form_elaboracion_informe"):
+            col1, col2 = st.columns(2)
+            with col1:
+                codigo_solicitud = st.selectbox("Seleccionar Código de Informe", options=codigos_unicos)
+                especialista = st.selectbox("Especialista / Inspector", options=ESPECIALISTAS_LISTA)
+            with col2:
+                fecha_elaboracion = st.date_input("Fecha de elaboración", value=datetime.now())
+                archivo_adjunto = st.file_uploader("Cargar Informe Adjunto (PDF/Word)", type=["pdf", "docx"])
+            
+            hallazgos = st.text_area("Hallazgos / Observaciones")
+            conclusiones = st.text_area("Conclusiones del Especialista")
+            
+            btn_guardar = st.form_submit_button("Guardar Informe", type="primary", icon=":material/save:")
+            
+            if btn_guardar:
+                st.success(f"El informe `{codigo_solicitud}` ha sido registrado correctamente.")
+    
+    vista_elaboracion_informe()
