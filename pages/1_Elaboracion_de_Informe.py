@@ -21,7 +21,7 @@ try:
     import checklist
     import anexos
     import inventario
-    import informe
+    import reportes_pdf
     from generar_informe import ejecutar_proceso_grupo
     MODULOS_DISPONIBLES = True
 except ImportError as e:
@@ -100,7 +100,7 @@ if not MODULOS_DISPONIBLES:
     st.warning(f"Detalle de importación: {error_import}")
 
 st.markdown("---")
-st.subheader("📁 Carga de Archivos (Obligatorios: 1 y 3 | En espera: 2 y 4)")
+st.subheader("📁 Carga de Archivos (Obligatorios: 1 y 3)")
 
 col1, col2, col3, col4 = st.columns(4)
 with col1:
@@ -110,7 +110,47 @@ with col2:
 with col3:
     f_fotos = st.file_uploader("3. Fotos de la Unidad [Obligatorio]", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="fotos")
 with col4:
-    f_psaim = st.file_uploader("4. Archivo PSAIM (Excel) [En espera]", type=["xlsx", "xls"], key="psaim")
+    f_psaim = st.file_uploader("4. Archivo PSAIM (Excel, una hoja por línea) [Opcional]", type=["xlsx", "xls"], key="psaim")
+
+col5, col6 = st.columns(2)
+with col5:
+    f_pid = st.file_uploader("5. P&ID del grupo (PDF) [Opcional]", type=["pdf"], key="pid")
+with col6:
+    f_isometricos = st.file_uploader(
+        "6. Isométricos por línea (PDF, uno por archivo) [Opcional]",
+        type=["pdf"], accept_multiple_files=True, key="isometricos"
+    )
+
+# --- Detección de tags y asignación de isométricos a cada línea -------------
+tags_detectados = []
+if f_m3m6 is not None and MODULOS_DISPONIBLES:
+    try:
+        lineas_preview = inventario.cargar_alcance(io.BytesIO(f_m3m6.getbuffer()))
+        tags_detectados = [ln["tag"] for ln in lineas_preview]
+    except Exception as e:
+        st.warning(f"No se pudieron leer las líneas del Detalle de grupo todavía: {e}")
+
+isometricos_por_tag = {}
+if f_isometricos:
+    if not tags_detectados:
+        st.info("Carga primero el Detalle de grupo/líneas (1) para poder asignar cada isométrico a su línea.")
+    else:
+        st.markdown("**Asignación de isométricos a cada línea:**")
+
+        def _normaliza(s):
+            return "".join(c for c in str(s).upper() if c.isalnum())
+
+        tags_norm = {_normaliza(t): t for t in tags_detectados}
+        for f_iso in f_isometricos:
+            nombre_norm = _normaliza(f_iso.name)
+            sugerido = next((t for tn, t in tags_norm.items() if tn and tn in nombre_norm), None)
+            opciones = ["-- Sin asignar --"] + tags_detectados
+            idx_default = opciones.index(sugerido) if sugerido in opciones else 0
+            seleccion = st.selectbox(
+                f"Línea para «{f_iso.name}»", opciones, index=idx_default, key=f"iso_tag_{f_iso.name}"
+            )
+            if seleccion != "-- Sin asignar --":
+                isometricos_por_tag[seleccion] = f_iso
 
 st.markdown("---")
 
@@ -124,7 +164,7 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
             try:
                 with tempfile.TemporaryDirectory() as tmpdir:
                     tmp_path = Path(tmpdir)
-                    
+
                     path_m3m6 = tmp_path / f_m3m6.name
                     path_m3m6.write_bytes(f_m3m6.getbuffer())
 
@@ -138,9 +178,22 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         path_psaim = tmp_path / f_psaim.name
                         path_psaim.write_bytes(f_psaim.getbuffer())
 
+                    path_pid = None
+                    if f_pid is not None:
+                        path_pid = tmp_path / f_pid.name
+                        path_pid.write_bytes(f_pid.getbuffer())
+
+                    dir_iso = tmp_path / "isometricos"
+                    dir_iso.mkdir(exist_ok=True)
+                    rutas_iso_por_tag = {}
+                    for tag, f_iso in isometricos_por_tag.items():
+                        p_iso = dir_iso / f_iso.name
+                        p_iso.write_bytes(f_iso.getbuffer())
+                        rutas_iso_por_tag[tag] = str(p_iso)
+
                     dir_fotos = tmp_path / "fotos"
                     dir_fotos.mkdir(exist_ok=True)
-                    
+
                     ruta_primera_foto = None
                     for i, foto in enumerate(f_fotos):
                         f_path = dir_fotos / foto.name
@@ -149,52 +202,71 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                             ruta_primera_foto = f_path
 
                     grupo_input = Path(f_m3m6.name).stem.replace("(", "").replace(")", "").strip()
-                    
+
                     # --- LLAMADA DIRECTA A LOS MOTORES REALES ---
-                    ejecutar_proceso_grupo(
+                    resultado = ejecutar_proceso_grupo(
                         grupo_buscado=grupo_input,
                         ruta_maestro=path_m3m6,
                         ruta_base_lineas=RUTA_MAESTRA,
                         ruta_plantilla_word=RUTA_PLANTILLA,
                         dir_salida=str(tmp_path),
                         ruta_foto=ruta_primera_foto,
-                        ruta_checklist=path_cons
+                        ruta_checklist=path_cons,
+                        ruta_psaim=path_psaim,
                     )
 
-                    # --- BÚSQUEDA DINÁMICA ROBUSTA DE ARCHIVOS GENERADOS ---
-                    docx_files = list(tmp_path.glob("*.docx"))
-                    xlsx_files = [f for f in tmp_path.glob("*.xlsx") if f.name != f_m3m6.name and (path_psaim is None or f.name != path_psaim.name)]
-                    
-                    out_word_path = docx_files[0] if docx_files else (tmp_path / f"Informe_{grupo_input}.docx")
-                    out_excel_path = xlsx_files[0] if xlsx_files else (path_cons if path_cons else None)
+                    out_word_path = Path(resultado["ruta_word"])
+                    out_excel_path = Path(resultado["ruta_checklist"]) if resultado["ruta_checklist"] else None
+                    if not out_word_path.exists():
+                        raise FileNotFoundError("El motor backend no generó el archivo Word en el directorio de salida.")
+
+                    # --- ANEXOS REALES: P&ID + isométricos + checklist VT en PDF + PSAIM en PDF ---
+                    dir_anexos = tmp_path / "anexos_pdf"
+                    dir_anexos.mkdir(exist_ok=True)
+
+                    checklists_vt_pdf = {}
+                    if out_excel_path and out_excel_path.exists():
+                        checklists_vt_pdf = reportes_pdf.generar_pdf_checklist_por_tag(
+                            str(out_excel_path), str(dir_anexos)
+                        )
+
+                    psaim_pdf_por_tag = {}
+                    if resultado.get("psaim_por_tag"):
+                        inv = inventario.cargar_inventario(RUTA_MAESTRA)
+                        inv_norm = {k.strip().upper(): v for k, v in inv.items()}
+                        filas_tecnicas = []
+                        for ln in resultado["lineas_alcance"]:
+                            tag = ln["tag"]
+                            datos, _ = inventario.cruzar_linea(tag, inv_norm.get(tag.strip().upper()))
+                            filas_tecnicas.append({"tag": tag, **datos})
+                        psaim_pdf_por_tag = reportes_pdf.generar_pdf_psaim_por_tag(
+                            resultado["psaim_por_tag"], filas_tecnicas, str(dir_anexos)
+                        )
+
+                    config_anexos = {
+                        "lineas": resultado["lineas_alcance"],
+                        "anexos": {
+                            "pid_pdf": str(path_pid) if path_pid else None,
+                            "isometricos": rutas_iso_por_tag,
+                            "checklists_vt_pdf": checklists_vt_pdf,
+                            "psaim_pdf": psaim_pdf_por_tag,
+                        },
+                    }
+                    dir_anexos_finales = tmp_path / "anexos_finales"
+                    anexos_generados, avisos_anexos = anexos.construir_anexos(
+                        config_anexos, str(dir_anexos_finales)
+                    )
+
+                    # --- Empaquetado en ZIP: anexos reales + fotos de campo ---
                     out_zip_path = tmp_path / f"Anexos_Comprimidos_{grupo_input}.zip"
-
-                    # Generación del PDF de Anexos integrado (Corregido sin el argumento 'grupo')
-                    path_pdf_anexos = tmp_path / f"Anexos_Fusionados_{grupo_input}.pdf"
-                    try:
-                        anexos.construir_anexos()
-                    except Exception as e:
-                        st.warning(f"Aviso en anexos PDF: {e}")
-
-                    # Empaquetado en ZIP
-                    with zipfile.ZipFile(out_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                        zipf.write(path_m3m6, arcname=f"Detalle_Grupo_{f_m3m6.name}")
-                        if out_excel_path and out_excel_path.exists():
-                            zipf.write(out_excel_path, arcname=f"VT-CHECK_LIST_Parchado_{grupo_input}.xlsx")
-                        elif path_cons:
-                            zipf.write(path_cons, arcname=f"VT-CHECK_LIST_Original_{path_cons.name}")
-                        
-                        if path_pdf_anexos.exists():
-                            zipf.write(path_pdf_anexos, arcname=f"Anexos_Fusionados_{grupo_input}.pdf")
-                            
+                    with zipfile.ZipFile(out_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+                        for ruta_anexo in anexos_generados:
+                            zipf.write(ruta_anexo, arcname=os.path.basename(ruta_anexo))
                         for foto in f_fotos:
                             zipf.write(dir_fotos / foto.name, arcname=f"fotos/{foto.name}")
 
-                    if not out_word_path.exists():
-                        raise FileNotFoundError("El motor backend no generó el archivo Word en el directorio de salida.")
-                    
                     word_bytes = out_word_path.read_bytes()
-                    excel_bytes = out_excel_path.read_bytes() if out_excel_path and out_excel_path.exists() else (path_cons.read_bytes() if path_cons else None)
+                    excel_bytes = out_excel_path.read_bytes() if out_excel_path and out_excel_path.exists() else None
                     anexos_bytes = out_zip_path.read_bytes()
 
                 # Guardado persistente en session_state
@@ -203,8 +275,11 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                 st.session_state["res_anexos"] = anexos_bytes
                 st.session_state["ok_gen"] = True
 
+                avisos = list(resultado.get("avisos", [])) + list(avisos_anexos)
                 st.success("¡Informe técnico, checklist y anexos generados y capturados con éxito!")
-            
+                for aviso in avisos:
+                    st.warning(aviso)
+
             except Exception as e:
                 st.error("Error crítico en la ejecución de los motores backend:")
                 st.exception(e)

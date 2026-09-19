@@ -144,6 +144,7 @@ ALCANCE_COLS = {
     "fecha_inspeccion": ["FECHA DE INSPECCIÓN", "FECHA"],
     "inspectores": ["INSPECTORES ", "INSPECTORES", "ISNPECTOR", "ISNPECTORES"],
     "observacion": ["OBSERVACIÓN ", "OBSERVACIÓN", "OBSERVACION", "NOTAS"],
+    "elaborador": ["ELABORACIÓN DE INFORME", "ELABORACION DE INFORME", "ELABORADO POR"],
 }
 
 
@@ -199,9 +200,9 @@ def derivar_fecha_y_examinadores(lineas, elaborador=None):
     'PENDIENTE INSPECCIÓN', sin fecha todavía) — nunca excluir una fecha
     real por parecer atípica.
 
-    `elaborador`: nombre exacto (tal como aparece en `inspectores`) de quien
-    elaboró el informe — SIEMPRE debe confirmarse con el usuario (regla
-    12.2), nunca asumirse por frecuencia ni orden de aparición.
+    `elaborador`: nombre de quien elabora el informe. El archivo de detalle
+    de grupo ya trae esta columna (ELABORACIÓN DE INFORME) -- el llamador
+    normalmente pasa `lineas[0].get("elaborador")` en vez de pedirlo aparte.
     """
     fechas = []
     examinadores = []
