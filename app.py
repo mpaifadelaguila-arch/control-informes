@@ -18,23 +18,22 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
 # ==============================================================================
-# CONFIGURACIÓN DE RUTAS DINÁMICAS (GITHUB / LOCAL)
+# CONFIGURACIÓN DE RUTAS DINÁMICAS (ACTUALIZADA)
 # ==============================================================================
 RUTA_ACTUAL = Path(__file__).resolve().parent
-DIR_RAIZ = RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "_scripts" else RUTA_ACTUAL
+DIR_RAIZ = RUTA_ACTUAL
 
 DIR_COMPLEMENTO = DIR_RAIZ / "COMPLEMENTO"
 DIR_CONTROL_INFORME = DIR_RAIZ / "control-informe"
-DIR_SCRIPTS = DIR_RAIZ / "_scripts"
 
 RUTA_BASE_DATOS_MAESTRA = DIR_CONTROL_INFORME / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
 RUTA_COMPENDIO = DIR_COMPLEMENTO / "COMPENDIO TÉCNICO UNIFICADO DE HALLAZGOS Y RECOMENDACIONES TÉCNICAS.REV.1.docx"
 RUTA_POE = DIR_COMPLEMENTO / "PROCEDIMIENTO OPERATIVO ESTANDARIZADO (POE).docx"
 RUTA_ROL = DIR_COMPLEMENTO / "ROL_Y_OBJETIVO.REV2.txt"
-RUTA_PLANTILLA_WORD = DIR_SCRIPTS / "assets" / "plantilla_base.docx"
+RUTA_PLANTILLA_WORD = DIR_RAIZ / "plantilla_base.docx"
 
-if str(DIR_SCRIPTS) not in sys.path:
-    sys.path.append(str(DIR_SCRIPTS))
+if str(DIR_RAIZ) not in sys.path:
+    sys.path.append(str(DIR_RAIZ))
 
 # Configuración de la interfaz Streamlit (Barra lateral desplegada)
 st.set_page_config(
