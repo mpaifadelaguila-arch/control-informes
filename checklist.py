@@ -200,9 +200,12 @@ def _procesar_bloque(ws, item, categoria, fila_ini, fila_fin):
     """Resuelve el hallazgo (mejorado) y la recomendación de un ítem del
     checklist -- exista ya en el archivo o haya que sugerirla -- SIN escribir
     nada todavía. Devuelve None si el ítem no tiene un hallazgo real (marca
-    A/NA, o sin comentario)."""
+    A/NA, o sin comentario) o si no tiene ninguna fotografía de respaldo: una
+    observación O/R sin foto no lleva recomendación ni pasa al informe."""
     filas = _filas_del_bloque(ws, fila_ini, fila_fin)
     if not filas or not any(f["marca"] in ("O", "R") for f in filas):
+        return None
+    if not imagenes_del_bloque(ws, fila_ini, fila_fin):
         return None
 
     hallazgo = " ".join(_mejorar_texto(f["texto"]) for f in filas if f["tipo"] == "HALLAZGO")
