@@ -46,7 +46,7 @@ st.markdown(
     """
     <style>
     footer {visibility: hidden;}
-    header {visibility: hidden !important;}
+    /* Se removió la regla que ocultaba el encabezado para permitir la navegación lateral */
 
     :root {
         --primary-navy: #0E2A47;
