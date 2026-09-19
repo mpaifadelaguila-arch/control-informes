@@ -16,6 +16,10 @@ PAGE_W, PAGE_H = 595.92, 841.92
 MARGIN = 0.85 * 28.3465  # ~0.85 cm en puntos
 
 FONT_NAME = "CambriaLike"
+# Fuente base de reportlab (siempre disponible, sin archivo externo) -- se
+# usa como respaldo cuando el contenedor de despliegue (p.ej. Streamlit
+# Cloud) no tiene instalada ninguna fuente serif de sistema.
+FALLBACK_FONT_NAME = "Times-Roman"
 _FONT_REGISTERED = False
 
 
@@ -25,6 +29,7 @@ def _find_cambria():
         r"C:\Windows\Fonts\Cambria.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+        "/usr/share/fonts/truetype/msttcorefonts/Cambria.ttf",
     ]
     for c in candidatos:
         if os.path.exists(c):
@@ -33,16 +38,18 @@ def _find_cambria():
 
 
 def _ensure_font():
-    global _FONT_REGISTERED
+    """Registra la fuente serif de sistema si existe; si no hay ninguna
+    disponible en el contenedor (caso típico de un despliegue en la nube),
+    cae de respaldo a Times-Roman, que reportlab trae incorporada y no
+    requiere ningún archivo de fuente externo."""
+    global _FONT_REGISTERED, FONT_NAME
     if _FONT_REGISTERED:
         return
     path = _find_cambria()
     if path is None:
-        raise RuntimeError(
-            "No se encontró ninguna fuente serif para los separadores de "
-            "anexo (ni Cambria ni un respaldo). Instalar Cambria o ajustar "
-            "anexos._find_cambria()."
-        )
+        FONT_NAME = FALLBACK_FONT_NAME
+        _FONT_REGISTERED = True
+        return
     try:
         registerFont(TTFont(FONT_NAME, path, subfontIndex=0))
     except Exception:
