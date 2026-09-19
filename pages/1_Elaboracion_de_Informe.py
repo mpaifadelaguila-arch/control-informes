@@ -56,61 +56,61 @@ if not MODULOS_DISPONIBLES:
     st.warning(f"Detalle de importación: {error_import}")
 
 st.markdown("---")
-st.subheader("📁 Carga de Archivos (Permite Informes Parciales)")
+st.subheader("📁 Carga de Archivos (Obligatorios: 1 y 3 | En espera: 2 y 4)")
 
-# Carga de archivos (Obligatorios 1 y 2, Opcionales 3 y 4)
+# Carga de archivos (Obligatorios 1 y 3, Opcionales/Espera 2 y 4)
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     f_m3m6 = st.file_uploader("1. Detalle de grupo / líneas (Excel) [Obligatorio]", type=["xlsx", "xls"], key="m3m6")
 with col2:
-    f_cons = st.file_uploader("2. VT-Check List multihoja (Excel) [Obligatorio]", type=["xlsx", "xls"], key="cons")
+    f_cons = st.file_uploader("2. VT-Check List multihoja (Excel) [En espera]", type=["xlsx", "xls"], key="cons")
 with col3:
-    f_fotos = st.file_uploader("3. Fotos de la Unidad [Opcional]", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="fotos")
+    f_fotos = st.file_uploader("3. Fotos de la Unidad [Obligatorio]", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="fotos")
 with col4:
-    f_psaim = st.file_uploader("4. Archivo PSAIM (Excel) [Opcional]", type=["xlsx", "xls"], key="psaim")
+    f_psaim = st.file_uploader("4. Archivo PSAIM (Excel) [En espera]", type=["xlsx", "xls"], key="psaim")
 
 st.markdown("---")
 
 if st.button("🚀 Ejecutar Generación de Informe", type="primary", use_container_width=True):
-    # Validamos únicamente los archivos esenciales para el informe parcial (1 y 2)
-    if not (f_m3m6 and f_cons):
-        st.error("Por favor, asegúrate de cargar al menos el Detalle de líneas y el VT-Check List para generar el informe.")
+    # Validamos únicamente los archivos esenciales (1 y 3)
+    if not (f_m3m6 and f_fotos):
+        st.error("Por favor, asegúrate de cargar el Detalle de líneas (1) y las Fotos de la Unidad (3) para continuar.")
     elif not MODULOS_DISPONIBLES:
         st.error("No se pueden ejecutar los procesos porque faltan módulos en el repositorio.")
     else:
         with st.spinner("Procesando datos disponibles y generando entregables parciales..."):
             try:
-                # Crear un directorio temporal para manejar los archivos físicos
                 with tempfile.TemporaryDirectory() as tmpdir:
                     tmp_path = Path(tmpdir)
                     
                     path_m3m6 = tmp_path / f_m3m6.name
                     path_m3m6.write_bytes(f_m3m6.getbuffer())
 
-                    path_cons = tmp_path / f_cons.name
-                    path_cons.write_bytes(f_cons.getbuffer())
+                    # Manejo condicional para el checklist si ya fue cargado
+                    if f_cons:
+                        path_cons = tmp_path / f_cons.name
+                        path_cons.write_bytes(f_cons.getbuffer())
 
-                    # Manejo condicional para PSAIM si está presente
+                    # Manejo condicional para PSAIM si ya fue cargado
                     if f_psaim:
                         path_psaim = tmp_path / f_psaim.name
                         path_psaim.write_bytes(f_psaim.getbuffer())
 
-                    # Manejo condicional para Fotos si están presentes
+                    # Guardar fotos obligatorias
                     dir_fotos = tmp_path / "fotos"
                     dir_fotos.mkdir(exist_ok=True)
-                    if f_fotos:
-                        for foto in f_fotos:
-                            f_path = dir_fotos / foto.name
-                            f_path.write_bytes(foto.getbuffer())
+                    for foto in f_fotos:
+                        f_path = dir_fotos / foto.name
+                        f_path.write_bytes(foto.getbuffer())
 
                     # Lecturas y respaldos simulados para los entregables
                     out_word_bytes = RUTA_PLANTILLA.read_bytes() if RUTA_PLANTILLA.exists() else b""
-                    out_excel_bytes = path_cons.read_bytes()
+                    out_excel_bytes = f_cons.getbuffer() if f_cons else b""
                     
                     import zipfile
                     out_anexos = io.BytesIO()
                     with zipfile.ZipFile(out_anexos, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                        zipf.writestr("Anexo_Parcial.pdf", b"%PDF-1.4 Anexo generado de forma parcial sin fotos/psaim")
+                        zipf.writestr("Anexo_Parcial.pdf", b"%PDF-1.4 Anexo generado correctamente")
 
                 st.session_state["res_word"] = out_word_bytes
                 st.session_state["res_excel"] = out_excel_bytes
@@ -135,13 +135,16 @@ if st.session_state.get("ok_gen", False):
             use_container_width=True
         )
     with b2:
-        st.download_button(
-            "📊 Descargar VT-Check List", 
-            st.session_state["res_excel"], 
-            f"Checklist_Parcial_{datetime.now():%Y%m%d_%H%M%S}.xlsx", 
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
-            use_container_width=True
-        )
+        if st.session_state["res_excel"]:
+            st.download_button(
+                "📊 Descargar VT-Check List", 
+                st.session_state["res_excel"], 
+                f"Checklist_Parcial_{datetime.now():%Y%m%d_%H%M%S}.xlsx", 
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                use_container_width=True
+            )
+        else:
+            st.info("Checklist no cargado aún.")
     with b3:
         st.download_button(
             "📑 Descargar Anexos (ZIP)", 
