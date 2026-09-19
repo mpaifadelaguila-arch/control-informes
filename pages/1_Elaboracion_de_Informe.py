@@ -172,10 +172,7 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                     # Generación del PDF de Anexos integrado (Corregido sin el argumento 'grupo')
                     path_pdf_anexos = tmp_path / f"Anexos_Fusionados_{grupo_input}.pdf"
                     try:
-                        anexos.construir_anexos(
-                            dir_salida=tmp_path,
-                            ruta_pdf_salida=path_pdf_anexos
-                        )
+                        anexos.construir_anexos()
                     except Exception as e:
                         st.warning(f"Aviso en anexos PDF: {e}")
 
