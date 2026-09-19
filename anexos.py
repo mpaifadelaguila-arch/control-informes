@@ -122,6 +122,20 @@ def merge_pdfs(out_path, *pdf_paths):
         writer.write(f)
 
 
+_CARACTERES_INVALIDOS_ARCHIVO = '<>:"/\\|?*'
+
+
+def _nombre_archivo_seguro(texto):
+    """Sanea un TAG de línea para usarlo en un nombre de archivo: los TAG
+    reales pueden traer '/' (p.ej. 1 1/2"-22-18-11), que en cualquier
+    sistema de archivos se interpreta como separador de carpetas y rompe
+    la escritura del PDF."""
+    texto = str(texto)
+    for c in _CARACTERES_INVALIDOS_ARCHIVO:
+        texto = texto.replace(c, "-")
+    return texto
+
+
 def construir_anexos(*args, **kwargs):
     """Versión completamente flexible y tolerante a fallos para la construcción de anexos."""
     avisos = []
@@ -157,7 +171,7 @@ def construir_anexos(*args, **kwargs):
         tag = ln.get("tag", f"Linea_{i}")
         sep_b = os.path.join(out_dir, f"_sep_B{i}.pdf")
         separador_anexo_b(sep_b, i, tag)
-        out_b = os.path.join(out_dir, f"Anexo B.{i} - {tag}.pdf")
+        out_b = os.path.join(out_dir, f"Anexo B.{i} - {_nombre_archivo_seguro(tag)}.pdf")
         contenido = [p for p in (isometricos.get(tag), checklists_vt.get(tag)) if p and os.path.exists(str(p))]
         merge_pdfs(out_b, sep_b, *contenido)
         generados.append(out_b)
@@ -170,7 +184,7 @@ def construir_anexos(*args, **kwargs):
         tag = ln.get("tag", f"Linea_{j}")
         sep_c = os.path.join(out_dir, f"_sep_C{j}.pdf")
         separador_anexo_c(sep_c, j, tag)
-        out_c = os.path.join(out_dir, f"Anexo C.{j} - {tag}.pdf")
+        out_c = os.path.join(out_dir, f"Anexo C.{j} - {_nombre_archivo_seguro(tag)}.pdf")
         contenido = psaim_pdfs.get(tag)
         if contenido and os.path.exists(str(contenido)):
             merge_pdfs(out_c, sep_c, contenido)
