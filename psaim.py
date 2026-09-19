@@ -51,8 +51,13 @@ def leer_psaim(path):
     Vida útil), 'n_tml': int}. Lanza PSAIMFaltaDetalle si no encuentra la
     columna de detalle."""
     wb = openpyxl.load_workbook(path, data_only=True)
-    ws = wb[wb.sheetnames[0]]
+    return leer_psaim_hoja(wb[wb.sheetnames[0]])
 
+
+def leer_psaim_hoja(ws):
+    """Igual que `leer_psaim`, pero recibe directamente una hoja (`Worksheet`)
+    ya abierta -- permite reutilizar el parser cuando un mismo archivo PSAIM
+    trae varias líneas, una por hoja (ver generar_informe._leer_psaim_por_linea)."""
     rcr = None
     header_row_idx = None
     vida_col_idx = None
@@ -82,10 +87,10 @@ def leer_psaim(path):
             break
 
     if rcr is None:
-        raise PSAIMFaltaDetalle(f"No se encontró 'RCR = ... MPY' en {path}")
+        raise PSAIMFaltaDetalle(f"No se encontró 'RCR = ... MPY' en la hoja '{ws.title}'")
     if header_row_idx is None:
         raise PSAIMFaltaDetalle(
-            f"No se encontró la columna 'TML Vida útil' en {path} — "
+            f"No se encontró la columna 'TML Vida útil' en la hoja '{ws.title}' — "
             "probablemente es la versión resumen ('... DATOS.xlsx'), "
             "que no trae la tabla de detalle por TML. Se necesita la "
             "versión con detalle (ej. '..._rev_FECHA.xlsx')."
@@ -100,7 +105,7 @@ def leer_psaim(path):
             valores.append(float(v))
 
     if not valores:
-        raise PSAIMFaltaDetalle(f"La columna 'TML Vida útil' está vacía en {path}")
+        raise PSAIMFaltaDetalle(f"La columna 'TML Vida útil' está vacía en la hoja '{ws.title}'")
 
     return {
         "rcr_mpy": rcr,
