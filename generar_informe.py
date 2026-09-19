@@ -116,6 +116,58 @@ def _reemplazar_bloque_examinadores(doc, lista_examinadores):
     return True
 
 
+def _reemplazar_texto_literal_parrafos(doc, buscar, reemplazar):
+    """Reemplaza, en todos los párrafos del cuerpo, cualquier ocurrencia
+    literal de `buscar` por `reemplazar` (usado para el nombre de grupo de
+    muestra de la plantilla, que aparece repetido en varios párrafos
+    narrativos, no solo en la tabla de encabezado)."""
+    if not buscar or buscar == reemplazar:
+        return
+    for p in doc.paragraphs:
+        if buscar in p.text:
+            docxlib.set_para_content(p._p, p.text.replace(buscar, reemplazar))
+
+
+def _es_retirada(observacion):
+    return bool(observacion) and "retirad" in str(observacion).strip().lower()
+
+
+def _lista_espanol(numeros):
+    numeros = [str(n) for n in numeros]
+    if not numeros:
+        return ""
+    if len(numeros) == 1:
+        return numeros[0]
+    return ", ".join(numeros[:-1]) + " y " + numeros[-1]
+
+
+def _reemplazar_nota_solo_vt(doc, filas_activas):
+    """Actualiza el párrafo NOTA de la tabla 0 ("En las líneas N°... solo
+    se realizó inspección visual...") con los ítems cuyo alcance del
+    servicio NO incluye medición de espesores (UT) -- se excluyen las
+    líneas retiradas, que no llevan ninguna inspección."""
+    solo_vt = [
+        f["item"] for f in filas_activas
+        if str(f.get("alcance") or "").strip().upper() != "LINEAS"
+    ]
+    for p in doc.paragraphs:
+        if "solo se realizó inspección visual" in p.text:
+            if solo_vt:
+                nuevo = (
+                    f"En las líneas N° {_lista_espanol(solo_vt)}, solo se realizó "
+                    "inspección visual, tal como se especifica en los alcances del "
+                    "servicio. "
+                )
+            else:
+                nuevo = (
+                    "Todas las líneas del grupo cuentan con inspección visual y "
+                    "medición de espesores (UT), según los alcances del servicio. "
+                )
+            docxlib.set_para_content(p._p, nuevo)
+            return True
+    return False
+
+
 def ejecutar_proceso_grupo(
     grupo_buscado,
     ruta_maestro,
@@ -153,9 +205,15 @@ def ejecutar_proceso_grupo(
             "sap": str(ln.get("sap") or "SIN DATO"),
             "unidad": str(ln.get("unidad") or "SIN DATO"),
             "tag": tag,
+            "alcance": ln.get("alcance"),
             "observacion": (str(ln["observacion"]).strip() if ln.get("observacion") else None),
             **datos_tecnicos,
         })
+
+    # Las líneas retiradas del plan (NOTAS/observación con "retirad...") solo
+    # se muestran en las tablas técnicas (0 y 5); nunca en Recomendación (1)
+    # ni en Hallazgos (7), donde no corresponde ninguna inspección.
+    filas_activas = [f for f in filas_tecnicas if not _es_retirada(f.get("observacion"))]
 
     # 3. PSAIM: rate de corrosión y vida útil por línea (si se subió el archivo)
     psaim_por_tag = {}
@@ -196,6 +254,11 @@ def ejecutar_proceso_grupo(
     fecha_ini_txt = fecha_ini or "PENDIENTE"
     fecha_fin_txt = fecha_fin or "PENDIENTE"
 
+    # El nombre de grupo de la plantilla-molde aparece repetido en varios
+    # párrafos narrativos (no solo en la tabla de encabezado) -- se captura
+    # ANTES de sobrescribir la tabla 2, que es donde vive el valor original.
+    grupo_muestra = doc.tables[2].cell(2, 1).text.strip() if len(doc.tables) > 2 else None
+
     # -- Tabla 2: encabezado (cliente/grupo/fechas) -------------------------
     if len(doc.tables) > 2:
         tabla_header = doc.tables[2]
@@ -211,7 +274,13 @@ def ejecutar_proceso_grupo(
     _reemplazar_fecha_inspeccion_parrafo(doc, fecha_ini_txt, fecha_fin_txt)
     _reemplazar_bloque_examinadores(doc, examinadores)
 
+    if grupo_muestra and grupo_muestra != grupo_buscado:
+        _reemplazar_texto_literal_parrafos(doc, grupo_muestra, grupo_buscado)
+
+    _reemplazar_nota_solo_vt(doc, filas_activas)
+
     n = len(tags_ordenados)
+    n_activas = len(filas_activas)
 
     # -- Tabla 0: N°, SAP, Línea, Rate Corrosión, Vida Útil ------------------
     if len(doc.tables) > 0:
@@ -238,9 +307,10 @@ def ejecutar_proceso_grupo(
             ])
 
     # -- Tabla 1: recomendación técnica por línea (del checklist VT) --------
+    # Las líneas retiradas del plan no llevan fila aquí (solo en tablas 0/5).
     if len(doc.tables) > 1:
-        filas1 = docxlib.clone_table_to_n_rows(doc.tables[1], n, header_rows=1)
-        for tr, fila in zip(filas1, filas_tecnicas):
+        filas1 = docxlib.clone_table_to_n_rows(doc.tables[1], n_activas, header_rows=1)
+        for tr, fila in zip(filas1, filas_activas):
             items_chk = hallazgos_por_tag.get(fila["tag"])
             if items_chk:
                 recomendacion = "\n".join(info["recomendacion"] for info in items_chk if info["recomendacion"])
@@ -253,9 +323,10 @@ def ejecutar_proceso_grupo(
             docxlib.fill_row(tr, [fila["item"], fila["tag"], recomendacion])
 
     # -- Tabla 7: hallazgos relevantes en VT y UT por línea ------------------
+    # Las líneas retiradas del plan no llevan fila aquí (solo en tablas 0/5).
     if len(doc.tables) > 7:
-        filas7 = docxlib.clone_table_to_n_rows(doc.tables[7], n, header_rows=1)
-        for tr, fila in zip(filas7, filas_tecnicas):
+        filas7 = docxlib.clone_table_to_n_rows(doc.tables[7], n_activas, header_rows=1)
+        for tr, fila in zip(filas7, filas_activas):
             partes = []
             p = psaim_por_tag.get(fila["tag"])
             if p:
