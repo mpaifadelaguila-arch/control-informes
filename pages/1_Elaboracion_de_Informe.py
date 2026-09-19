@@ -161,20 +161,18 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         ruta_checklist=path_cons
                     )
 
-                    # Búsqueda dinámica de archivos generados para evitar problemas de nombres rígidos
+                    # --- BÚSQUEDA DINÁMICA ROBUSTA DE ARCHIVOS GENERADOS ---
                     docx_files = list(tmp_path.glob("*.docx"))
                     xlsx_files = [f for f in tmp_path.glob("*.xlsx") if f.name != f_m3m6.name and (path_psaim is None or f.name != path_psaim.name)]
                     
-                    out_word_path = docx_files[0] if docx_files else None
+                    out_word_path = docx_files[0] if docx_files else (tmp_path / f"Informe_{grupo_input}.docx")
                     out_excel_path = xlsx_files[0] if xlsx_files else (path_cons if path_cons else None)
-
                     out_zip_path = tmp_path / f"Anexos_Comprimidos_{grupo_input}.zip"
 
-                    # Generación del PDF de Anexos integrado
+                    # Generación del PDF de Anexos integrado (Corregido sin el argumento 'grupo')
                     path_pdf_anexos = tmp_path / f"Anexos_Fusionados_{grupo_input}.pdf"
                     try:
                         anexos.construir_anexos(
-                            grupo=grupo_input,
                             ruta_maestro=path_m3m6,
                             ruta_base_lineas=RUTA_MAESTRA,
                             dir_salida=tmp_path,
@@ -197,13 +195,14 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         for foto in f_fotos:
                             zipf.write(dir_fotos / foto.name, arcname=f"fotos/{foto.name}")
 
-                    if not out_word_path or not out_word_path.exists():
-                        raise FileNotFoundError("El motor backend no generó ningún archivo Word en el directorio de salida.")
+                    if not out_word_path.exists():
+                        raise FileNotFoundError("El motor backend no generó el archivo Word en el directorio de salida.")
                     
                     word_bytes = out_word_path.read_bytes()
                     excel_bytes = out_excel_path.read_bytes() if out_excel_path and out_excel_path.exists() else (path_cons.read_bytes() if path_cons else None)
                     anexos_bytes = out_zip_path.read_bytes()
 
+                # Guardado persistente en session_state
                 st.session_state["res_word"] = word_bytes
                 st.session_state["res_excel"] = excel_bytes
                 st.session_state["res_anexos"] = anexos_bytes
