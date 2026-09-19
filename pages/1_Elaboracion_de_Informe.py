@@ -16,7 +16,6 @@ DIR_RAIZ = RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "pages" else RUTA_ACTUAL
 if str(DIR_RAIZ) not in sys.path:
     sys.path.insert(0, str(DIR_RAIZ))
 
-# Importación de tus módulos del repositorio
 try:
     import psaim
     import checklist
@@ -33,7 +32,6 @@ RUTA_PLANTILLA = DIR_RAIZ / "plantilla_base.docx"
 RUTA_MAESTRA = DIR_RAIZ / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
 DIR_COMPLEMENTO = DIR_RAIZ / "COMPLEMENTO"
 
-# Configuración de Streamlit con la barra lateral desplegada por defecto
 st.set_page_config(
     page_title="Elaboración de Informes - Ademinsac",
     page_icon="📋",
@@ -41,12 +39,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Estilos CSS Corporativos
 st.markdown(
     """
     <style>
     footer {visibility: hidden;}
-
     :root {
         --primary-navy: #0E2A47;
         --secondary-navy: #1A3E68;
@@ -56,10 +52,8 @@ st.markdown(
         --text-main: #1E293B;
         --text-sub: #64748B;
     }
-
     .stApp { background-color: #EEF2F7; }
     .block-container { padding-top: 1.6rem !important; }
-
     .header-banner {
         background: linear-gradient(120deg, #0B2038 0%, #1E4E7E 60%, #2C6494 100%);
         padding: 22px 30px;
@@ -89,7 +83,6 @@ st.html("""
     </div>
 """)
 
-# Indicadores de estado de recursos y módulos
 c1, c2, c3, c4 = st.columns(4)
 with c1:
     st.success("🟢 Base Maestra OK" if RUTA_MAESTRA.exists() else "⚠️ Falta Base Maestra")
@@ -132,7 +125,6 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                 with tempfile.TemporaryDirectory() as tmpdir:
                     tmp_path = Path(tmpdir)
                     
-                    # 1. Guardar archivos cargados en el directorio temporal
                     path_m3m6 = tmp_path / f_m3m6.name
                     path_m3m6.write_bytes(f_m3m6.getbuffer())
 
@@ -156,7 +148,6 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         if i == 0:
                             ruta_primera_foto = f_path
 
-                    # Extraer el nombre del grupo
                     grupo_input = Path(f_m3m6.name).stem.replace("(", "").replace(")", "").strip()
                     
                     # --- LLAMADA DIRECTA A LOS MOTORES REALES ---
@@ -170,12 +161,16 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         ruta_checklist=path_cons
                     )
 
-                    # Rutas de salida generadas por el backend
-                    out_word_path = tmp_path / f"Informe_{grupo_input}.docx"
-                    out_excel_path = tmp_path / f"Checklist_VT_{grupo_input}.xlsx"
+                    # Búsqueda dinámica de archivos generados para evitar problemas de nombres rígidos
+                    docx_files = list(tmp_path.glob("*.docx"))
+                    xlsx_files = [f for f in tmp_path.glob("*.xlsx") if f.name != f_m3m6.name and (path_psaim is None or f.name != path_psaim.name)]
+                    
+                    out_word_path = docx_files[0] if docx_files else None
+                    out_excel_path = xlsx_files[0] if xlsx_files else (path_cons if path_cons else None)
+
                     out_zip_path = tmp_path / f"Anexos_Comprimidos_{grupo_input}.zip"
 
-                    # Generación del PDF de Anexos integrado mediante el módulo anexos.py
+                    # Generación del PDF de Anexos integrado
                     path_pdf_anexos = tmp_path / f"Anexos_Fusionados_{grupo_input}.pdf"
                     try:
                         anexos.construir_anexos(
@@ -186,12 +181,12 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                             ruta_pdf_salida=path_pdf_anexos
                         )
                     except Exception as e:
-                        print(f"[!] Aviso al generar anexos en PDF: {e}")
+                        st.warning(f"Aviso en anexos PDF: {e}")
 
-                    # Generación del ZIP de Anexos incluyendo el VT-CHECK LIST parchado y el PDF consolidado
+                    # Empaquetado en ZIP
                     with zipfile.ZipFile(out_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                         zipf.write(path_m3m6, arcname=f"Detalle_Grupo_{f_m3m6.name}")
-                        if out_excel_path.exists():
+                        if out_excel_path and out_excel_path.exists():
                             zipf.write(out_excel_path, arcname=f"VT-CHECK_LIST_Parchado_{grupo_input}.xlsx")
                         elif path_cons:
                             zipf.write(path_cons, arcname=f"VT-CHECK_LIST_Original_{path_cons.name}")
@@ -202,27 +197,25 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         for foto in f_fotos:
                             zipf.write(dir_fotos / foto.name, arcname=f"fotos/{foto.name}")
 
-                    if not out_word_path.exists():
-                        raise FileNotFoundError(f"El motor no generó el archivo Word para el grupo {grupo_input}.")
+                    if not out_word_path or not out_word_path.exists():
+                        raise FileNotFoundError("El motor backend no generó ningún archivo Word en el directorio de salida.")
                     
                     word_bytes = out_word_path.read_bytes()
-                    excel_bytes = out_excel_path.read_bytes() if out_excel_path.exists() else (path_cons.read_bytes() if path_cons else None)
+                    excel_bytes = out_excel_path.read_bytes() if out_excel_path and out_excel_path.exists() else (path_cons.read_bytes() if path_cons else None)
                     anexos_bytes = out_zip_path.read_bytes()
 
-                # Guardar en session_state de manera persistente
                 st.session_state["res_word"] = word_bytes
                 st.session_state["res_excel"] = excel_bytes
                 st.session_state["res_anexos"] = anexos_bytes
                 st.session_state["ok_gen"] = True
 
-                st.success("¡Informes, VT-CHECK LIST parchado y anexos generados con éxito por los motores!")
+                st.success("¡Informe técnico, checklist y anexos generados y capturados con éxito!")
             
             except Exception as e:
                 st.error("Error crítico en la ejecución de los motores backend:")
                 st.exception(e)
                 st.session_state["ok_gen"] = False
 
-# Sección de descargas conectada a los resultados reales
 if st.session_state.get("ok_gen", False):
     st.markdown("---")
     st.subheader("📥 Descarga de Entregables Generados por el Sistema")
