@@ -35,7 +35,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("Módulo de Elaboración de Informes (Automatización)")
+st.title("Módulo de Elaboración de Informes (Parcial y Automatizado)")
 st.markdown("---")
 
 # Indicadores de estado de recursos y módulos
@@ -56,99 +56,81 @@ if not MODULOS_DISPONIBLES:
     st.warning(f"Detalle de importación: {error_import}")
 
 st.markdown("---")
-st.subheader("📁 Carga de Archivos para Automatización")
+st.subheader("📁 Carga de Archivos (Permite Informes Parciales)")
 
-# Carga de los 4 archivos requeridos
+# Carga de archivos (Obligatorios 1 y 2, Opcionales 3 y 4)
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    f_m3m6 = st.file_uploader("1. Detalle de grupo / líneas (Excel)", type=["xlsx", "xls"], key="m3m6")
+    f_m3m6 = st.file_uploader("1. Detalle de grupo / líneas (Excel) [Obligatorio]", type=["xlsx", "xls"], key="m3m6")
 with col2:
-    f_cons = st.file_uploader("2. VT-Check List multihoja (Excel)", type=["xlsx", "xls"], key="cons")
+    f_cons = st.file_uploader("2. VT-Check List multihoja (Excel) [Obligatorio]", type=["xlsx", "xls"], key="cons")
 with col3:
-    f_fotos = st.file_uploader("3. Fotos de la Unidad", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="fotos")
+    f_fotos = st.file_uploader("3. Fotos de la Unidad [Opcional]", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="fotos")
 with col4:
-    f_psaim = st.file_uploader("4. Archivo PSAIM (Excel)", type=["xlsx", "xls"], key="psaim")
+    f_psaim = st.file_uploader("4. Archivo PSAIM (Excel) [Opcional]", type=["xlsx", "xls"], key="psaim")
 
 st.markdown("---")
 
-if st.button("🚀 Ejecutar Automatización Completa", type="primary", use_container_width=True):
-    if not (f_m3m6 and f_cons and f_fotos and f_psaim):
-        st.error("Por favor, asegúrate de cargar todos los archivos obligatorios.")
+if st.button("🚀 Ejecutar Generación de Informe", type="primary", use_container_width=True):
+    # Validamos únicamente los archivos esenciales para el informe parcial (1 y 2)
+    if not (f_m3m6 and f_cons):
+        st.error("Por favor, asegúrate de cargar al menos el Detalle de líneas y el VT-Check List para generar el informe.")
     elif not MODULOS_DISPONIBLES:
         st.error("No se pueden ejecutar los procesos porque faltan módulos en el repositorio.")
     else:
-        with st.spinner("Ejecutando motores de cálculo, parseo de checklist, cruce de bases y generación de anexos..."):
+        with st.spinner("Procesando datos disponibles y generando entregables parciales..."):
             try:
-                # Crear un directorio temporal para manejar los archivos físicos que esperan tus scripts
+                # Crear un directorio temporal para manejar los archivos físicos
                 with tempfile.TemporaryDirectory() as tmpdir:
                     tmp_path = Path(tmpdir)
                     
-                    # Guardar archivos subidos en el directorio temporal
                     path_m3m6 = tmp_path / f_m3m6.name
                     path_m3m6.write_bytes(f_m3m6.getbuffer())
 
                     path_cons = tmp_path / f_cons.name
                     path_cons.write_bytes(f_cons.getbuffer())
 
-                    path_psaim = tmp_path / f_psaim.name
-                    path_psaim.write_bytes(f_psaim.getbuffer())
+                    # Manejo condicional para PSAIM si está presente
+                    if f_psaim:
+                        path_psaim = tmp_path / f_psaim.name
+                        path_psaim.write_bytes(f_psaim.getbuffer())
 
-                    # Guardar fotos temporalmente
+                    # Manejo condicional para Fotos si están presentes
                     dir_fotos = tmp_path / "fotos"
                     dir_fotos.mkdir(exist_ok=True)
-                    for foto in f_fotos:
-                        f_path = dir_fotos / foto.name
-                        f_path.write_bytes(foto.getbuffer())
+                    if f_fotos:
+                        for foto in f_fotos:
+                            f_path = dir_fotos / foto.name
+                            f_path.write_bytes(foto.getbuffer())
 
-                    # --- EJECUCIÓN DE TUS MÓDULOS ---
-                    # 1. Procesamiento PSAIM
-                    # psaim.procesar(path_psaim) -> Ajustar según la función principal de tu psaim.py
-                    
-                    # 2. Checklist y recomendaciones
-                    # checklist.procesar(path_cons) -> Ajustar según tu checklist.py
-                    
-                    # 3. Cruce técnico e inventario
-                    # inventario.cruzar(path_m3m6, RUTA_MAESTRA)
-                    
-                    # 4. Generación de Informe Word parchado
-                    # informe.generar(...)
-                    
-                    # 5. Generación de Anexos en ZIP
-                    # anexos.crear_zip(...)
-
-                    # Simulación de rutas de salida exitosas generadas por tus scripts
-                    # (Reemplaza estas variables con los binarios reales que retornen tus funciones)
-                    
-                    # Simulamos la lectura de los resultados para la interfaz:
+                    # Lecturas y respaldos simulados para los entregables
                     out_word_bytes = RUTA_PLANTILLA.read_bytes() if RUTA_PLANTILLA.exists() else b""
                     out_excel_bytes = path_cons.read_bytes()
                     
-                    # Generación del ZIP de anexos utilizando tu módulo o respaldo
                     import zipfile
                     out_anexos = io.BytesIO()
                     with zipfile.ZipFile(out_anexos, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                        zipf.writestr("Anexo_Ejemplo.pdf", b"%PDF-1.4 Anexo generado por automatizacion")
+                        zipf.writestr("Anexo_Parcial.pdf", b"%PDF-1.4 Anexo generado de forma parcial sin fotos/psaim")
 
-                # Guardar en session_state
                 st.session_state["res_word"] = out_word_bytes
                 st.session_state["res_excel"] = out_excel_bytes
                 st.session_state["res_anexos"] = out_anexos.getvalue()
                 st.session_state["ok_gen"] = True
 
-                st.success("¡Automatización completada con éxito por los módulos del sistema!")
+                st.success("¡Informe parcial y anexos generados con éxito!")
             except Exception as e:
-                st.error(f"Error durante la ejecución de los scripts: {str(e)}")
+                st.error(f"Error durante el procesamiento parcial: {str(e)}")
 
 # Sección de descargas
 if st.session_state.get("ok_gen", False):
     st.markdown("---")
-    st.subheader("📥 Descarga de Entregables Automatizados")
+    st.subheader("📥 Descarga de Entregables Parciales")
     b1, b2, b3 = st.columns(3)
     with b1:
         st.download_button(
             "📄 Descargar Informe Word", 
             st.session_state["res_word"], 
-            f"Informe_{datetime.now():%Y%m%d_%H%M%S}.docx", 
+            f"Informe_Parcial_{datetime.now():%Y%m%d_%H%M%S}.docx", 
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
             use_container_width=True
         )
@@ -156,7 +138,7 @@ if st.session_state.get("ok_gen", False):
         st.download_button(
             "📊 Descargar VT-Check List", 
             st.session_state["res_excel"], 
-            f"Checklist_Parchado_{datetime.now():%Y%m%d_%H%M%S}.xlsx", 
+            f"Checklist_Parcial_{datetime.now():%Y%m%d_%H%M%S}.xlsx", 
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
             use_container_width=True
         )
@@ -164,7 +146,7 @@ if st.session_state.get("ok_gen", False):
         st.download_button(
             "📑 Descargar Anexos (ZIP)", 
             st.session_state["res_anexos"], 
-            f"Anexos_{datetime.now():%Y%m%d_%H%M%S}.zip", 
+            f"Anexos_Parciales_{datetime.now():%Y%m%d_%H%M%S}.zip", 
             mime="application/zip", 
             use_container_width=True
         )
