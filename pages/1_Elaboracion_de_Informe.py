@@ -173,8 +173,6 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                     path_pdf_anexos = tmp_path / f"Anexos_Fusionados_{grupo_input}.pdf"
                     try:
                         anexos.construir_anexos(
-                            ruta_maestro=path_m3m6,
-                            ruta_base_lineas=RUTA_MAESTRA,
                             dir_salida=tmp_path,
                             ruta_pdf_salida=path_pdf_anexos
                         )
