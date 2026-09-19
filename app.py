@@ -177,13 +177,11 @@ def subir_archivo_a_drive(
     return False
 
 
-# Estilos CSS Corporativos
+# Estilos CSS Corporativos (Cabecera visible restaurada)
 st.markdown(
     """
     <style>
     footer {visibility: hidden;}
-    .stAppDeployButton {display:none !important;}
-    header {visibility: hidden !important;}
 
     :root {
         --primary-navy: #0E2A47;
