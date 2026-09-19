@@ -46,7 +46,6 @@ st.markdown(
     """
     <style>
     footer {visibility: hidden;}
-    /* Se removió la regla que ocultaba el encabezado para permitir la navegación lateral */
 
     :root {
         --primary-navy: #0E2A47;
@@ -176,13 +175,30 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                     out_excel_path = tmp_path / f"Checklist_VT_{grupo_input}.xlsx"
                     out_zip_path = tmp_path / f"Anexos_Comprimidos_{grupo_input}.zip"
 
-                    # Generación del ZIP de Anexos incluyendo el VT-CHECK LIST parchado
+                    # Generación del PDF de Anexos integrado mediante el módulo anexos.py
+                    path_pdf_anexos = tmp_path / f"Anexos_Fusionados_{grupo_input}.pdf"
+                    try:
+                        anexos.construir_anexos(
+                            grupo=grupo_input,
+                            ruta_maestro=path_m3m6,
+                            ruta_base_lineas=RUTA_MAESTRA,
+                            dir_salida=tmp_path,
+                            ruta_pdf_salida=path_pdf_anexos
+                        )
+                    except Exception as e:
+                        print(f"[!] Aviso al generar anexos en PDF: {e}")
+
+                    # Generación del ZIP de Anexos incluyendo el VT-CHECK LIST parchado y el PDF consolidado
                     with zipfile.ZipFile(out_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                         zipf.write(path_m3m6, arcname=f"Detalle_Grupo_{f_m3m6.name}")
                         if out_excel_path.exists():
                             zipf.write(out_excel_path, arcname=f"VT-CHECK_LIST_Parchado_{grupo_input}.xlsx")
                         elif path_cons:
                             zipf.write(path_cons, arcname=f"VT-CHECK_LIST_Original_{path_cons.name}")
+                        
+                        if path_pdf_anexos.exists():
+                            zipf.write(path_pdf_anexos, arcname=f"Anexos_Fusionados_{grupo_input}.pdf")
+                            
                         for foto in f_fotos:
                             zipf.write(dir_fotos / foto.name, arcname=f"fotos/{foto.name}")
 
