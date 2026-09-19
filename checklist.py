@@ -61,7 +61,6 @@ VERBOS_RECOMENDACION = (
     "recomendación",
 )
 
-PREFIJO_SUGERENCIA = "[SUGERENCIA AUTOMÁTICA - VALIDAR] "
 TEXTO_PENDIENTE_MANUAL = (
     "PENDIENTE — requiere redacción manual del especialista "
     "(hallazgo VT sin recomendación registrada)."
@@ -125,13 +124,6 @@ def _mejorar_texto(texto):
         if resultado[-1] not in ".!?":
             resultado += "."
     return resultado
-
-
-def _celda_disponible(ws, fila, col):
-    celda = ws.cell(row=fila, column=col)
-    if isinstance(celda, MergedCell):
-        return False
-    return celda.value is None
 
 
 def _bloques_por_item(ws):
@@ -210,20 +202,29 @@ def _procesar_bloque(ws, item, categoria, fila_ini, fila_fin):
 
     hallazgo = " ".join(_mejorar_texto(f["texto"]) for f in filas if f["tipo"] == "HALLAZGO")
     recomendacion_existente = " ".join(f["texto"] for f in filas if f["tipo"] == "RECOMENDACION")
+    filas_hallazgo = [f["fila"] for f in filas if f["tipo"] == "HALLAZGO"]
+    fila_ultimo_hallazgo = filas_hallazgo[-1] if filas_hallazgo else filas[-1]["fila"]
+
+    if not hallazgo and recomendacion_existente:
+        # El inspector solo escribió la frase de acción (ningún renglón
+        # descriptivo aparte): se usa esa misma frase también como hallazgo,
+        # para que la tabla de Hallazgos y la de Recomendaciones queden con
+        # la misma cantidad de ítems y la misma numeración por hallazgo.
+        hallazgo = _mejorar_texto(recomendacion_existente)
 
     if recomendacion_existente:
         return {
             "item": item, "categoria": categoria,
             "hallazgo": hallazgo, "recomendacion": recomendacion_existente,
-            "sugerida": False,
+            "sugerida": False, "fila_ultimo_hallazgo": fila_ultimo_hallazgo,
         }
 
     sugerido = recomendaciones.sugerir_caso_desde_texto(categoria, hallazgo)
-    recomendacion = PREFIJO_SUGERENCIA + sugerido.recomendacion if sugerido else TEXTO_PENDIENTE_MANUAL
+    recomendacion = sugerido.recomendacion if sugerido else TEXTO_PENDIENTE_MANUAL
     return {
         "item": item, "categoria": categoria,
         "hallazgo": hallazgo, "recomendacion": recomendacion,
-        "sugerida": True,
+        "sugerida": True, "fila_ultimo_hallazgo": fila_ultimo_hallazgo,
     }
 
 
@@ -262,21 +263,19 @@ def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
                 continue
 
             if info["sugerida"]:
-                slot = next(
-                    (r for r in range(fila_ini, fila_fin + 1) if _celda_disponible(ws, r, COL_COMENTARIO)),
-                    None,
+                # El hallazgo de campo ya quedó capturado en info["hallazgo"]
+                # (para la tabla de Hallazgos del informe); en el propio
+                # checklist, esa misma celda de Comentario se REEMPLAZA por
+                # la recomendación (no se agregan filas ni columnas).
+                ws.cell(row=info["fila_ultimo_hallazgo"], column=COL_COMENTARIO).value = (
+                    info["recomendacion"]
                 )
-                if slot is not None:
-                    ws.cell(row=slot, column=COL_COMENTARIO).value = info["recomendacion"]
-                    info["escrita_en_excel"] = True
-                else:
-                    info["escrita_en_excel"] = False
-                    avisos.append(
-                        f"Hoja '{nombre_hoja}' (línea {tag}), ítem {item} [{categoria}]: "
-                        "no había una celda de Comentario vacía disponible para insertar "
-                        "la recomendación en el checklist (formato fijo, no se agregan "
-                        f"filas); sí quedó incluida en el informe Word: {info['recomendacion']}"
-                    )
+                info["escrita_en_excel"] = True
+                avisos.append(
+                    f"Hoja '{nombre_hoja}' (línea {tag}), ítem {item} [{categoria}]: "
+                    f"recomendación sugerida automáticamente y parchada en el checklist: "
+                    f"{info['recomendacion']}"
+                )
             else:
                 info["escrita_en_excel"] = True
 

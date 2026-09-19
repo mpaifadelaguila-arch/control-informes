@@ -26,28 +26,76 @@ import inventario
 import psaim
 import docxlib
 import checklist as checklist_mod
+import recomendaciones
 
 RE_FECHA_RANGO = re.compile(r"\d{2}/\d{2}/\d{4}\s+al\s+\d{2}/\d{2}/\d{4}")
 RE_EXAMINADOR = re.compile(r"Examinador Nivel II", re.IGNORECASE)
 
 
-def insertar_foto_unidad_segura(ruta_word, ruta_foto):
-    """Inserta o reemplaza la foto de la unidad en el documento Word de forma segura."""
-    try:
-        doc = Document(ruta_word)
-        for para in doc.paragraphs:
-            if "FOTO" in para.text.upper() or "IMAGEN" in para.text.upper():
-                para.text = ""
-                run = para.add_run()
-                run.add_picture(str(ruta_foto), width=Inches(4.5))
-                doc.save(ruta_word)
-                return
+NS_A = "http://schemas.openxmlformats.org/drawingml/2006/main"
+NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+NS_W = docxlib.W_NS
 
+
+def _reemplazar_foto_portada(doc, ruta_foto):
+    """Reemplaza los BYTES de la primera imagen incrustada en el cuerpo del
+    documento (la foto de portada de la unidad/grupo que ya trae la
+    plantilla-molde) por la foto real subida en la interfaz, conservando el
+    tamaño/posición del marco original. Devuelve True si encontró una
+    imagen para reemplazar."""
+    for p in doc.paragraphs:
+        blips = p._p.findall(f".//{{{NS_A}}}blip")
+        if not blips:
+            continue
+        rId = blips[0].get(f"{{{NS_R}}}embed")
+        if not rId:
+            continue
+        try:
+            image_part = doc.part.related_parts[rId]
+        except KeyError:
+            continue
+        with open(ruta_foto, "rb") as f:
+            image_part._blob = f.read()
+        return True
+    return False
+
+
+def insertar_foto_unidad_segura(doc, ruta_foto):
+    """Inserta la foto de la unidad en el documento (en memoria, antes de
+    guardar): reemplaza la foto de portada que ya trae la plantilla si
+    existe; si no, la agrega al final como respaldo."""
+    try:
+        if _reemplazar_foto_portada(doc, ruta_foto):
+            return
         doc.add_paragraph("Fotografía de la Unidad / Grupo:")
         doc.add_picture(str(ruta_foto), width=Inches(5.0))
-        doc.save(ruta_word)
     except Exception as e:
         print(f"[!] Aviso al insertar la foto: {e}")
+
+
+def _primer_texto_cuadro_texto(doc):
+    """Devuelve el texto del primer cuadro de texto (txbxContent) no vacío
+    del cuerpo -- en la plantilla-molde es donde vive el código de informe
+    de muestra, que python-docx no expone vía doc.paragraphs."""
+    for cuadro in doc.element.body.iter(f"{{{NS_W}}}txbxContent"):
+        texto = "".join(t.text or "" for t in cuadro.iter(f"{{{NS_W}}}t"))
+        if texto.strip():
+            return texto.strip()
+    return None
+
+
+def _reemplazar_en_cuadros_texto(doc, buscar, reemplazar):
+    """Reemplaza, dentro de cualquier cuadro de texto (txbxContent) del
+    cuerpo, toda ocurrencia literal de `buscar` por `reemplazar` (p.ej. el
+    código de informe de muestra, que vive en un cuadro de texto y no en un
+    párrafo normal)."""
+    if not buscar or buscar == reemplazar:
+        return
+    for cuadro in doc.element.body.iter(f"{{{NS_W}}}txbxContent"):
+        for p_el in cuadro.iter(f"{{{NS_W}}}p"):
+            texto_parrafo = "".join(t.text or "" for t in p_el.iter(f"{{{NS_W}}}t"))
+            if buscar in texto_parrafo:
+                docxlib.set_para_content(p_el, texto_parrafo.replace(buscar, reemplazar))
 
 
 def _leer_psaim_por_linea(ruta_psaim, tags):
@@ -168,6 +216,89 @@ def _reemplazar_nota_solo_vt(doc, filas_activas):
     return False
 
 
+# Frecuencia de inspección UT-VT por Clase API 570 (tabla de referencia
+# fija proporcionada por el usuario) -- solo se usa el intervalo de años de
+# cada clase, el texto ya está definido, no se redacta de nuevo.
+SENTENCIA_INTERVALO_POR_CLASE = {
+    "clase 1": (
+        "Programar la próxima inspección visual y Medición de espesores en "
+        "un periodo no mayor a 5 años, como lo indica API 570, tabla 1, "
+        "tomando en cuenta los mismos CML's de la medición de espesores de "
+        "la presente inspección."
+    ),
+    "clase 2": (
+        "Programar la próxima inspección visual en un periodo no mayor a 5 "
+        "años y Medición de espesores en un intervalo máximo de 10 años, "
+        "como lo indica API 570, tabla 1, tomando en cuenta los mismos "
+        "CML's de la medición de espesores de la presente inspección."
+    ),
+    "clase 3": (
+        "Programar la próxima inspección visual y Medición de espesores en "
+        "un periodo no mayor a 10 años, como lo indica API 570, tabla 1, "
+        "tomando en cuenta los mismos CML's de la medición de espesores de "
+        "la presente inspección."
+    ),
+    "clase 4": (
+        "Programar la próxima medición de espesores en un periodo no mayor "
+        "a 10 años y la próxima inspección externa en un periodo no mayor "
+        "a 5 años, como lo indica API 570, tabla 1, tomando en cuenta los "
+        "mismos CML's de la medición de espesores de la presente "
+        "inspección. (opcional por ser tubería clase 04)."
+    ),
+    "punto de inyeccion": (
+        "Programar la próxima inspección visual y Medición de espesores en "
+        "un periodo no mayor a 3 años, como lo indica API 570, tabla 1, "
+        "tomando en cuenta los mismos CML's de la medición de espesores de "
+        "la presente inspección."
+    ),
+}
+
+
+def _normalizar_clase(clase):
+    t = str(clase or "").strip().lower()
+    t = t.replace("í", "i").replace("ó", "o")
+    return t
+
+
+def _construir_bloque_recomendaciones_por_clase(filas_activas):
+    """Agrupa las líneas activas por Clase API 570 y arma un párrafo por
+    clase presente en el grupo: qué N° de líneas son de esa clase, seguido
+    del intervalo de inspección UT/VT ya definido para esa clase (tabla de
+    referencia del usuario) -- nunca se redacta un intervalo nuevo."""
+    por_clase = {}
+    for f in filas_activas:
+        clase_norm = _normalizar_clase(f.get("clase"))
+        if clase_norm not in SENTENCIA_INTERVALO_POR_CLASE:
+            continue
+        por_clase.setdefault(clase_norm, []).append(f["item"])
+
+    parrafos = []
+    orden = ["clase 1", "clase 2", "clase 3", "clase 4", "punto de inyeccion"]
+    for clase_norm in orden:
+        items = por_clase.get(clase_norm)
+        if not items:
+            continue
+        etiqueta = "Punto de inyección" if clase_norm == "punto de inyeccion" else clase_norm.capitalize()
+        parrafos.append(
+            f"Para las líneas N° {_lista_espanol(items)} ({etiqueta}): "
+            + SENTENCIA_INTERVALO_POR_CLASE[clase_norm]
+        )
+    return parrafos
+
+
+def _reemplazar_recomendaciones_por_clase(doc, filas_activas):
+    """Reemplaza el párrafo único de RECOMENDACIONES de la plantilla-molde
+    por uno o más párrafos (uno por Clase API 570 presente en el grupo)."""
+    parrafos = _construir_bloque_recomendaciones_por_clase(filas_activas)
+    if not parrafos:
+        return False
+    for p in doc.paragraphs:
+        if "Programar la próxima inspección visual" in p.text:
+            docxlib.clone_paragraph_block(p._p, parrafos)
+            return True
+    return False
+
+
 def ejecutar_proceso_grupo(
     grupo_buscado,
     ruta_maestro,
@@ -201,7 +332,10 @@ def ejecutar_proceso_grupo(
         datos_tecnicos, avisos_linea = inventario.cruzar_linea(tag, inv_row)
         avisos.extend(avisos_linea)
         filas_tecnicas.append({
-            "item": str(ln.get("item") or i),
+            # Numeración SIEMPRE secuencial dentro del grupo (1, 2, 3...):
+            # la columna "ITEM POR MES" del detalle es un contador mensual
+            # cruzado entre grupos (p.ej. 158), no el N° de línea del informe.
+            "item": str(i),
             "sap": str(ln.get("sap") or "SIN DATO"),
             "unidad": str(ln.get("unidad") or "SIN DATO"),
             "tag": tag,
@@ -254,16 +388,29 @@ def ejecutar_proceso_grupo(
     fecha_ini_txt = fecha_ini or "PENDIENTE"
     fecha_fin_txt = fecha_fin or "PENDIENTE"
 
-    # El nombre de grupo de la plantilla-molde aparece repetido en varios
-    # párrafos narrativos (no solo en la tabla de encabezado) -- se captura
-    # ANTES de sobrescribir la tabla 2, que es donde vive el valor original.
+    # El nombre de grupo que se MUESTRA en el informe viene de la columna
+    # "GRUPO DE TUBERÍAS" del detalle de grupo, no del nombre del archivo
+    # subido (que puede traer prefijos como "GRUPO-" y duplicar la palabra
+    # con la etiqueta fija de la plantilla, p.ej. "GRUPO GRUPO-22-...").
+    nombre_grupo_real = next(
+        (str(ln["grupo"]).strip() for ln in lineas_alcance if ln.get("grupo")), None
+    ) or grupo_buscado
+
+    # El nombre de grupo y el código de informe de muestra de la
+    # plantilla-molde aparecen repetidos en varios párrafos narrativos y en
+    # cuadros de texto -- se capturan ANTES de sobrescribirlos.
     grupo_muestra = doc.tables[2].cell(2, 1).text.strip() if len(doc.tables) > 2 else None
+    codigo_muestra = _primer_texto_cuadro_texto(doc)
+    codigo_informe = next(
+        (str(ln["codigo_informe"]).strip() for ln in lineas_alcance if ln.get("codigo_informe")),
+        None,
+    )
 
     # -- Tabla 2: encabezado (cliente/grupo/fechas) -------------------------
     if len(doc.tables) > 2:
         tabla_header = doc.tables[2]
         try:
-            docxlib.set_cell_text(tabla_header.cell(2, 1)._tc, grupo_buscado)
+            docxlib.set_cell_text(tabla_header.cell(2, 1)._tc, nombre_grupo_real)
             docxlib.set_cell_text(tabla_header.cell(4, 2)._tc, f"{fecha_ini_txt} al {fecha_fin_txt}")
             docxlib.set_cell_text(
                 tabla_header.cell(4, 3)._tc, datetime.date.today().strftime("%d/%m/%Y")
@@ -271,13 +418,17 @@ def ejecutar_proceso_grupo(
         except IndexError:
             avisos.append("La tabla de encabezado de la plantilla no tiene la estructura esperada.")
 
+    if codigo_muestra and codigo_informe:
+        _reemplazar_en_cuadros_texto(doc, codigo_muestra, codigo_informe)
+
     _reemplazar_fecha_inspeccion_parrafo(doc, fecha_ini_txt, fecha_fin_txt)
     _reemplazar_bloque_examinadores(doc, examinadores)
 
-    if grupo_muestra and grupo_muestra != grupo_buscado:
-        _reemplazar_texto_literal_parrafos(doc, grupo_muestra, grupo_buscado)
+    if grupo_muestra and grupo_muestra != nombre_grupo_real:
+        _reemplazar_texto_literal_parrafos(doc, grupo_muestra, nombre_grupo_real)
 
     _reemplazar_nota_solo_vt(doc, filas_activas)
+    _reemplazar_recomendaciones_por_clase(doc, filas_activas)
 
     n = len(tags_ordenados)
     n_activas = len(filas_activas)
@@ -306,48 +457,86 @@ def ejecutar_proceso_grupo(
                 fila["inicio"], fila["termino"], fila["fluido"], fila["clase"],
             ])
 
+    # -- Tabla 6: mecanismo de daño asociado (catálogo de 20, cruzado con --
+    # -- los hallazgos reales de la inspección, sin IA) ----------------------
+    if len(doc.tables) > 6:
+        todos_los_hallazgos = [
+            info["hallazgo"]
+            for items_chk in hallazgos_por_tag.values()
+            for info in items_chk
+            if info["hallazgo"]
+        ]
+        mecanismos = recomendaciones.detectar_mecanismos_dano(todos_los_hallazgos)
+        if mecanismos:
+            filas6 = docxlib.clone_table_to_n_rows(doc.tables[6], len(mecanismos), header_rows=1)
+            for i, (tr, mecanismo) in enumerate(zip(filas6, mecanismos), start=1):
+                docxlib.fill_row(tr, [str(i), mecanismo, "✓"])
+        elif not ruta_checklist:
+            docxlib.fill_row(
+                docxlib.clone_table_to_n_rows(doc.tables[6], 1, header_rows=1)[0],
+                ["1", "PENDIENTE (falta checklist VT para determinar el mecanismo de daño)", ""],
+            )
+        else:
+            docxlib.fill_row(
+                docxlib.clone_table_to_n_rows(doc.tables[6], 1, header_rows=1)[0],
+                ["1", "Sin mecanismos de daño identificados en los hallazgos registrados", ""],
+            )
+
     # -- Tabla 1: recomendación técnica por línea (del checklist VT) --------
     # Las líneas retiradas del plan no llevan fila aquí (solo en tablas 0/5).
+    # Cada recomendación va numerada (1, 2, 3...) en un párrafo propio --
+    # misma numeración/orden que su hallazgo correspondiente en la tabla 7.
     if len(doc.tables) > 1:
         filas1 = docxlib.clone_table_to_n_rows(doc.tables[1], n_activas, header_rows=1)
         for tr, fila in zip(filas1, filas_activas):
             items_chk = hallazgos_por_tag.get(fila["tag"])
             if items_chk:
-                recomendacion = "\n".join(info["recomendacion"] for info in items_chk if info["recomendacion"])
+                recomendacion = [info["recomendacion"] for info in items_chk if info["recomendacion"]]
             elif fila.get("observacion"):
                 recomendacion = fila["observacion"]
             elif ruta_checklist:
                 recomendacion = "Sin hallazgos relevantes registrados en el checklist VT."
             else:
                 recomendacion = "PENDIENTE (falta checklist VT para redactar hallazgo/recomendación)"
-            docxlib.fill_row(tr, [fila["item"], fila["tag"], recomendacion])
+            docxlib.fill_row_multi(tr, [fila["item"], fila["tag"], recomendacion])
 
     # -- Tabla 7: hallazgos relevantes en VT y UT por línea ------------------
     # Las líneas retiradas del plan no llevan fila aquí (solo en tablas 0/5).
+    # El resumen de PSAIM (UT) va SIN numerar, como prefijo; los hallazgos
+    # de VT van numerados (1, 2, 3...) debajo, en el mismo orden que sus
+    # recomendaciones correspondientes en la tabla 1.
     if len(doc.tables) > 7:
         filas7 = docxlib.clone_table_to_n_rows(doc.tables[7], n_activas, header_rows=1)
         for tr, fila in zip(filas7, filas_activas):
-            partes = []
+            prefijo_psaim = ""
             p = psaim_por_tag.get(fila["tag"])
             if p:
                 rate = psaim.rate_corrosion_mm_anio(p["rcr_mpy"])
                 vida = psaim.vida_util_display(p["vida_util_anios"], fila.get("clase", ""))
-                partes.append(f"Rate de corrosión {rate:g} mm/año, con una vida remanente {vida} años.")
+                prefijo_psaim = f"Rate de corrosión {rate:g} mm/año, con una vida remanente {vida} años."
+
             items_chk = hallazgos_por_tag.get(fila["tag"])
-            if items_chk:
-                partes.extend(info["hallazgo"] for info in items_chk if info["hallazgo"])
-            if not partes and fila.get("observacion"):
-                partes.append(fila["observacion"])
-            texto = " ".join(partes) if partes else "PENDIENTE (línea aún sin inspección de campo)"
-            docxlib.fill_row(tr, [fila["item"], fila["unidad"], fila["tag"], texto])
+            lista_hallazgos = [info["hallazgo"] for info in items_chk if info["hallazgo"]] if items_chk else []
+
+            if not prefijo_psaim and not lista_hallazgos:
+                texto_pendiente = fila.get("observacion") or "PENDIENTE (línea aún sin inspección de campo)"
+                docxlib.fill_row(tr, [fila["item"], fila["unidad"], fila["tag"], texto_pendiente])
+                continue
+
+            tcs = tr.findall(docxlib.qn("w:tc"))
+            docxlib.set_cell_text(tcs[0], fila["item"])
+            docxlib.set_cell_text(tcs[1], fila["unidad"])
+            docxlib.set_cell_text(tcs[2], fila["tag"])
+            docxlib.set_cell_text_prefijo_mas_lista(tcs[3], prefijo_psaim, lista_hallazgos)
 
     ruta_word_salida = os.path.join(dir_salida, f"Informe_{grupo_buscado}.docx")
-    doc.save(ruta_word_salida)
-    print(f"[✔] Informe Word generado con éxito en: {ruta_word_salida}")
 
     if ruta_foto and os.path.exists(str(ruta_foto)):
-        insertar_foto_unidad_segura(ruta_word_salida, ruta_foto)
+        insertar_foto_unidad_segura(doc, ruta_foto)
         print("[✔] Foto de la unidad procesada e insertada en el informe.")
+
+    doc.save(ruta_word_salida)
+    print(f"[✔] Informe Word generado con éxito en: {ruta_word_salida}")
 
     print(f"[✔] ¡Proceso completo finalizado para el grupo {grupo_buscado}!")
     if avisos:
