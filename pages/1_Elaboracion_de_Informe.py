@@ -2,11 +2,14 @@ import io
 import os
 import sys
 import tempfile
+import zipfile
 from datetime import datetime
 from pathlib import Path
 import streamlit as st
 
-# Configuración de rutas para importar los módulos de la raíz
+# ==============================================================================
+# CONFIGURACIÓN DE RUTAS Y CONFIGURACIÓN DE PÁGINA
+# ==============================================================================
 RUTA_ACTUAL = Path(__file__).resolve().parent
 DIR_RAIZ = RUTA_ACTUAL.parent if RUTA_ACTUAL.name == "pages" else RUTA_ACTUAL
 
@@ -30,14 +33,62 @@ RUTA_PLANTILLA = DIR_RAIZ / "plantilla_base.docx"
 RUTA_MAESTRA = DIR_RAIZ / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
 DIR_COMPLEMENTO = DIR_RAIZ / "COMPLEMENTO"
 
+# Configuración de Streamlit con la barra lateral desplegada por defecto
 st.set_page_config(
     page_title="Elaboración de Informes - Ademinsac",
     page_icon="📋",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-st.title("Módulo de Elaboración de Informes (Ejecución Real con Motores)")
-st.markdown("---")
+# Estilos CSS Corporativos
+st.markdown(
+    """
+    <style>
+    footer {visibility: hidden;}
+    header {visibility: hidden !important;}
+
+    :root {
+        --primary-navy: #0E2A47;
+        --secondary-navy: #1A3E68;
+        --gold-accent: #D4AF37;
+        --bg-card: #FFFFFF;
+        --border-color: #E2E8F0;
+        --text-main: #1E293B;
+        --text-sub: #64748B;
+    }
+
+    .stApp { background-color: #EEF2F7; }
+    .block-container { padding-top: 1.6rem !important; }
+
+    .header-banner {
+        background: linear-gradient(120deg, #0B2038 0%, #1E4E7E 60%, #2C6494 100%);
+        padding: 22px 30px;
+        border-radius: 14px;
+        color: white;
+        margin-bottom: 20px;
+        box-shadow: 0 12px 28px rgba(11, 32, 56, 0.18);
+        position: relative;
+        overflow: hidden;
+    }
+    .header-banner::after {
+        content: "";
+        position: absolute; top: 0; right: 0; bottom: 0; width: 6px;
+        background: linear-gradient(180deg, #E7BE30, #C99A1E);
+    }
+    .header-title { font-size: 24px; font-weight: 800; letter-spacing: 0.3px; margin: 0; color: #FFFFFF; }
+    .header-subtitle { font-size: 13.5px; color: #C9DCEE; margin-top: 4px; font-weight: 500; }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
+
+st.html("""
+    <div class="header-banner">
+        <div class="header-title">MÓDULO DE ELABORACIÓN DE INFORMES</div>
+        <div class="header-subtitle">Generación y procesamiento automático de expedientes técnicos | Refinería La Pampilla</div>
+    </div>
+""")
 
 # Indicadores de estado de recursos y módulos
 c1, c2, c3, c4 = st.columns(4)
@@ -71,7 +122,7 @@ with col4:
 
 st.markdown("---")
 
-if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_container_width=True):
+if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_container_width=True, icon=":material/play_arrow:"):
     if not (f_m3m6 and f_fotos):
         st.error("Por favor, asegúrate de cargar el Detalle de líneas (1) y las Fotos de la Unidad (3) para continuar.")
     elif not MODULOS_DISPONIBLES:
@@ -106,7 +157,7 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         if i == 0:
                             ruta_primera_foto = f_path
 
-                    # Extraer el nombre del grupo (ej. "22-GLP-GT-023")
+                    # Extraer el nombre del grupo
                     grupo_input = Path(f_m3m6.name).stem.replace("(", "").replace(")", "").strip()
                     
                     # --- LLAMADA DIRECTA A LOS MOTORES REALES ---
@@ -117,7 +168,7 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         ruta_plantilla_word=RUTA_PLANTILLA,
                         dir_salida=str(tmp_path),
                         ruta_foto=ruta_primera_foto,
-                        ruta_checklist=path_cons  # Pasando el VT-CHECK LIST cargado correctamente
+                        ruta_checklist=path_cons
                     )
 
                     # Rutas de salida generadas por el backend
@@ -125,8 +176,7 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                     out_excel_path = tmp_path / f"Checklist_VT_{grupo_input}.xlsx"
                     out_zip_path = tmp_path / f"Anexos_Comprimidos_{grupo_input}.zip"
 
-                    # D. Generación del ZIP de Anexos incluyendo el VT-CHECK LIST parchado
-                    import zipfile
+                    # Generación del ZIP de Anexos incluyendo el VT-CHECK LIST parchado
                     with zipfile.ZipFile(out_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                         zipf.write(path_m3m6, arcname=f"Detalle_Grupo_{f_m3m6.name}")
                         if out_excel_path.exists():
@@ -136,7 +186,6 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         for foto in f_fotos:
                             zipf.write(dir_fotos / foto.name, arcname=f"fotos/{foto.name}")
 
-                    # Lectura obligatoria de los binarios generados
                     if not out_word_path.exists():
                         raise FileNotFoundError(f"El motor no generó el archivo Word para el grupo {grupo_input}.")
                     
