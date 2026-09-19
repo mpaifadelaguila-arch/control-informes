@@ -651,6 +651,40 @@ CATALOGO = {
         ),
         variables=("tag",),
     ),
+
+    # --- Casos adicionales frecuentes en campo (mismo estilo del COMPENDIO,
+    # cubren defectos mecánicos directos que el REV.1 no tabuló como "caso
+    # típico" explícito pero que sí caen bajo sus reglas de redacción) -------
+    "VALVULA_VOLANTE_AUSENTE": Caso(
+        id="VALVULA_VOLANTE_AUSENTE",
+        categoria="VALVULA",
+        etiqueta="Ausencia total de volante en válvula",
+        hallazgo_tpl=(
+            "Ausencia de volante en {cantidad} válvula(s) de {tipo} de NPS {nps}."
+        ),
+        recomendacion_tpl=(
+            "Realizar la instalación de un volante nuevo en {cantidad} "
+            "válvula(s) de {tipo} de NPS {nps}, conforme a la norma API 598 y "
+            "estándares Repsol aplicables."
+        ),
+        variables=("cantidad", "tipo", "nps"),
+        defaults={"cantidad": "1", "tipo": "compuerta"},
+    ),
+    "SOPORTE_ABRAZADERA_FALTANTE": Caso(
+        id="SOPORTE_ABRAZADERA_FALTANTE",
+        categoria="SOPORTE",
+        etiqueta="Ausencia total de abrazadera",
+        hallazgo_tpl=(
+            "Ausencia de abrazadera tipo {tipo} en la línea NPS {nps}."
+        ),
+        recomendacion_tpl=(
+            "Realizar la instalación de una abrazadera tipo {tipo} en la "
+            "línea NPS {nps}, conforme a la norma MSS SP-58 y el estándar "
+            "Repsol ED-L-06.00-05a."
+        ),
+        variables=("tipo", "nps"),
+        defaults={"tipo": "U-bolt"},
+    ),
 }
 
 CATEGORIAS = sorted({c.categoria for c in CATALOGO.values()})
@@ -721,3 +755,272 @@ def generar_hallazgo_y_recomendacion(datos: dict) -> Optional[Resultado]:
         )
 
     return Resultado(caso_id=caso.id, hallazgo=hallazgo, recomendacion=recomendacion)
+
+
+# ==============================================================================
+# SUGERENCIA DE CASO A PARTIR DE TEXTO LIBRE (formato real del VT-CHECK LIST)
+# ==============================================================================
+# El VT-CHECK LIST estándar de campo (formato fijo AD-UN05-TL-TUB-VT) NO trae
+# una columna "CASO": el inspector escribe el hallazgo como texto libre en la
+# columna "Comentario", por categoría (Recubrimientos, Bridas, Válvulas,
+# Soportes, etc.) y marca A/O/R/NA. Esta sección NO usa ningún modelo de
+# lenguaje: aplica un conjunto pequeño y explícito de reglas de palabras
+# clave (categoría + condición) para sugerir, con alta confianza, cuál caso
+# del CATALOGO corresponde, y solo cuando hay evidencia clara. Si ninguna
+# regla calza con confianza, se devuelve None y el hallazgo queda marcado
+# para redacción manual del especialista (nunca se inventa una
+# recomendación técnica sobre una base ambigua).
+import re
+
+RE_NPS = re.compile(r'(\d+(?:\s+\d/\d)?"|\d/\d")')
+RE_CANTIDAD = re.compile(r"\((\d{1,3})\)")
+RE_LONGITUD = re.compile(r"([\d]+(?:\.[\d]+)?)\s*metros", re.IGNORECASE)
+
+
+def _contiene_alguna(texto, alternativas):
+    return any(alt in texto for alt in alternativas)
+
+
+def _extraer_variables_de_texto(texto):
+    variables = {}
+    m = RE_NPS.search(texto)
+    if m:
+        variables["nps"] = m.group(1).strip()
+    m = RE_CANTIDAD.search(texto)
+    if m:
+        variables["cantidad"] = str(int(m.group(1)))
+    m = RE_LONGITUD.search(texto)
+    if m:
+        variables["longitud"] = m.group(1)
+    return variables
+
+
+# Cada regla: (caso_id, categorías del checklist a las que aplica (substring,
+# minúsculas, o None = cualquiera), grupos de palabras clave -- se exige AL
+# MENOS una coincidencia de CADA grupo para considerar la regla confiable).
+# Reglas derivadas 1:1 de COMPLEMENTO/ROL_Y_OBJETIVO.REV2.txt (ese documento
+# está hecho exactamente para esta transformación hallazgo->recomendación;
+# aquí se aplica como reglas de texto explícitas, sin ningún modelo de
+# lenguaje detrás).
+REGLAS_SUGERENCIA = [
+    (
+        "TUBERIA_DETERIORO_RECUBRIMIENTO_GENERALIZADO",
+        ("recubrimientos", "componentes", "placas orificio", "puntos de inyecc"),
+        [
+            ("deterioro del recubrimiento", "deterioro recubrimiento", "deterioro del recubirmiento"),
+            ("generaliz", "leve a moderada", "leve  a moderada"),
+        ],
+    ),
+    (
+        "BRIDA_CORROSION_LEVE_MODERADA",
+        ("bridas",),
+        [
+            ("corrosion", "corrosión"),
+            ("leve", "moderada"),
+            ("union bridada", "uniones bridadas", "unión bridada", "uniones bridada"),
+        ],
+    ),
+    (
+        "BRIDA_FUGA_EMPAQUE",
+        ("bridas",),
+        [
+            ("fuga",),
+            ("brida", "empaque", "junta"),
+        ],
+    ),
+    (
+        "BRIDA_TUERCA_FALTANTE",
+        ("bridas",),
+        [
+            ("tuerca",),
+            ("falta", "ausencia", "faltante"),
+        ],
+    ),
+    (
+        "BRIDA_PERNOS_EN_LUGAR_DE_ESPARRAGOS",
+        ("bridas",),
+        [
+            ("perno",),
+            ("lugar de esparrago", "lugar de espárrago", "en vez de esparrago"),
+        ],
+    ),
+    (
+        "VALVULA_MANUAL_CORROSION_MODERADA",
+        ("valvulas", "válvulas"),
+        [
+            ("corrosion", "corrosión"),
+            ("leve", "moderada"),
+        ],
+    ),
+    (
+        "VALVULA_VOLANTE_SUELTO",
+        ("valvulas", "válvulas"),
+        [
+            ("volante",),
+            ("suelto", "desprendid", "fuera de posicion", "fuera de posición", "rotura"),
+        ],
+    ),
+    (
+        "VALVULA_VOLANTE_AUSENTE",
+        ("valvulas", "válvulas"),
+        [
+            ("volante",),
+            ("ausencia", "ausente", "sin volante"),
+        ],
+    ),
+    (
+        "SOPORTE_ABRAZADERA_FALTANTE",
+        ("soportes", "abrazaderas"),
+        [
+            ("abrazadera",),
+            ("ausencia", "ausente"),
+        ],
+    ),
+    (
+        "SOPORTE_UBOLT_CONTACTO_DIRECTO",
+        ("soportes", "abrazaderas"),
+        [
+            ("u-bolt", "u bolt", "ubolt"),
+            ("contacto", "corrosion", "corrosión"),
+        ],
+    ),
+    (
+        # Caso genérico (COMPENDIO C.4): corrosión leve/moderada en soporte
+        # metálico sin una condición más específica (u-bolt, spring hanger,
+        # ausencia, rotura) -- mantenimiento de recubrimiento, seguro por
+        # ser la acción menos invasiva.
+        "SOPORTE_METALICO_TIPICO",
+        ("soportes", "abrazaderas"),
+        [
+            ("corrosion", "corrosión"),
+            ("leve", "moderada"),
+        ],
+    ),
+    (
+        "AISLAMIENTO_PROTECCION_IGNIFUGA_AGRIETADA",
+        (None,),
+        [
+            ("ignifuga", "ignífuga", "ingnifuca", "ignifuca", "fireproofing"),
+            ("grieta", "agrieta"),
+        ],
+    ),
+    (
+        "AISLAMIENTO_AUSENCIA",
+        ("aislamiento",),
+        [
+            ("ausencia", "falta de aislamiento", "sin aislamiento"),
+            ("aislamiento",),
+        ],
+    ),
+    (
+        "AISLAMIENTO_ABERTURAS_ABOLLADURAS",
+        ("aislamiento",),
+        [
+            ("abertura", "abolladura", "expuesto", "exposicion", "exposición"),
+            ("aislamiento", "cubierta metalica", "cubierta metálica"),
+        ],
+    ),
+    (
+        "INDICADOR_MANOMETRO_DETERIORADO",
+        ("instrumentacion", "instrumentación"),
+        [
+            ("manometro", "manómetro"),
+            ("deteriorad", "aguja", "opac", "glicerina"),
+        ],
+    ),
+    (
+        "TUBERIA_COLOR_NO_REGLAMENTARIO",
+        ("recubrimientos", "componentes"),
+        [
+            ("color",),
+            ("no reglamentario", "reglamentario", "identificacion", "identificación"),
+        ],
+    ),
+    (
+        "TUBERIA_PANDEO_DEFORMACION",
+        (None,),
+        [
+            ("pandeo", "deformacion", "deformación"),
+        ],
+    ),
+]
+
+# Comentarios que NO representan un hallazgo real (informativos / sin
+# incidencia): nunca se sugiere recomendación para ellos.
+TEXTOS_SIN_HALLAZGO = (
+    "no aplica",
+    "sin indicaciones relevantes",
+    "sin incidencias",
+    "se limita la inspecc",
+)
+
+# Regla 1 de ROL_Y_OBJETIVO.REV2.txt: corrosión LEVE y PUNTUAL/LOCALIZADA,
+# el componente conserva su integridad -> NUNCA se emite recomendación
+# técnica (se clasifica como aceptable). Se detecta por texto, no por caso.
+_RE_LEVE_PUNTUAL = re.compile(
+    r"\bleve\b.{0,25}\b(puntual|localizad)|(\bno compromete\b|\bconserva su integridad\b|\bsin afectar\b)",
+    re.IGNORECASE,
+)
+TEXTO_ACEPTABLE_SIN_ACCION = (
+    "Aceptable — corrosión leve puntual/localizada que no compromete la "
+    "integridad del componente; conforme a la matriz de decisión no "
+    "corresponde emitir recomendación técnica ni mantenimiento de pintura."
+)
+
+
+def sugerir_caso_desde_texto(categoria_checklist, comentario):
+    """Intenta sugerir, con alta confianza y SIN IA, el o los casos del
+    CATALOGO que corresponden a un comentario en texto libre del VT-CHECK
+    LIST real (por categoría de componente), aplicando las mismas reglas de
+    COMPLEMENTO/ROL_Y_OBJETIVO.REV2.txt. Si el comentario describe más de un
+    problema y calzan varias reglas, se devuelven combinadas (separadas por
+    acciones, como indica la sección de "componentes mixtos" del ROL).
+    Devuelve un Resultado(hallazgo, recomendacion) ya redactado y con las
+    variables detectables (NPS, cantidad, longitud) extraídas por expresión
+    regular, o None si ninguna regla calza con confianza (el hallazgo queda
+    entonces para redacción manual) -- salvo que el texto corresponda a
+    corrosión leve puntual/localizada, en cuyo caso se marca "Aceptable, sin
+    recomendación" tal como exige la matriz de decisión.
+    """
+    texto_norm = (comentario or "").strip().lower()
+    if not texto_norm or any(t in texto_norm for t in TEXTOS_SIN_HALLAZGO):
+        return None
+
+    categoria_norm = (categoria_checklist or "").strip().lower()
+
+    resultados = []
+    ids_usados = set()
+    for caso_id, categorias_aplicables, grupos_palabras in REGLAS_SUGERENCIA:
+        if categorias_aplicables != (None,) and not any(
+            c in categoria_norm for c in categorias_aplicables
+        ):
+            continue
+        if not all(_contiene_alguna(texto_norm, grupo) for grupo in grupos_palabras):
+            continue
+
+        datos = {"caso": caso_id, **_extraer_variables_de_texto(comentario)}
+        try:
+            resultado = generar_hallazgo_y_recomendacion(datos)
+        except ValueError:
+            continue
+        if resultado is not None and resultado.caso_id not in ids_usados:
+            resultados.append(resultado)
+            ids_usados.add(resultado.caso_id)
+
+    if resultados:
+        if len(resultados) == 1:
+            return resultados[0]
+        return Resultado(
+            caso_id="+".join(r.caso_id for r in resultados),
+            hallazgo=" ".join(r.hallazgo for r in resultados),
+            recomendacion=" ".join(r.recomendacion for r in resultados),
+        )
+
+    if _RE_LEVE_PUNTUAL.search(texto_norm):
+        return Resultado(
+            caso_id="ACEPTABLE_SIN_RECOMENDACION",
+            hallazgo=comentario.strip(),
+            recomendacion=TEXTO_ACEPTABLE_SIN_ACCION,
+        )
+
+    return None

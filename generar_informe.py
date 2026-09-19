@@ -168,9 +168,10 @@ def ejecutar_proceso_grupo(
     ruta_checklist_salida = os.path.join(dir_salida, f"Checklist_VT_{grupo_buscado}.xlsx")
     if ruta_checklist and os.path.exists(str(ruta_checklist)):
         print("[*] Procesando y parchando el Checklist VT...")
-        avisos_chk = checklist_mod.parchar_checklist_vt(str(ruta_checklist), {}, ruta_checklist_salida)
+        avisos_chk, hallazgos_por_tag = checklist_mod.parchar_checklist_vt(
+            str(ruta_checklist), {}, ruta_checklist_salida
+        )
         avisos.extend(avisos_chk)
-        hallazgos_por_tag = checklist_mod.extraer_hallazgos_por_tag(ruta_checklist_salida)
         print("[✔] Checklist parchado correctamente.")
     else:
         avisos.append(
@@ -233,9 +234,9 @@ def ejecutar_proceso_grupo(
     if len(doc.tables) > 1:
         filas1 = docxlib.clone_table_to_n_rows(doc.tables[1], n, header_rows=1)
         for tr, fila in zip(filas1, filas_tecnicas):
-            pares = hallazgos_por_tag.get(fila["tag"])
-            if pares:
-                recomendacion = "\n".join(r for (_h, r) in pares if r)
+            items_chk = hallazgos_por_tag.get(fila["tag"])
+            if items_chk:
+                recomendacion = "\n".join(info["recomendacion"] for info in items_chk if info["recomendacion"])
             elif ruta_checklist:
                 recomendacion = "Sin hallazgos relevantes registrados en el checklist VT."
             else:
@@ -252,9 +253,9 @@ def ejecutar_proceso_grupo(
                 rate = psaim.rate_corrosion_mm_anio(p["rcr_mpy"])
                 vida = psaim.vida_util_display(p["vida_util_anios"], fila.get("clase", ""))
                 partes.append(f"Rate de corrosión {rate:g} mm/año, con una vida remanente {vida} años.")
-            pares = hallazgos_por_tag.get(fila["tag"])
-            if pares:
-                partes.extend(h for (h, _r) in pares if h)
+            items_chk = hallazgos_por_tag.get(fila["tag"])
+            if items_chk:
+                partes.extend(info["hallazgo"] for info in items_chk if info["hallazgo"])
             texto = " ".join(partes) if partes else "PENDIENTE (línea aún sin inspección de campo)"
             docxlib.fill_row(tr, [fila["item"], fila["unidad"], fila["tag"], texto])
 

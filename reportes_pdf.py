@@ -13,6 +13,7 @@ Anexos del informe (anexos.py):
 """
 import io
 import os
+from xml.sax.saxutils import escape
 
 import openpyxl
 from reportlab.lib.pagesizes import A4
@@ -21,14 +22,7 @@ from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage
 
 import psaim
-from checklist import _mapear_encabezados, _buscar_columna, tiene_foto_en_fila
-from checklist import (
-    COL_TAG_CANDIDATOS,
-    COL_HALLAZGO_SALIDA,
-    COL_RECOMENDACION_SALIDA,
-    FALLBACK_COL_TAG,
-    FALLBACK_COL_RECOMENDACION,
-)
+from checklist import CELDA_LINEA, _bloques_por_item, _procesar_bloque, imagenes_del_bloque
 
 _STYLES = getSampleStyleSheet()
 _TITULO = ParagraphStyle("TituloAnexo", parent=_STYLES["Heading2"])
@@ -37,44 +31,35 @@ _ETIQUETA = ParagraphStyle("EtiquetaAnexo", parent=_STYLES["BodyText"], fontName
 
 
 def generar_pdf_checklist_por_tag(ruta_checklist_parchado, dir_salida):
-    """Lee el VT-CHECK LIST ya parchado (con Hallazgo/Recomendación escritos
-    por checklist.parchar_checklist_vt) y arma, por TAG, un PDF con las
-    fotos de campo y el texto redactado de cada hallazgo con foto."""
+    """Lee el VT-CHECK LIST real ya parchado (checklist.parchar_checklist_vt)
+    y arma, por TAG de línea (una hoja por línea, ver checklist.py), un PDF
+    con las fotos de campo y el texto de Hallazgo/Recomendación de cada
+    ítem con marca O/R."""
     os.makedirs(dir_salida, exist_ok=True)
     wb = openpyxl.load_workbook(ruta_checklist_parchado)
 
-    hallazgos_por_tag = {}
+    rutas = {}
     for nombre_hoja in wb.sheetnames:
         ws = wb[nombre_hoja]
-        encabezados = _mapear_encabezados(ws)
-        col_tag = _buscar_columna(encabezados, COL_TAG_CANDIDATOS) or FALLBACK_COL_TAG
-        col_hallazgo = _buscar_columna(encabezados, COL_HALLAZGO_SALIDA)
-        col_recomendacion = (
-            _buscar_columna(encabezados, COL_RECOMENDACION_SALIDA) or FALLBACK_COL_RECOMENDACION
-        )
+        tag_val = ws[CELDA_LINEA].value
+        if not tag_val:
+            continue
+        tag = str(tag_val).strip()
 
-        imagenes_por_fila = {}
-        for img in getattr(ws, "_images", []):
-            anchor = img.anchor
-            fila_img = getattr(getattr(anchor, "_from", None), "row", None)
-            if fila_img is not None:
-                imagenes_por_fila.setdefault(fila_img + 1, []).append(img)
-
-        for fila in range(2, ws.max_row + 1):
-            tag_val = ws.cell(row=fila, column=col_tag).value
-            if not tag_val or not tiene_foto_en_fila(ws, fila):
+        items_pdf = []
+        for item, categoria, fila_ini, fila_fin in _bloques_por_item(ws):
+            info = _procesar_bloque(ws, item, categoria, fila_ini, fila_fin)
+            if info is None:
                 continue
-            tag = str(tag_val).strip()
-            hallazgo = ws.cell(row=fila, column=col_hallazgo).value if col_hallazgo else None
-            recomendacion = ws.cell(row=fila, column=col_recomendacion).value
-            imgs = imagenes_por_fila.get(fila, [])
-            hallazgos_por_tag.setdefault(tag, []).append((hallazgo, recomendacion, imgs))
+            imgs = imagenes_del_bloque(ws, fila_ini, fila_fin)
+            items_pdf.append((categoria, info["hallazgo"], info["recomendacion"], imgs))
 
-    rutas = {}
-    for tag, items in hallazgos_por_tag.items():
+        if not items_pdf:
+            continue
+
         nombre_archivo = f"Checklist_VT_{_slug(tag)}.pdf"
         ruta_pdf = os.path.join(dir_salida, nombre_archivo)
-        _construir_pdf_checklist_tag(tag, items, ruta_pdf)
+        _construir_pdf_checklist_tag(tag, items_pdf, ruta_pdf)
         rutas[tag] = ruta_pdf
 
     return rutas
@@ -89,13 +74,14 @@ def _construir_pdf_checklist_tag(tag, items, ruta_pdf):
         ruta_pdf, pagesize=A4,
         leftMargin=2 * cm, rightMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm,
     )
-    story = [Paragraph(f"Reporte de Inspección Visual (VT) — Línea {tag}", _TITULO), Spacer(1, 12)]
+    story = [Paragraph(f"Reporte de Inspección Visual (VT) — Línea {escape(tag)}", _TITULO), Spacer(1, 12)]
 
-    for idx, (hallazgo, recomendacion, imgs) in enumerate(items, start=1):
-        story.append(Paragraph(f"Hallazgo {idx}", _ETIQUETA))
-        story.append(Paragraph(hallazgo or "SIN DATO", _CUERPO))
-        story.append(Paragraph("Recomendación Técnica", _ETIQUETA))
-        story.append(Paragraph(recomendacion or "SIN DATO", _CUERPO))
+    for categoria, hallazgo, recomendacion, imgs in items:
+        story.append(Paragraph(escape(str(categoria or "SIN DATO")), _ETIQUETA))
+        story.append(Paragraph(escape(hallazgo) if hallazgo else "SIN DATO", _CUERPO))
+        if recomendacion:
+            story.append(Paragraph("Recomendación Técnica", _ETIQUETA))
+            story.append(Paragraph(escape(recomendacion), _CUERPO))
         for img in imgs:
             try:
                 data = img._data()
@@ -128,14 +114,17 @@ def generar_pdf_psaim_por_tag(psaim_por_tag, filas_tecnicas, dir_salida):
             leftMargin=2 * cm, rightMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm,
         )
         story = [
-            Paragraph(f"Reporte de Ultrasonido (PSAIM) — Línea {tag}", _TITULO),
+            Paragraph(f"Reporte de Ultrasonido (PSAIM) — Línea {escape(tag)}", _TITULO),
             Spacer(1, 12),
             Paragraph("RCR (dato de cabecera del PSAIM)", _ETIQUETA),
             Paragraph(f"{datos['rcr_mpy']:g} MPY", _CUERPO),
             Paragraph("Rate de Corrosión", _ETIQUETA),
             Paragraph(f"{rate:g} mm/año", _CUERPO),
             Paragraph("Vida Remanente (mínimo de TML Vida Útil)", _ETIQUETA),
-            Paragraph(f"{vida} años (según Clase API 570: {clase_por_tag.get(tag, 'SIN DATO')})", _CUERPO),
+            Paragraph(
+                f"{escape(str(vida))} años (según Clase API 570: {escape(str(clase_por_tag.get(tag, 'SIN DATO')))})",
+                _CUERPO,
+            ),
             Paragraph("Puntos de medición (TML) considerados", _ETIQUETA),
             Paragraph(str(datos.get("n_tml", "SIN DATO")), _CUERPO),
         ]
