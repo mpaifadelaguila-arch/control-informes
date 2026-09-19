@@ -51,7 +51,7 @@ def ejecutar_proceso_grupo(grupo_buscado, ruta_maestro, ruta_base_lineas, ruta_p
     # 3. Generar Informe Word base
     print("[*] Generando informe en Word...")
     ruta_word_salida = os.path.join(dir_salida, f"Informe_{grupo_buscado}.docx")
-    generar_word_informe(ruta_plantilla_word, contexto, ruta_word_salidai) if 'generar_word_informe' in globals() else generar_word_informe(ruta_plantilla_word, contexto, ruta_word_salida)
+    generar_word_informe(ruta_plantilla_word, contexto, ruta_word_salida)
     
     # Remplazar/Insertar la foto de la unidad en el Word si se proporcionó
     if ruta_foto and os.path.exists(ruta_foto):
