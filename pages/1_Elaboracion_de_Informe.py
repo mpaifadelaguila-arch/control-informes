@@ -50,12 +50,12 @@ with c3:
 st.markdown("---")
 st.subheader("📁 Carga de Archivos para el Informe (Incluyendo PSAIM)")
 
-# Cuatro columnas para los archivos requeridos incluyendo PSAIM
+# Cuatro columnas con las etiquetas corregidas y optimizadas
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    f_m3m6 = st.file_uploader("1. Archivo M3 y M6 (Excel)", type=["xlsx", "xls"], key="m3m6")
+    f_m3m6 = st.file_uploader("1. Detalle de grupo / líneas (archivo excel)", type=["xlsx", "xls"], key="m3m6")
 with col2:
-    f_cons = st.file_uploader("2. Archivo Consolidadas (Excel)", type=["xlsx", "xls"], key="cons")
+    f_cons = st.file_uploader("2. VT-Check List (archivo excel - multihoja)", type=["xlsx", "xls"], key="cons")
 with col3:
     f_fotos = st.file_uploader("3. Fotos de la Unidad", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="fotos")
 with col4:
@@ -65,13 +65,19 @@ st.markdown("---")
 
 if st.button("🚀 Procesar y Generar Documentos", type="primary", use_container_width=True):
     if not (f_m3m6 and f_cons and f_fotos and f_psaim):
-        st.error("Por favor, asegúrate de cargar todos los archivos obligatorios: M3/M6, Consolidadas, Fotos y el archivo PSAIM.")
+        st.error("Por favor, asegúrate de cargar todos los archivos obligatorios: Detalle de líneas, VT-Check List, Fotos y PSAIM.")
     else:
-        with st.spinner("Procesando datos, aplicando complementos técnicos y generando entregables..."):
+        with st.spinner("Procesando hojas múltiples del Check List, datos y complementos técnicos..."):
             try:
                 # Lectura de los archivos cargados
                 df_m3 = pd.read_excel(f_m3m6)
-                df_c = pd.read_excel(f_cons)
+                
+                # Soporte multihoja para el VT-Check List
+                xls_checklist = pd.ExcelFile(f_cons)
+                hojas_checklist = xls_checklist.sheet_names
+                # Por defecto leemos la primera hoja o unificamos si es necesario
+                df_c = pd.read_excel(f_cons, sheet_name=0) 
+
                 df_psaim_data = pd.read_excel(f_psaim)
 
                 # Generación de Word base seguro
@@ -82,7 +88,7 @@ if st.button("🚀 Procesar y Generar Documentos", type="primary", use_container
                 out_word = io.BytesIO()
                 doc.save(out_word)
                 
-                # Generación de Excel
+                # Generación de Excel preservando la estructura multihoja
                 out_excel = io.BytesIO()
                 wb = openpyxl.load_workbook(f_cons)
                 wb.save(out_excel)
@@ -92,7 +98,7 @@ if st.button("🚀 Procesar y Generar Documentos", type="primary", use_container
                 st.session_state["res_excel"] = out_excel.getvalue()
                 st.session_state["ok_generado"] = True
 
-                st.success("¡Informes y cálculos PSAIM procesados exitosamente con los complementos aplicados!")
+                st.success(f"¡Procesado con éxito! Se detectaron {len(hojas_checklist)} hoja(s) en el VT-Check List: {', '.join(hojas_checklist)}")
             except Exception as ex:
                 st.error(f"Ocurrió un error al procesar los archivos: {str(ex)}")
 
