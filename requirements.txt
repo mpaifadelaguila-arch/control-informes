@@ -8,3 +8,4 @@ google-auth-oauthlib
 plotly
 python-docx
 reportlab
+pypdf
