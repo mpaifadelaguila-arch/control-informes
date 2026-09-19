@@ -153,6 +153,7 @@ def ejecutar_proceso_grupo(
             "sap": str(ln.get("sap") or "SIN DATO"),
             "unidad": str(ln.get("unidad") or "SIN DATO"),
             "tag": tag,
+            "observacion": (str(ln["observacion"]).strip() if ln.get("observacion") else None),
             **datos_tecnicos,
         })
 
@@ -182,6 +183,12 @@ def ejecutar_proceso_grupo(
     # 5. Generar el informe Word real a partir de la plantilla-molde
     print("[*] Generando informe en Word...")
     doc = Document(str(ruta_plantilla_word))
+
+    if not elaborador:
+        elaborador = next(
+            (str(ln["elaborador"]).strip() for ln in lineas_alcance if ln.get("elaborador")),
+            None,
+        )
 
     fecha_ini, fecha_fin, examinadores = inventario.derivar_fecha_y_examinadores(
         lineas_alcance, elaborador
@@ -237,6 +244,8 @@ def ejecutar_proceso_grupo(
             items_chk = hallazgos_por_tag.get(fila["tag"])
             if items_chk:
                 recomendacion = "\n".join(info["recomendacion"] for info in items_chk if info["recomendacion"])
+            elif fila.get("observacion"):
+                recomendacion = fila["observacion"]
             elif ruta_checklist:
                 recomendacion = "Sin hallazgos relevantes registrados en el checklist VT."
             else:
@@ -256,6 +265,8 @@ def ejecutar_proceso_grupo(
             items_chk = hallazgos_por_tag.get(fila["tag"])
             if items_chk:
                 partes.extend(info["hallazgo"] for info in items_chk if info["hallazgo"])
+            if not partes and fila.get("observacion"):
+                partes.append(fila["observacion"])
             texto = " ".join(partes) if partes else "PENDIENTE (línea aún sin inspección de campo)"
             docxlib.fill_row(tr, [fila["item"], fila["unidad"], fila["tag"], texto])
 
