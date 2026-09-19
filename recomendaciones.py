@@ -1024,3 +1024,73 @@ def sugerir_caso_desde_texto(categoria_checklist, comentario):
         )
 
     return None
+
+
+# ==============================================================================
+# MECANISMOS DE DAÑO (catálogo fijo de 20, cruzado por palabras clave contra
+# los hallazgos detectados en la inspección -- sin IA).
+# ==============================================================================
+CATALOGO_MECANISMOS_DANO = [
+    "Corrosión Atmosférica",
+    "Corrosión Galvánica",
+    "Corrosión por Suelo",
+    "Corrosión de la célula de concentración",
+    "Punto de contacto",
+    "Fatiga Mecánica",
+    "Erosión/Corrosión Erosión",
+    "Corrosión por H2S",
+    "Corrosión Inducida por Microorganismos (Mic)",
+    "Corrosión por CO2",
+    "Corrosión Bajo Aislamiento (CUI)",
+    "Corrosión Bajo Ignifugado (CUF)",
+    "Corrosión por Agua de Condensado de Caldera",
+    "Corrosión Caustica",
+    "Sulfuración",
+    "SCC por Cloruro",
+    "SCC por Cáusticos",
+    "SCC por Amina",
+    "Corrosión Por Ácido Clorhídrico (HCl)",
+    "Corrosión Por Agua Amarga (Ácida)",
+]
+
+# Cada mecanismo: patrones regex (con límites de palabra donde hace falta,
+# para evitar falsos positivos con siglas cortas como "mic"/"cui"/"cuf"/"hcl").
+_PATRONES_MECANISMO = {
+    "Corrosión Atmosférica": (r"corrosi[oó]n atmosf[eé]rica",),
+    "Corrosión Galvánica": (r"galv[aá]nic",),
+    "Corrosión por Suelo": (r"corrosi[oó]n por suelo", r"tuber[ií]a enterrada", r"soterrad"),
+    "Corrosión de la célula de concentración": (r"c[eé]lula de concentraci[oó]n",),
+    "Punto de contacto": (r"punto de contacto", r"contacto met[aá]l-?met[aá]l", r"contacto directo"),
+    "Fatiga Mecánica": (r"fatiga mec[aá]nica",),
+    "Erosión/Corrosión Erosión": (r"erosi[oó]n",),
+    "Corrosión por H2S": (r"\bh2s\b", r"[aá]cido sulfh[ií]drico"),
+    "Corrosión Inducida por Microorganismos (Mic)": (r"microorganismos", r"\bmic\b"),
+    "Corrosión por CO2": (r"\bco2\b", r"di[oó]xido de carbono"),
+    "Corrosión Bajo Aislamiento (CUI)": (r"bajo aislamiento", r"\bcui\b"),
+    "Corrosión Bajo Ignifugado (CUF)": (r"ignif[uú]g", r"\bcuf\b"),
+    "Corrosión por Agua de Condensado de Caldera": (r"agua de condensado", r"condensado de caldera"),
+    "Corrosión Caustica": (r"c[aá]ustic",),
+    "Sulfuración": (r"sulfuraci[oó]n",),
+    "SCC por Cloruro": (r"scc.{0,15}cloruro", r"cloruro.{0,15}scc"),
+    "SCC por Cáusticos": (r"scc.{0,15}c[aá]ustic", r"c[aá]ustic.{0,15}scc"),
+    "SCC por Amina": (r"scc.{0,15}amina", r"amina.{0,15}scc"),
+    "Corrosión Por Ácido Clorhídrico (HCl)": (r"\bhcl\b", r"[aá]cido clorh[ií]drico"),
+    "Corrosión Por Agua Amarga (Ácida)": (r"agua amarga",),
+}
+_PATRONES_MECANISMO_COMPILADOS = {
+    m: [re.compile(p, re.IGNORECASE) for p in pats] for m, pats in _PATRONES_MECANISMO.items()
+}
+
+
+def detectar_mecanismos_dano(textos_hallazgos):
+    """Cruza los hallazgos (texto libre, mejorado) del grupo contra el
+    catálogo fijo de 20 mecanismos de daño por palabras clave (sin IA) y
+    devuelve la lista de mecanismos que efectivamente aplican, en el orden
+    del catálogo."""
+    texto_total = " ".join(t or "" for t in textos_hallazgos)
+    detectados = []
+    for mecanismo in CATALOGO_MECANISMOS_DANO:
+        patrones = _PATRONES_MECANISMO_COMPILADOS.get(mecanismo, ())
+        if any(p.search(texto_total) for p in patrones):
+            detectados.append(mecanismo)
+    return detectados
