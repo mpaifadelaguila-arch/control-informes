@@ -77,7 +77,7 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
     elif not MODULOS_DISPONIBLES:
         st.error("No se pueden ejecutar los procesos porque faltan módulos en el repositorio.")
     else:
-        with st.spinner("Procesando datos reales con los motores backend (inventario, checklist, informe y anexos)..."):
+        with st.spinner("Procesando datos reales, imágenes y motores backend..."):
             try:
                 with tempfile.TemporaryDirectory() as tmpdir:
                     tmp_path = Path(tmpdir)
@@ -98,50 +98,33 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
 
                     dir_fotos = tmp_path / "fotos"
                     dir_fotos.mkdir(exist_ok=True)
-                    for foto in f_fotos:
+                    
+                    ruta_primera_foto = None
+                    for i, foto in enumerate(f_fotos):
                         f_path = dir_fotos / foto.name
                         f_path.write_bytes(foto.getbuffer())
+                        if i == 0:
+                            ruta_primera_foto = f_path
 
-                    # Definir rutas de salida para los entregables generados por los motores
-                    out_word_path = tmp_path / "Informe_Final_Generado.docx"
-                    out_excel_path = tmp_path / "Checklist_Parchado.xlsx"
-                    out_zip_path = tmp_path / "Anexos_Generados.zip"
-
-                    # Extraer el nombre del grupo a partir del archivo cargado (ej. "22-GLP-GT-023")
+                    # Extraer el nombre del grupo (ej. "22-GLP-GT-023")
                     grupo_input = Path(f_m3m6.name).stem.replace("(", "").replace(")", "").strip()
                     
-                    # --- LLAMADA A LOS MOTORES REALES DE TU REPOSITORIO ---
-                    try:
-                        # Ejecutamos el pipeline completo por grupo utilizando las rutas maestras y temporales
-                        ejecutar_proceso_grupo(
-                            grupo_buscado=grupo_input,
-                            ruta_maestro=RUTA_MAESTRA,
-                            ruta_base_lineas=RUTA_MAESTRA,
-                            ruta_plantilla_word=RUTA_PLANTILLA,
-                            dir_salida=str(tmp_path)
-                        )
-                        
-                        # Mapear las salidas reales generadas por los motores
-                        generated_word = tmp_path / f"Informe_{grupo_input}.docx"
-                        if generated_word.exists():
-                            out_word_path.write_bytes(generated_word.read_bytes())
-                        elif RUTA_PLANTILLA.exists():
-                            out_word_path.write_bytes(RUTA_PLANTILLA.read_bytes())
+                    # --- LLAMADA DIRECTA A LOS MOTORES REALES ---
+                    ejecutar_proceso_grupo(
+                        grupo_buscado=grupo_input,
+                        ruta_maestro=path_m3m6,
+                        ruta_base_lineas=RUTA_MAESTRA,
+                        ruta_plantilla_word=RUTA_PLANTILLA,
+                        dir_salida=str(tmp_path),
+                        ruta_foto=ruta_primera_foto
+                    )
 
-                        generated_checklist = tmp_path / f"Checklist_VT_{grupo_input}.xlsx"
-                        if generated_checklist.exists():
-                            out_excel_path.write_bytes(generated_checklist.read_bytes())
-                        elif path_cons:
-                            out_excel_path.write_bytes(path_cons.read_bytes())
+                    # Rutas de salida generadas por el backend
+                    out_word_path = tmp_path / f"Informe_{grupo_input}.docx"
+                    out_excel_path = tmp_path / f"Checklist_VT_{grupo_input}.xlsx"
+                    out_zip_path = tmp_path / f"Anexos_Comprimidos_{grupo_input}.zip"
 
-                    except Exception as err_backend:
-                        st.warning(f"Aviso en ejecución de motores: {str(err_backend)}. Aplicando respaldos de seguridad.")
-                        if not out_word_path.exists() and RUTA_PLANTILLA.exists():
-                            out_word_path.write_bytes(RUTA_PLANTILLA.read_bytes())
-                        if path_cons and not out_excel_path.exists():
-                            out_excel_path.write_bytes(path_cons.read_bytes())
-
-                    # D. Generación de Anexos en ZIP (Incluyendo el Excel específico del grupo y las fotos)
+                    # D. Generación del ZIP de Anexos
                     import zipfile
                     with zipfile.ZipFile(out_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                         zipf.write(path_m3m6, arcname=f"Detalle_Grupo_{f_m3m6.name}")
@@ -150,14 +133,13 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         for foto in f_fotos:
                             zipf.write(dir_fotos / foto.name, arcname=f"fotos/{foto.name}")
 
-                    # Lectura de los binarios procesados
-                    word_bytes = out_word_path.read_bytes() if out_word_path.exists() else b""
+                    # Lectura obligatoria de los binarios generados
+                    if not out_word_path.exists():
+                        raise FileNotFoundError(f"El motor no generó el archivo Word para el grupo {grupo_input}.")
                     
-                    excel_bytes = None
-                    if out_excel_path.exists() and f_cons is not None:
-                        excel_bytes = out_excel_path.read_bytes()
-                        
-                    anexos_bytes = out_zip_path.read_bytes() if out_zip_path.exists() else b""
+                    word_bytes = out_word_path.read_bytes()
+                    excel_bytes = out_excel_path.read_bytes() if out_excel_path.exists() else (path_cons.read_bytes() if path_cons else None)
+                    anexos_bytes = out_zip_path.read_bytes()
 
                 # Guardar en session_state de manera persistente
                 st.session_state["res_word"] = word_bytes
@@ -165,9 +147,12 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                 st.session_state["res_anexos"] = anexos_bytes
                 st.session_state["ok_gen"] = True
 
-                st.success("¡Procesamiento real completado con éxito por los motores del backend!")
+                st.success("¡Informes, VT parchado y anexos generados con éxito por los motores!")
+            
             except Exception as e:
-                st.error(f"Error detallado en la ejecución de los motores backend: {str(e)}")
+                st.error("Error crítico en la ejecución de los motores backend:")
+                st.exception(e)
+                st.session_state["ok_gen"] = False
 
 # Sección de descargas conectada a los resultados reales
 if st.session_state.get("ok_gen", False):
