@@ -79,7 +79,7 @@ def ejecutar_proceso_grupo(grupo_buscado, ruta_maestro, ruta_base_lineas, ruta_p
     
     # 4. Aplicar parche al Checklist de VT multihoja
     print("[*] Procesando y parchando el Checklist VT...")
-    ruta_checklist_salida = os.path.join(dir_salida, f"Checklist_VT_{grupo_busczak := grupo_buscado}.xlsx")
+    ruta_checklist_salida = os.path.join(dir_salida, f"Checklist_VT_{grupo_buscado}.xlsx")
     
     if ruta_checklist and os.path.exists(str(ruta_checklist)):
         parchar_checklist_vt(str(ruta_checklist), contexto, ruta_checklist_salida)
