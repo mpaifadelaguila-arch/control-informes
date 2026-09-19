@@ -1,4 +1,5 @@
 import openpyxl
+import re
 
 def parchar_checklist_vt(ruta_original, recomendaciones_dict, ruta_salida):
     """
@@ -18,22 +19,16 @@ def parchar_checklist_vt(ruta_original, recomendaciones_dict, ruta_salida):
         ws = wb[nombre_hoja]
         print(f"[*] Procesando hoja del VT: {nombre_hoja}")
         
-        # Nota: Aquí adaptas las columnas según la estructura de tu formato (ejemplo: Fila de inicio, 
-        # columna de hallazgo/foto y columna donde va la recomendación directa).
-        # Este bucle recorre las filas buscando celdas con fotos o indicadores de hallazgo de campo.
-        
         for fila in range(1, ws.max_row + 1):
-            # Ejemplo conceptual de validación de celda o fila:
-            # Puedes verificar si la celda de la foto/imagen tiene contenido o si el ítem está marcado con hallazgo.
-            # (openpyxl almacena las imágenes en ws._images, se puede validar si hay una imagen anclada a esa fila o celda).
+            # Obtener el identificador o tag de la línea/ítem desde la columna correspondiente (ej. Columna B)
+            item_id = ws.cell(row=fila, column=2).value
             
-            # Supongamos que identificamos el ID del ítem o código de línea en una columna específica (ej. Columna A o B):
-            # item_id = ws.cell(row=fila, column=2).value 
-            
-            # if item_id in recomendaciones_dict and tiene_foto_en_fila(ws, fila):
-            #     # Coloca la recomendación directa en la celda designada (ej. Columna de Recomendaciones, ej. Columna H)
-            #     ws.cell(row=fila, column=8).value = recomendaciones_dict[item_id]
-            pass
+            if item_id:
+                item_id_str = str(item_id).strip()
+                # Verificar si el ítem está registrado en el diccionario y posee una imagen adjunta
+                if item_id_str in recomendaciones_dict and tiene_foto_en_fila(ws, fila):
+                    # Asignar la recomendación o dato técnico en la celda de destino (ej. Columna H)
+                    ws.cell(row=fila, column=8).value = recomendaciones_dict[item_id_str]
 
     # Guardamos el archivo resultante con el parche aplicado en todas las hojas
     wb.save(ruta_salida)
@@ -56,7 +51,6 @@ def tiene_foto_en_fila(ws, fila_num):
                 return True
         elif isinstance(celda_anclaje, str):
             # Si el anclaje viene como string (ej. 'E12')
-            import re
             match = re.search(r'\d+', celda_anclaje)
             if match and int(match.group()) == fila_num:
                 return True
