@@ -20,6 +20,7 @@ try:
     import anexos
     import inventario
     import informe
+    from generar_informe import ejecutar_proceso_grupo
     MODULOS_DISPONIBLES = True
 except ImportError as e:
     MODULOS_DISPONIBLES = False
@@ -76,7 +77,7 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
     elif not MODULOS_DISPONIBLES:
         st.error("No se pueden ejecutar los procesos porque faltan módulos en el repositorio.")
     else:
-        with st.spinner("Procesando datos reales con los módulos backend (inventario, checklist, informe y anexos)..."):
+        with st.spinner("Procesando datos reales con los motores backend (inventario, checklist, informe y anexos)..."):
             try:
                 with tempfile.TemporaryDirectory() as tmpdir:
                     tmp_path = Path(tmpdir)
@@ -106,48 +107,50 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                     out_excel_path = tmp_path / "Checklist_Parchado.xlsx"
                     out_zip_path = tmp_path / "Anexos_Generados.zip"
 
+                    # Extraer el nombre del grupo a partir del archivo cargado (ej. "22-GLP-GT-023")
+                    grupo_input = Path(f_m3m6.name).stem.replace("(", "").replace(")", "").strip()
+                    
                     # --- LLAMADA A LOS MOTORES REALES DE TU REPOSITORIO ---
-                    
-                    # A. Cruce técnico e inventario (inventario.py)
-                    # inventario.ejecutar(...) o equivalente según tu código
-                    
-                    # B. Procesamiento de Checklist si fue subido (checklist.py)
-                    if path_cons and hasattr(checklist, "procesar"):
-                        # Si tu función modifica el excel o genera uno nuevo:
-                        # checklist.procesar(path_cons, out_excel_path)
-                        pass
-                    
-                    # C. Generación del Informe Word (informe.py / docxlab.py)
-                    # Aquí llamamos a tu función real de generación pasándole la plantilla, bases y fotos
-                    if hasattr(informe, "generar"):
-                        # informe.generar(plantilla=RUTA_PLANTILLA, salida=out_word_path, m3m6=path_m3m6, checklist=path_cons, fotos_dir=dir_fotos)
-                        pass
-                    elif hasattr(informe, "crear_informe"):
-                        # informe.crear_informe(...)
-                        pass
-                    
-                    # Como respaldo por si el nombre de tu función principal varía, copiamos la plantilla si el script no generó el Word físico todavía:
-                    if not out_word_path.exists() and RUTA_PLANTILLA.exists():
-                        out_word_path.write_bytes(RUTA_PLANTILLA.read_bytes())
+                    try:
+                        # Ejecutamos el pipeline completo por grupo utilizando las rutas maestras y temporales
+                        ejecutar_proceso_grupo(
+                            grupo_buscado=grupo_input,
+                            ruta_maestro=RUTA_MAESTRA,
+                            ruta_base_lineas=RUTA_MAESTRA,
+                            ruta_plantilla_word=RUTA_PLANTILLA,
+                            dir_salida=str(tmp_path)
+                        )
+                        
+                        # Mapear las salidas reales generadas por los motores
+                        generated_word = tmp_path / f"Informe_{grupo_input}.docx"
+                        if generated_word.exists():
+                            out_word_path.write_bytes(generated_word.read_bytes())
+                        elif RUTA_PLANTILLA.exists():
+                            out_word_path.write_bytes(RUTA_PLANTILLA.read_bytes())
 
-                    # Si el checklist fue subido pero no generó un archivo de salida dedicado, usamos el original como base del parchado
-                    if path_cons and not out_excel_path.exists():
-                        out_excel_path.write_bytes(path_cons.read_bytes())
+                        generated_checklist = tmp_path / f"Checklist_VT_{grupo_input}.xlsx"
+                        if generated_checklist.exists():
+                            out_excel_path.write_bytes(generated_checklist.read_bytes())
+                        elif path_cons:
+                            out_excel_path.write_bytes(path_cons.read_bytes())
 
-                    # D. Generación de Anexos en ZIP (anexos.py)
-                    if hasattr(anexos, "crear_zip"):
-                        # anexos.crear_zip(dir_fotos, out_zip_path)
-                        pass
-                    
-                    # Respaldo de ZIP si el módulo no creó el archivo físico
-                    if not out_zip_path.exists():
-                        import zipfile
-                        with zipfile.ZipFile(out_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                            zipf.write(path_m3m6, arcname=f"Detalle_{f_m3m6.name}")
-                            for foto in f_fotos:
-                                zipf.write(dir_fotos / foto.name, arcname=f"fotos/{foto.name}")
+                    except Exception as err_backend:
+                        st.warning(f"Aviso en ejecución de motores: {str(err_backend)}. Aplicando respaldos de seguridad.")
+                        if not out_word_path.exists() and RUTA_PLANTILLA.exists():
+                            out_word_path.write_bytes(RUTA_PLANTILLA.read_bytes())
+                        if path_cons and not out_excel_path.exists():
+                            out_excel_path.write_bytes(path_cons.read_bytes())
 
-                    # Lectura de los binarios reales procesados
+                    # D. Generación de Anexos en ZIP (Incluyendo el Excel específico del grupo y las fotos)
+                    import zipfile
+                    with zipfile.ZipFile(out_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                        zipf.write(path_m3m6, arcname=f"Detalle_Grupo_{f_m3m6.name}")
+                        if path_cons:
+                            zipf.write(path_cons, arcname=f"VT_Checklist_Original_{path_cons.name}")
+                        for foto in f_fotos:
+                            zipf.write(dir_fotos / foto.name, arcname=f"fotos/{foto.name}")
+
+                    # Lectura de los binarios procesados
                     word_bytes = out_word_path.read_bytes() if out_word_path.exists() else b""
                     
                     excel_bytes = None
