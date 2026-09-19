@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from docx import Document
+from docx.shared import Inches
 from informe import generar_word_informe
 from checklist import parchar_checklist_vt
 
@@ -25,50 +26,60 @@ def insertar_foto_unidad_segura(ruta_word, ruta_foto):
 def ejecutar_proceso_grupo(grupo_buscado, ruta_maestro, ruta_base_lineas, ruta_plantilla_word, dir_salida="salida_informes", ruta_foto=None, ruta_checklist=None):
     print(f"[*] Iniciando procesamiento automático para el grupo: {grupo_buscado}")
     
-    # 1. Leer el archivo de detalle del grupo cargado para extraer los Tags de Línea (LÍNEAS)
+    # 1. Leer el archivo de detalle del grupo cargado en la interfaz
     df_maestro = pd.read_excel(ruta_maestro)
-    col_lineas = next((c for c in df_maestro.columns if "linea" in c.lower() or "tag" in c.lower()), df_maestro.columns[0])
-    lista_tags_lineas = df_maestro[col_lineas].dropna().astype(str).str.strip().tolist()
     
-    print(f"[*] Tags de línea detectados: {lista_tags_lineas}")
+    # Identificación dinámica de columnas clave
+    col_lineas = next((c for c in df_maestro.columns if "linea" in c.lower() or "tag" in c.lower()), df_maestro.columns[5] if len(df_maestro.columns) > 5 else df_maestro.columns[0])
+    col_grupo = next((c for c in df_maestro.columns if "grupo" in c.lower()), None)
     
-    # 2. Leer la Base de Datos FASE 1 para extraer los parámetros técnicos por Tag
+    # Filtrar las líneas correspondientes al grupo de tuberías especificado
+    if col_grupo:
+        df_grupo_filtrado = df_maestro[df_maestro[col_grupo].astype(str).str.strip().str.upper() == grupo_buscado.upper()]
+        if df_grupo_filtrado.empty:
+            df_grupo_filtrado = df_maestro
+    else:
+        df_grupo_filtrado = df_maestro
+        
+    lista_tags_lineas = df_grupo_filtrado[col_lineas].dropna().astype(str).str.strip().tolist()
+    print(f"[*] Tags de línea detectados para el grupo {grupo_buscado}: {lista_tags_lineas}")
+    
+    # 2. Leer la Base de Datos FASE 1 y extraer los parámetros técnicos para *todas* las líneas del grupo
     df_base_lineas = pd.read_excel(ruta_base_lineas)
     col_base_tag = next((c for c in df_base_lineas.columns if "linea" in c.lower() or "tag" in c.lower()), df_base_lineas.columns[0])
     
+    # Filtrar la base maestra para obtener los registros técnicos de cada tag del grupo
     df_filtrado_tecnico = df_base_lineas[df_base_lineas[col_base_tag].astype(str).str.strip().isin(lista_tags_lineas)]
     
-    datos_tecnicos = df_filtrado_tecnico.iloc[0].to_dict() if not df_filtrado_tecnico.empty else {}
+    # Convertir los registros técnicos en una lista de diccionarios para poblar la tabla del punto 7.0
+    lista_datos_tecnicos = df_filtrado_tecnico.to_dict(orient="records") if not df_filtrado_tecnico.empty else []
     
-    datos_maestro = {
+    contexto = {
         "GRUPO DE TUBERÍAS": grupo_buscado,
-        "LINEAS": ", ".join(lista_tags_lineas)
+        "LINEAS": ", ".join(lista_tags_lineas),
+        "tabla_lineas": lista_datos_tecnicos  # Estructura con todos los datos técnicos del grupo
     }
     
-    contexto = {**datos_maestro, **datos_tecnicos}
     os.makedirs(dir_salida, exist_ok=True)
     
-    # 3. Generar Informe Word base
+    # 3. Generar Informe Word base con la tabla completa
     print("[*] Generando informe en Word...")
     ruta_word_salida = os.path.join(dir_salida, f"Informe_{grupo_buscado}.docx")
     generar_word_informe(ruta_plantilla_word, contexto, ruta_word_salida)
     
-    # Remplazar/Insertar la foto de la unidad en el Word si se proporcionó
+    # Insertar la foto de la unidad en el Word si se proporcionó
     if ruta_foto and os.path.exists(ruta_foto):
-        from docx.shared import Inches
         insertar_foto_unidad_segura(ruta_word_salida, ruta_foto)
         print("[✔] Foto de la unidad procesada e insertada en el informe.")
     
-    # 4. Aplicar parche al Checklist de VT multihoja (VT-CHECK LIST)
+    # 4. Aplicar parche al Checklist de VT multihoja
     print("[*] Procesando y parchando el Checklist VT...")
     ruta_checklist_salida = os.path.join(dir_salida, f"Checklist_VT_{grupo_buscado}.xlsx")
     
-    # Usamos la ruta del checklist provista (VT-CHECK LIST) o buscamos alternativas locales
     if ruta_checklist and os.path.exists(str(ruta_checklist)):
         parchar_checklist_vt(str(ruta_checklist), contexto, ruta_checklist_salida)
-        print(f"[✔] Checklist '{os.path.basename(str(ruta_checklist))}' parchado correctamente como VT-CHECK LIST.")
+        print(f"[✔] Checklist parchado correctamente.")
     else:
-        # Búsqueda de respaldo local con nombre estándar
         ruta_checklist_orig = "VT-CHECK LIST.xlsx"
         if not os.path.exists(ruta_checklist_orig):
             ruta_checklist_orig = f"assets/VT-CHECK LIST.xlsx"
