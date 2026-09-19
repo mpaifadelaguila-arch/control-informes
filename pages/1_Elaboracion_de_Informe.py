@@ -63,7 +63,7 @@ col1, col2, col3, col4 = st.columns(4)
 with col1:
     f_m3m6 = st.file_uploader("1. Detalle de grupo / líneas (Excel) [Obligatorio]", type=["xlsx", "xls"], key="m3m6")
 with col2:
-    f_cons = st.file_uploader("2. VT-Check List multihoja (Excel) [En espera / Opcional]", type=["xlsx", "xls"], key="cons")
+    f_cons = st.file_uploader("2. VT-CHECK LIST (Excel) [Opcional]", type=["xlsx", "xls"], key="cons")
 with col3:
     f_fotos = st.file_uploader("3. Fotos de la Unidad [Obligatorio]", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="fotos")
 with col4:
@@ -116,7 +116,8 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         ruta_base_lineas=RUTA_MAESTRA,
                         ruta_plantilla_word=RUTA_PLANTILLA,
                         dir_salida=str(tmp_path),
-                        ruta_foto=ruta_primera_foto
+                        ruta_foto=ruta_primera_foto,
+                        ruta_checklist=path_cons  # Pasando el VT-CHECK LIST cargado correctamente
                     )
 
                     # Rutas de salida generadas por el backend
@@ -124,12 +125,14 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                     out_excel_path = tmp_path / f"Checklist_VT_{grupo_input}.xlsx"
                     out_zip_path = tmp_path / f"Anexos_Comprimidos_{grupo_input}.zip"
 
-                    # D. Generación del ZIP de Anexos
+                    # D. Generación del ZIP de Anexos incluyendo el VT-CHECK LIST parchado
                     import zipfile
                     with zipfile.ZipFile(out_zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                         zipf.write(path_m3m6, arcname=f"Detalle_Grupo_{f_m3m6.name}")
-                        if path_cons:
-                            zipf.write(path_cons, arcname=f"VT_Checklist_Original_{path_cons.name}")
+                        if out_excel_path.exists():
+                            zipf.write(out_excel_path, arcname=f"VT-CHECK_LIST_Parchado_{grupo_input}.xlsx")
+                        elif path_cons:
+                            zipf.write(path_cons, arcname=f"VT-CHECK_LIST_Original_{path_cons.name}")
                         for foto in f_fotos:
                             zipf.write(dir_fotos / foto.name, arcname=f"fotos/{foto.name}")
 
@@ -147,7 +150,7 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                 st.session_state["res_anexos"] = anexos_bytes
                 st.session_state["ok_gen"] = True
 
-                st.success("¡Informes, VT parchado y anexos generados con éxito por los motores!")
+                st.success("¡Informes, VT-CHECK LIST parchado y anexos generados con éxito por los motores!")
             
             except Exception as e:
                 st.error("Error crítico en la ejecución de los motores backend:")
@@ -177,9 +180,9 @@ if st.session_state.get("ok_gen", False):
         with cols[1]:
             excel_data = st.session_state.get("res_excel")
             st.download_button(
-                "📊 Descargar VT-Check List Parchado", 
+                "📊 Descargar VT-CHECK LIST Parchado", 
                 data=excel_data, 
-                file_name=f"Checklist_Parchado_{datetime.now():%Y%m%d_%H%M%S}.xlsx", 
+                file_name=f"VT-CHECK_LIST_Parchado_{datetime.now():%Y%m%d_%H%M%S}.xlsx", 
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
                 use_container_width=True
             )
