@@ -47,12 +47,10 @@ def generar_pdf_checklist_por_tag(ruta_checklist_parchado, dir_salida):
         tag = str(tag_val).strip()
 
         items_pdf = []
-        for item, categoria, fila_ini, fila_fin in _bloques_por_item(ws):
-            info = _procesar_bloque(ws, item, categoria, fila_ini, fila_fin)
-            if info is None:
-                continue
-            imgs = imagenes_del_bloque(ws, fila_ini, fila_fin)
-            items_pdf.append((categoria, info["hallazgo"], info["recomendacion"], imgs))
+        for item, categoria, marca, fila_ini, fila_fin in _bloques_por_item(ws):
+            for info in _procesar_bloque(ws, item, categoria, marca, fila_ini, fila_fin):
+                imgs = imagenes_del_bloque(ws, info["fila_ini_sub"], info["fila_fin_sub"])
+                items_pdf.append((categoria, info["hallazgo"], info["recomendacion"], imgs))
 
         if not items_pdf:
             continue
