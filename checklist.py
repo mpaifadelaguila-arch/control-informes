@@ -109,6 +109,7 @@ CORRECCIONES_TEXTO = {
     "instalacion": "instalación",
     "identificacion": "identificación",
     "posicion": "posición",
+    "apra": "para",
 }
 _RE_PALABRA = re.compile(r"[A-Za-zÁÉÍÓÚáéíóúñÑ]+")
 
