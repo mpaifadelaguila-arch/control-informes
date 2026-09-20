@@ -132,13 +132,30 @@ _RE_VERBO_INICIAL = re.compile(
 )
 
 
-def _como_continuacion(texto):
+# Varios casos del catálogo ya usan "así como" dentro de su propia
+# redacción (p.ej. "...así como su lubricación..."). Si la recomendación
+# combinada repitiera siempre el mismo conector, quedaría "...así como su
+# lubricación... Así como el reemplazo..." -- repetitivo y confuso. Se
+# elige el primer conector de esta lista que NO aparezca ya en el texto
+# acumulado hasta ese punto.
+_CONECTORES_CONTINUACION = ("Así como", "Asimismo,", "Adicionalmente,")
+
+
+def _elegir_conector(texto_previo):
+    previo_norm = texto_previo.lower()
+    for conector in _CONECTORES_CONTINUACION:
+        if conector.rstrip(",").lower() not in previo_norm:
+            return conector
+    return _CONECTORES_CONTINUACION[-1]
+
+
+def _como_continuacion(texto, conector="Así como"):
     """Convierte la recomendación de un caso ADICIONAL (el 2do, 3er... caso
     detectado en la misma observación) en la continuación de una sola
     oración, en vez de una nueva oración imperativa aparte: se le quita el
-    verbo inicial ("Realizar", "Efectuar"...) y se antepone "Así como" --
-    nunca un encabezado "Recomendación:" ni viñetas, que hacían la
-    recomendación combinada más larga y menos legible de lo necesario."""
+    verbo inicial ("Realizar", "Efectuar"...) y se antepone el conector
+    elegido -- nunca un encabezado "Recomendación:" ni viñetas, que hacían
+    la recomendación combinada más larga y menos legible de lo necesario."""
     t = texto.strip()
     if t.lower().startswith("recomendación:"):
         t = t.split(":", 1)[1].strip()
@@ -146,7 +163,7 @@ def _como_continuacion(texto):
     t = _RE_VERBO_INICIAL.sub("", t)
     if t:
         t = t[0].lower() + t[1:]
-    return f"Así como {t}"
+    return f"{conector} {t}"
 
 
 # ==============================================================================
@@ -546,11 +563,15 @@ def sugerir_caso_desde_texto(categoria_checklist, comentario):
         # Más de un problema detectado en la MISMA observación (p.ej. una
         # válvula con corrosión Y volante roto a la vez): se unifica en UNA
         # sola oración -- la primera recomendación tal cual, y cada una
-        # adicional conectada con "Así como" en vez de repetirse como una
-        # nueva oración imperativa aparte (sin encabezado "Recomendación:"
-        # ni viñetas, que la hacían ver más larga de lo necesario).
+        # adicional conectada con "Así como"/"Asimismo,"/"Adicionalmente,"
+        # (el primero que no repita una frase ya usada en el texto previo)
+        # en vez de repetirse como una nueva oración imperativa aparte (sin
+        # encabezado "Recomendación:" ni viñetas, que la hacían ver más
+        # larga de lo necesario).
         partes = [resultados[0].recomendacion.strip()]
-        partes.extend(_como_continuacion(r.recomendacion) for r in resultados[1:])
+        for r in resultados[1:]:
+            conector = _elegir_conector(" ".join(partes))
+            partes.append(_como_continuacion(r.recomendacion, conector))
         return Resultado(
             caso_id="+".join(r.caso_id for r in resultados),
             hallazgo=" ".join(r.hallazgo for r in resultados),
