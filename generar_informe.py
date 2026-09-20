@@ -531,7 +531,23 @@ def ejecutar_proceso_grupo(
 
             if not prefijo_psaim and not lista_hallazgos:
                 texto_pendiente = fila.get("observacion") or "PENDIENTE (línea aún sin inspección de campo)"
-                docxlib.fill_row(tr, [fila["item"], fila["unidad"], fila["tag"], texto_pendiente])
+                tcs = tr.findall(docxlib.qn("w:tc"))
+                docxlib.set_cell_text(tcs[0], fila["item"])
+                docxlib.set_cell_text(tcs[1], fila["unidad"])
+                docxlib.set_cell_text(tcs[2], fila["tag"])
+                if len(docxlib.get_tc_paragraphs(tcs[3])) >= 2:
+                    # Esta fila sí trae el párrafo de prefijo PSAIM (sin
+                    # numerar) separado del párrafo de hallazgos VT
+                    # (numerado, "1)..."): dejar cada "pendiente" en su
+                    # párrafo correcto en vez de que ambos caigan juntos
+                    # en el primer párrafo (sin numeración) por defecto.
+                    docxlib.set_cell_text_prefijo_mas_lista(
+                        tcs[3],
+                        "PENDIENTE (falta reporte de ultrasonido / PSAIM).",
+                        [texto_pendiente],
+                    )
+                else:
+                    docxlib.set_cell_text(tcs[3], texto_pendiente)
                 continue
 
             tcs = tr.findall(docxlib.qn("w:tc"))

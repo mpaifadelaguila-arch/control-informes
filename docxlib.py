@@ -49,6 +49,71 @@ def regenerate_ids(element):
     return element
 
 
+def _numbering_root(table):
+    """Devuelve el elemento raíz <w:numbering> del documento al que
+    pertenece `table` (word/numbering.xml), o None si por algún motivo
+    esa parte no existe (no debería pasar con la plantilla real)."""
+    try:
+        return table.part.numbering_part.element
+    except Exception:
+        return None
+
+
+def _abstract_num_id_de(numbering_root, num_id):
+    for num in numbering_root.findall(qn("w:num")):
+        if num.get(qn("w:numId")) == str(num_id):
+            abstract = num.find(qn("w:abstractNumId"))
+            if abstract is not None:
+                return abstract.get(qn("w:val"))
+    return None
+
+
+def _registrar_nuevo_numid(numbering_root, abstract_num_id):
+    from lxml import etree
+
+    existentes = [
+        int(n.get(qn("w:numId")))
+        for n in numbering_root.findall(qn("w:num"))
+        if n.get(qn("w:numId")) is not None
+    ]
+    nuevo = (max(existentes) + 1) if existentes else 1
+    num_el = etree.SubElement(numbering_root, qn("w:num"))
+    num_el.set(qn("w:numId"), str(nuevo))
+    abstract_el = etree.SubElement(num_el, qn("w:abstractNumId"))
+    abstract_el.set(qn("w:val"), str(abstract_num_id))
+    return nuevo
+
+
+def _renumerar_listas_clonadas(clone, numbering_root):
+    """Una fila clonada más allá de las que trae la plantilla original
+    hereda, vía deepcopy, el MISMO w:numId que su fila molde -- Word
+    entonces trata ambas filas como el mismo listado y continúa la
+    numeración en vez de reiniciarla en 1 (p.ej. un grupo de 13 líneas,
+    con una plantilla de 12 filas molde, mostraba "2)" en la fila 13 en
+    vez de "1)"). Se le asignan a la fila clonada w:numId nuevos,
+    registrados en numbering.xml apuntando al mismo abstractNumId, para
+    que cada fila clonada reinicie su propia numeración en 1."""
+    if numbering_root is None:
+        return
+    numids_originales = set()
+    for numpr in clone.iter(qn("w:numPr")):
+        numid_el = numpr.find(qn("w:numId"))
+        if numid_el is not None:
+            numids_originales.add(numid_el.get(qn("w:val")))
+    mapeo = {}
+    for numid_original in numids_originales:
+        abstract_id = _abstract_num_id_de(numbering_root, numid_original)
+        if abstract_id is None:
+            continue
+        mapeo[numid_original] = str(_registrar_nuevo_numid(numbering_root, abstract_id))
+    if not mapeo:
+        return
+    for numpr in clone.iter(qn("w:numPr")):
+        numid_el = numpr.find(qn("w:numId"))
+        if numid_el is not None and numid_el.get(qn("w:val")) in mapeo:
+            numid_el.set(qn("w:val"), mapeo[numid_el.get(qn("w:val"))])
+
+
 def get_tc_paragraphs(tc):
     return tc.findall(qn("w:p"))
 
@@ -142,9 +207,11 @@ def clone_table_to_n_rows(table, n, header_rows=1):
         data_trs = data_trs[:n]
     elif n > m:
         molde = data_trs[-1]
+        numbering_root = _numbering_root(table)
         for _ in range(n - m):
             clone = copy.deepcopy(molde)
             regenerate_ids(clone)
+            _renumerar_listas_clonadas(clone, numbering_root)
             molde.addnext(clone)
             molde = clone
             data_trs.append(clone)
