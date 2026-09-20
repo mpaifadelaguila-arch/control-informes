@@ -310,7 +310,7 @@ def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
 
         for item, categoria, marca, fila_ini, fila_fin in _bloques_por_item(ws):
             for info in _procesar_bloque(ws, item, categoria, marca, fila_ini, fila_fin):
-                if info["sugerida"]:
+                if info["sugerida"] and info["recomendacion"] != TEXTO_PENDIENTE_MANUAL:
                     # El hallazgo de campo ya quedó capturado en info["hallazgo"]
                     # (para la tabla de Hallazgos del informe); en el propio
                     # checklist, esa misma celda de Comentario se REEMPLAZA por
@@ -323,6 +323,18 @@ def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
                         f"Hoja '{nombre_hoja}' (línea {tag}), ítem {item} [{categoria}]: "
                         f"recomendación sugerida automáticamente y parchada en el checklist: "
                         f"{info['recomendacion']}"
+                    )
+                elif info["sugerida"]:
+                    # Ninguna regla del motor calzó con confianza: NO se toca
+                    # la celda (el hallazgo de campo original del inspector
+                    # se conserva intacto en el checklist para que el
+                    # especialista lo redacte a mano); solo se reporta.
+                    info["escrita_en_excel"] = False
+                    avisos.append(
+                        f"Hoja '{nombre_hoja}' (línea {tag}), ítem {item} [{categoria}]: "
+                        f"PENDIENTE — sin regla de sugerencia confiable, se conserva el "
+                        f"hallazgo de campo tal cual en el checklist para redacción manual "
+                        f"del especialista: {info['hallazgo']}"
                     )
                 else:
                     info["escrita_en_excel"] = True

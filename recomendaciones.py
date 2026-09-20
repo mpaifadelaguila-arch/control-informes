@@ -102,17 +102,17 @@ CATALOGO = {
         categoria="TUBERIA",
         etiqueta="Deterioro de recubrimiento y corrosión generalizada en circuito",
         hallazgo_tpl=(
-            "Deterioro del recubrimiento y corrosión {severidad} generalizada en el "
-            "tramo/circuito NPS {nps} (longitud aprox. {longitud} metros)."
+            "Deterioro del recubrimiento y corrosión {severidad} generalizada en "
+            "{elemento} (tramo/circuito NPS {nps}, longitud aprox. {longitud} metros)."
         ),
         recomendacion_tpl=(
-            "Efectuar el mantenimiento en la totalidad del recubrimiento de los "
-            "accesorios y componentes pertenecientes al tramo/circuito NPS {nps} "
-            "(longitud aprox. {longitud} metros), siguiendo los estándares Repsol "
+            "Efectuar el mantenimiento en la totalidad del recubrimiento de "
+            "{elemento} pertenecientes al tramo/circuito NPS {nps} (longitud "
+            "aprox. {longitud} metros), siguiendo los estándares Repsol "
             "ED-B-06.00-04d y el documento PE-B-0600.01H00R05."
         ),
-        variables=("severidad", "nps", "longitud"),
-        defaults={"severidad": "leve a moderada"},
+        variables=("severidad", "elemento", "nps", "longitud"),
+        defaults={"severidad": "leve a moderada", "elemento": "los accesorios y componentes"},
     ),
     "TUBERIA_JUNTAS_SOLDADAS_SIN_PINTURA": Caso(
         id="TUBERIA_JUNTAS_SOLDADAS_SIN_PINTURA",
@@ -670,6 +670,37 @@ CATALOGO = {
         variables=("cantidad", "tipo", "nps"),
         defaults={"cantidad": "1", "tipo": "compuerta"},
     ),
+    "SOPORTE_FALTANTE": Caso(
+        id="SOPORTE_FALTANTE",
+        categoria="SOPORTE",
+        etiqueta="Ausencia total de soporte",
+        hallazgo_tpl=(
+            "Ausencia de soporte en {ubicacion} de la línea NPS {nps}."
+        ),
+        recomendacion_tpl=(
+            "Realizar la instalación de un soporte en {ubicacion} de la línea "
+            "NPS {nps}, conforme a los procedimientos específicos y "
+            "estándares Repsol aplicables (ED-L-06.00-05a, sección 5.5, y la "
+            "norma MSS SP-58)."
+        ),
+        variables=("ubicacion", "nps"),
+        defaults={"ubicacion": "el tramo observado"},
+    ),
+    "SOPORTE_ABRAZADERA_ROTA": Caso(
+        id="SOPORTE_ABRAZADERA_ROTA",
+        categoria="SOPORTE",
+        etiqueta="Rotura de abrazadera",
+        hallazgo_tpl=(
+            "Rotura de la abrazadera tipo {tipo} en la línea NPS {nps}."
+        ),
+        recomendacion_tpl=(
+            "Realizar el reemplazo de la abrazadera tipo {tipo} en la línea "
+            "NPS {nps}, conforme a la norma MSS SP-58 y el estándar Repsol "
+            "ED-L-06.00-05a (sección 5.5)."
+        ),
+        variables=("tipo", "nps"),
+        defaults={"tipo": "U-bolt"},
+    ),
     "SOPORTE_ABRAZADERA_FALTANTE": Caso(
         id="SOPORTE_ABRAZADERA_FALTANTE",
         categoria="SOPORTE",
@@ -738,7 +769,9 @@ def generar_hallazgo_y_recomendacion(datos: dict) -> Optional[Resultado]:
 
     valores = dict(caso.defaults)
     for var in caso.variables:
-        valores[var] = _v(datos, var)
+        # Si el checklist no trae el dato, se respeta el valor por defecto
+        # del propio caso (si lo tiene) en vez de caer directo a "SIN DATO".
+        valores[var] = _v(datos, var, valores.get(var, SIN_DATO))
     # Variables genéricas siempre disponibles aunque el caso no las declare
     # explícitamente en `variables` (por si el usuario las incluye en el
     # texto manualmente vía formato libre no usado aquí).
@@ -775,10 +808,68 @@ import re
 RE_NPS = re.compile(r'(\d+(?:\s+\d/\d)?"|\d/\d")')
 RE_CANTIDAD = re.compile(r"\((\d{1,3})\)")
 RE_LONGITUD = re.compile(r"([\d]+(?:\.[\d]+)?)\s*metros", re.IGNORECASE)
+RE_TIPO_VALVULA = re.compile(
+    r"v[aá]lvula[s]?\s+(?:de\s+|tipo\s+)?(compuerta|bola|globo|retenci[oó]n|check|"
+    r"mariposa|aguja|tap[oó]n|diafragma|control)",
+    re.IGNORECASE,
+)
+RE_TIPO_SOPORTE = re.compile(r"\b(u-?bolt|spring hanger)\b", re.IGNORECASE)
+
+# Vocabulario de elementos/componentes/accesorios que el inspector suele
+# nombrar en el comentario de campo. Se usa para que la Recomendación (y el
+# Hallazgo, cuando el caso lo requiere) nombren EXPLÍCITAMENTE el elemento
+# real inspeccionado -- nunca un texto genérico ("accesorios y
+# componentes") -- cuando el propio comentario ya lo indica. Ordenado de
+# más específico a más genérico para que, p.ej., "brida de orificio" se
+# reconozca antes que la sola palabra "brida".
+#
+# NOTA: "protección ignífuga" queda fuera a propósito -- tiene su propio
+# caso (AISLAMIENTO_PROTECCION_IGNIFUGA_AGRIETADA) donde {elemento} es lo
+# que la protección ignífuga recubre (p.ej. una válvula o un soporte), no
+# la protección en sí; incluirla aquí produciría un auto-referencia sin
+# sentido ("protección ignífuga de protección ignífuga").
+_ELEMENTOS_TIPICOS = (
+    "brida de orificio", "placa orificio",
+    "aislamiento térmico", "aislamiento termico",
+    "base de concreto",
+    "unión universal", "union universal",
+    "brida", "válvula", "valvula", "abrazadera", "soporte",
+    "venteo", "drenaje", "dren",
+    "niples", "niple", "cabezal",
+    "espárragos", "esparragos", "espárrago", "esparrago",
+    "manómetro", "manometro", "indicador",
+    "tubería", "tuberia",
+)
+RE_ELEMENTO = re.compile(
+    "|".join(re.escape(e) for e in _ELEMENTOS_TIPICOS), re.IGNORECASE
+)
 
 
 def _contiene_alguna(texto, alternativas):
     return any(alt in texto for alt in alternativas)
+
+
+def _extraer_elementos(texto):
+    """Devuelve, en el orden en que aparecen en el texto, los distintos
+    elementos/accesorios (sin repetir) que el inspector nombró."""
+    vistos_norm = set()
+    encontrados = []
+    for m in RE_ELEMENTO.finditer(texto):
+        valor = m.group(0)
+        norm = valor.lower()
+        if norm in vistos_norm:
+            continue
+        vistos_norm.add(norm)
+        encontrados.append(valor)
+    return encontrados
+
+
+def _formatear_elementos(lista):
+    if not lista:
+        return None
+    if len(lista) == 1:
+        return lista[0]
+    return ", ".join(lista[:-1]) + " y " + lista[-1]
 
 
 def _extraer_variables_de_texto(texto):
@@ -792,6 +883,16 @@ def _extraer_variables_de_texto(texto):
     m = RE_LONGITUD.search(texto)
     if m:
         variables["longitud"] = m.group(1)
+    m = RE_TIPO_VALVULA.search(texto)
+    if m:
+        variables["tipo"] = m.group(1).lower()
+    else:
+        m = RE_TIPO_SOPORTE.search(texto)
+        if m:
+            variables["tipo"] = m.group(1)
+    elementos = _formatear_elementos(_extraer_elementos(texto))
+    if elementos:
+        variables["elemento"] = elementos
     return variables
 
 
@@ -805,7 +906,8 @@ def _extraer_variables_de_texto(texto):
 REGLAS_SUGERENCIA = [
     (
         "TUBERIA_DETERIORO_RECUBRIMIENTO_GENERALIZADO",
-        ("recubrimientos", "componentes", "placas orificio", "puntos de inyecc"),
+        ("recubrimientos", "componentes", "placas orificio", "puntos de inyecc",
+         "instrumentacion", "instrumentación"),
         [
             ("deterioro del recubrimiento", "deterioro recubrimiento", "deterioro del recubirmiento"),
             ("generaliz", "leve a moderada", "leve  a moderada"),
@@ -874,6 +976,25 @@ REGLAS_SUGERENCIA = [
         [
             ("abrazadera",),
             ("ausencia", "ausente"),
+        ],
+    ),
+    (
+        "SOPORTE_ABRAZADERA_ROTA",
+        ("soportes", "abrazaderas"),
+        [
+            ("abrazadera",),
+            ("rotura", "rota", "quebrada", "fracturada"),
+        ],
+    ),
+    (
+        # No restringido por categoría: una ausencia de soporte puede
+        # registrarse en el ítem "Soportes" o describirse dentro de otro
+        # ítem (p.ej. tubería de instrumentación sin su propio soporte).
+        "SOPORTE_FALTANTE",
+        (None,),
+        [
+            ("soporte",),
+            ("ausencia", "ausente", "falta de soporte", "sin soporte", "carece de soporte"),
         ],
     ),
     (

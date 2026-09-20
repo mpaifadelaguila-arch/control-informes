@@ -286,8 +286,24 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
 
                 avisos = list(resultado.get("avisos", [])) + list(avisos_anexos)
                 st.success("¡Informe técnico, checklist y anexos generados y capturados con éxito!")
-                for aviso in avisos:
-                    st.warning(aviso)
+
+                pendientes = [a for a in avisos if a.startswith("Hoja") and "PENDIENTE" in a]
+                otros = [a for a in avisos if a not in pendientes]
+
+                if pendientes:
+                    st.error(
+                        f"⚠️ {len(pendientes)} hallazgo(s) requieren redacción manual del "
+                        "especialista (ninguna regla automática calzó con confianza; el "
+                        "hallazgo de campo se conservó intacto en el checklist)."
+                    )
+                    with st.expander("Ver detalle de pendientes de redacción manual", expanded=True):
+                        for a in pendientes:
+                            st.write(f"- {a}")
+
+                if otros:
+                    with st.expander(f"Ver detalle técnico ({len(otros)} avisos)", expanded=False):
+                        for a in otros:
+                            st.write(f"- {a}")
 
             except Exception as e:
                 st.error("Error crítico en la ejecución de los motores backend:")
