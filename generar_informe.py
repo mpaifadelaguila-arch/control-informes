@@ -38,26 +38,42 @@ NS_W = docxlib.W_NS
 
 
 def _reemplazar_foto_portada(doc, ruta_foto):
-    """Reemplaza los BYTES de la primera imagen incrustada en el cuerpo del
-    documento (la foto de portada de la unidad/grupo que ya trae la
-    plantilla-molde) por la foto real subida en la interfaz, conservando el
-    tamaño/posición del marco original. Devuelve True si encontró una
-    imagen para reemplazar."""
+    """Reemplaza los BYTES de la foto panorámica de portada (la de la
+    unidad/grupo que ya trae la plantilla-molde) por la foto real subida en
+    la interfaz, conservando el tamaño/posición del marco original.
+
+    El documento trae más de una imagen incrustada (el logo de la empresa,
+    ~173x169 casi cuadrado, y la foto panorámica, ~712x533 apaisada) -- se
+    identifica la correcta por tamaño de área y relación de aspecto
+    apaisada (misma regla que docxlib.find_portada_photo, pero usando el
+    lector de imágenes propio de python-docx en vez de PIL, que no es una
+    dependencia del proyecto). Nunca se toca el logo. Devuelve True si
+    encontró una imagen candidata para reemplazar."""
+    candidatos = []
     for p in doc.paragraphs:
-        blips = p._p.findall(f".//{{{NS_A}}}blip")
-        if not blips:
-            continue
-        rId = blips[0].get(f"{{{NS_R}}}embed")
-        if not rId:
-            continue
-        try:
-            image_part = doc.part.related_parts[rId]
-        except KeyError:
-            continue
-        with open(ruta_foto, "rb") as f:
-            image_part._blob = f.read()
-        return True
-    return False
+        for blip in p._p.findall(f".//{{{NS_A}}}blip"):
+            rId = blip.get(f"{{{NS_R}}}embed")
+            if not rId:
+                continue
+            try:
+                image_part = doc.part.related_parts[rId]
+                w, h = image_part.image.px_width, image_part.image.px_height
+            except (KeyError, Exception):
+                continue
+            if not w or not h:
+                continue
+            ratio = w / h
+            if 1.1 < ratio < 1.6:
+                candidatos.append((w * h, image_part))
+
+    if not candidatos:
+        return False
+
+    candidatos.sort(key=lambda c: c[0], reverse=True)
+    _, image_part = candidatos[0]
+    with open(ruta_foto, "rb") as f:
+        image_part._blob = f.read()
+    return True
 
 
 def insertar_foto_unidad_segura(doc, ruta_foto):
@@ -470,7 +486,10 @@ def ejecutar_proceso_grupo(
         if mecanismos:
             filas6 = docxlib.clone_table_to_n_rows(doc.tables[6], len(mecanismos), header_rows=1)
             for i, (tr, mecanismo) in enumerate(zip(filas6, mecanismos), start=1):
-                docxlib.fill_row(tr, [str(i), mecanismo, "✓"])
+                # La celda "Aplica" ya trae una viñeta Wingdings que se ve
+                # como "✓" (numId=12, w:numFmt="bullet"); dejarla vacía de
+                # texto para no duplicar el check.
+                docxlib.fill_row(tr, [str(i), mecanismo, ""])
         elif not ruta_checklist:
             docxlib.fill_row(
                 docxlib.clone_table_to_n_rows(doc.tables[6], 1, header_rows=1)[0],

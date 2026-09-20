@@ -269,10 +269,19 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                     excel_bytes = out_excel_path.read_bytes() if out_excel_path and out_excel_path.exists() else None
                     anexos_bytes = out_zip_path.read_bytes()
 
+                # Nombre de grupo real (columna "GRUPO DE TUBERÍAS" del
+                # detalle), saneado para nombre de archivo de descarga.
+                nombre_grupo_real = next(
+                    (str(ln["grupo"]).strip() for ln in resultado["lineas_alcance"] if ln.get("grupo")),
+                    grupo_input,
+                )
+                nombre_grupo_archivo = anexos.nombre_archivo_seguro(nombre_grupo_real)
+
                 # Guardado persistente en session_state
                 st.session_state["res_word"] = word_bytes
                 st.session_state["res_excel"] = excel_bytes
                 st.session_state["res_anexos"] = anexos_bytes
+                st.session_state["nombre_grupo_archivo"] = nombre_grupo_archivo
                 st.session_state["ok_gen"] = True
 
                 avisos = list(resultado.get("avisos", [])) + list(avisos_anexos)
@@ -288,47 +297,49 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
 if st.session_state.get("ok_gen", False):
     st.markdown("---")
     st.subheader("📥 Descarga de Entregables Generados por el Sistema")
-    
+
+    nombre_grupo_archivo = st.session_state.get("nombre_grupo_archivo", "Grupo")
+    sello_fecha = f"{datetime.now():%Y%m%d_%H%M%S}"
     tiene_excel = st.session_state.get("res_excel") is not None and len(st.session_state.get("res_excel", b"")) > 0
     cols = st.columns(3 if tiene_excel else 2)
-    
+
     with cols[0]:
         word_data = st.session_state.get("res_word", b"")
         if word_data:
             st.download_button(
-                "📄 Descargar Informe Word Real", 
-                data=word_data, 
-                file_name=f"Informe_Tecnico_{datetime.now():%Y%m%d_%H%M%S}.docx", 
-                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
+                "📄 Descargar Informe Word Real",
+                data=word_data,
+                file_name=f"Informe_{nombre_grupo_archivo}_{sello_fecha}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 use_container_width=True
             )
-        
+
     if tiene_excel:
         with cols[1]:
             excel_data = st.session_state.get("res_excel")
             st.download_button(
-                "📊 Descargar VT-CHECK LIST Parchado", 
-                data=excel_data, 
-                file_name=f"VT-CHECK_LIST_Parchado_{datetime.now():%Y%m%d_%H%M%S}.xlsx", 
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                "📊 Descargar VT-CHECK LIST Parchado",
+                data=excel_data,
+                file_name=f"VT-CHECK_LIST_Parchado_{nombre_grupo_archivo}_{sello_fecha}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
         with cols[2]:
             anexos_data = st.session_state.get("res_anexos", b"")
             st.download_button(
-                "📑 Descargar Anexos ZIP", 
-                data=anexos_data, 
-                file_name=f"Anexos_Comprimidos_{datetime.now():%Y%m%d_%H%M%S}.zip", 
-                mime="application/zip", 
+                "📑 Descargar Anexos ZIP",
+                data=anexos_data,
+                file_name=f"Anexos_{nombre_grupo_archivo}_{sello_fecha}.zip",
+                mime="application/zip",
                 use_container_width=True
             )
     else:
         with cols[1]:
             anexos_data = st.session_state.get("res_anexos", b"")
             st.download_button(
-                "📑 Descargar Anexos ZIP", 
-                data=anexos_data, 
-                file_name=f"Anexos_Comprimidos_{datetime.now():%Y%m%d_%H%M%S}.zip", 
-                mime="application/zip", 
+                "📑 Descargar Anexos ZIP",
+                data=anexos_data,
+                file_name=f"Anexos_{nombre_grupo_archivo}_{sello_fecha}.zip",
+                mime="application/zip",
                 use_container_width=True
             )

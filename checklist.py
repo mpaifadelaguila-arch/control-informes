@@ -127,12 +127,21 @@ def _mejorar_texto(texto):
 
 
 def _bloques_por_item(ws):
-    """Agrupa las filas de la hoja en bloques (item, categoría, fila_ini,
-    fila_fin), respetando exactamente las filas que ya trae el archivo
-    (nunca se insertan ni eliminan filas)."""
+    """Agrupa las filas de la hoja en bloques (item, categoría, marca,
+    fila_ini, fila_fin), respetando exactamente las filas que ya trae el
+    archivo (nunca se insertan ni eliminan filas).
+
+    La marca O/A/R/NA se lee UNA sola vez por bloque (igual que Ítem y
+    Categoría, la celda está fusionada para todo el ítem, aunque dentro de
+    él haya más de una observación de campo con su propio comentario y su
+    propia foto) -- nunca por fila individual: si se leyera por fila, las
+    filas de continuación de la fusión devuelven vacío (MergedCell) y una
+    segunda observación del mismo ítem perdería su marca y se descartaría
+    por error."""
     bloques = []
     item_actual = None
     cat_actual = None
+    marca_actual = None
     inicio_actual = None
     fila = FILA_INICIO_ITEMS
 
@@ -140,11 +149,12 @@ def _bloques_por_item(ws):
         b = ws.cell(row=fila, column=COL_ITEM).value
         c = ws.cell(row=fila, column=COL_CATEGORIA).value
         k = ws.cell(row=fila, column=COL_COMENTARIO).value
-        marca_presente = any(
-            ws.cell(row=fila, column=col).value == "X" for col in COLS_MARCA
+        marca_fila = next(
+            (m for col, m in COLS_MARCA.items() if ws.cell(row=fila, column=col).value == "X"),
+            None,
         )
 
-        if b is None and c is None and k is None and not marca_presente:
+        if b is None and c is None and k is None and marca_fila is None:
             # Fila completamente vacía: si ya pasamos el último ítem
             # esperado, se terminó la tabla real (el resto son filas fuera
             # del área impresa que python-docx/openpyxl a veces reporta de
@@ -157,17 +167,21 @@ def _bloques_por_item(ws):
 
         if b is not None:
             if item_actual is not None:
-                bloques.append((item_actual, cat_actual, inicio_actual, fila - 1))
+                bloques.append((item_actual, cat_actual, marca_actual, inicio_actual, fila - 1))
             item_actual = b
             cat_actual = c if c is not None else cat_actual
+            marca_actual = marca_fila
             inicio_actual = fila
-        elif c is not None:
-            cat_actual = c
+        else:
+            if c is not None:
+                cat_actual = c
+            if marca_fila is not None and marca_actual is None:
+                marca_actual = marca_fila
 
         fila += 1
 
     if item_actual is not None:
-        bloques.append((item_actual, cat_actual, inicio_actual, min(fila - 1, ws.max_row)))
+        bloques.append((item_actual, cat_actual, marca_actual, inicio_actual, min(fila - 1, ws.max_row)))
 
     return bloques
 
@@ -179,53 +193,90 @@ def _filas_del_bloque(ws, fila_ini, fila_fin):
         if isinstance(celda, MergedCell) or celda.value in (None, ""):
             continue
         texto = str(celda.value)
-        marca = None
-        for col, m in COLS_MARCA.items():
-            if ws.cell(row=r, column=col).value == "X":
-                marca = m
-                break
-        filas.append({"fila": r, "texto": texto, "marca": marca, "tipo": _clasificar(texto)})
+        filas.append({"fila": r, "texto": texto, "tipo": _clasificar(texto)})
     return filas
 
 
-def _procesar_bloque(ws, item, categoria, fila_ini, fila_fin):
-    """Resuelve el hallazgo (mejorado) y la recomendación de un ítem del
-    checklist -- exista ya en el archivo o haya que sugerirla -- SIN escribir
-    nada todavía. Devuelve None si el ítem no tiene un hallazgo real (marca
-    A/NA, o sin comentario) o si no tiene ninguna fotografía de respaldo: una
-    observación O/R sin foto no lleva recomendación ni pasa al informe."""
+def _sub_hallazgos_del_bloque(ws, fila_ini, fila_fin):
+    """Un mismo ítem puede traer más de una observación de campo
+    independiente -- cada una con su propio comentario y su propia foto (o
+    par general+detalle, que sigue siendo UNA sola foto/observación) --,
+    p.ej. 'Bridas...' con dos tramos distintos inspeccionados, cada uno con
+    su propio hallazgo y su propia recomendación. Se agrupa por cada celda
+    de Comentario con texto de hallazgo (una frase descriptiva nueva
+    siempre abre una observación distinta); si el inspector ya escribió a
+    continuación la recomendación de esa misma observación, se adjunta al
+    mismo grupo. Cada grupo queda delimitado hasta la fila anterior al
+    siguiente grupo (o el fin del bloque, si es el último) -- ese es el
+    rango donde se busca SU propia fotografía."""
     filas = _filas_del_bloque(ws, fila_ini, fila_fin)
-    if not filas or not any(f["marca"] in ("O", "R") for f in filas):
-        return None
-    if not imagenes_del_bloque(ws, fila_ini, fila_fin):
-        return None
+    grupos = []
+    for f in filas:
+        if f["tipo"] == "HALLAZGO" or not grupos:
+            grupos.append({"hallazgo_filas": [], "recomendacion_filas": [], "fila_ini": f["fila"]})
+        if f["tipo"] == "HALLAZGO":
+            grupos[-1]["hallazgo_filas"].append(f)
+        else:
+            grupos[-1]["recomendacion_filas"].append(f)
 
-    hallazgo = " ".join(_mejorar_texto(f["texto"]) for f in filas if f["tipo"] == "HALLAZGO")
-    recomendacion_existente = " ".join(f["texto"] for f in filas if f["tipo"] == "RECOMENDACION")
-    filas_hallazgo = [f["fila"] for f in filas if f["tipo"] == "HALLAZGO"]
-    fila_ultimo_hallazgo = filas_hallazgo[-1] if filas_hallazgo else filas[-1]["fila"]
+    for i, g in enumerate(grupos):
+        siguiente = grupos[i + 1]["fila_ini"] if i + 1 < len(grupos) else fila_fin + 1
+        g["fila_fin_sub"] = siguiente - 1
+    return grupos
 
-    if not hallazgo and recomendacion_existente:
-        # El inspector solo escribió la frase de acción (ningún renglón
-        # descriptivo aparte): se usa esa misma frase también como hallazgo,
-        # para que la tabla de Hallazgos y la de Recomendaciones queden con
-        # la misma cantidad de ítems y la misma numeración por hallazgo.
-        hallazgo = _mejorar_texto(recomendacion_existente)
 
-    if recomendacion_existente:
-        return {
+def _procesar_bloque(ws, item, categoria, marca, fila_ini, fila_fin):
+    """Resuelve, para un ítem del checklist, cada observación de campo
+    independiente que trae -- uno o más pares comentario+foto dentro del
+    mismo ítem (p.ej. dos tramos distintos de 'Bridas...') -- su Hallazgo
+    (mejorado) y su Recomendación, sin escribir nada todavía. Si el ítem no
+    está marcado O/R, se descarta entero; si una observación puntual no
+    tiene ninguna fotografía propia de respaldo, esa observación puntual se
+    descarta (una observación O/R sin foto no lleva recomendación ni pasa
+    al informe), pero las demás observaciones del mismo ítem que sí tengan
+    foto se conservan. Devuelve una lista (puede tener más de un elemento
+    por ítem, o ninguno)."""
+    resultados = []
+    if marca not in ("O", "R"):
+        return resultados
+
+    for grupo in _sub_hallazgos_del_bloque(ws, fila_ini, fila_fin):
+        sub_ini, sub_fin = grupo["fila_ini"], grupo["fila_fin_sub"]
+        if not imagenes_del_bloque(ws, sub_ini, sub_fin):
+            continue
+
+        hallazgo = " ".join(_mejorar_texto(f["texto"]) for f in grupo["hallazgo_filas"])
+        recomendacion_existente = " ".join(f["texto"] for f in grupo["recomendacion_filas"])
+        filas_hallazgo = [f["fila"] for f in grupo["hallazgo_filas"]]
+        fila_ultimo_hallazgo = (
+            filas_hallazgo[-1] if filas_hallazgo else grupo["recomendacion_filas"][-1]["fila"]
+        )
+
+        if not hallazgo and recomendacion_existente:
+            # El inspector solo escribió la frase de acción (ningún renglón
+            # descriptivo aparte): se usa esa misma frase también como hallazgo,
+            # para que la tabla de Hallazgos y la de Recomendaciones queden con
+            # la misma cantidad de ítems y la misma numeración por hallazgo.
+            hallazgo = _mejorar_texto(recomendacion_existente)
+
+        if recomendacion_existente:
+            resultados.append({
+                "item": item, "categoria": categoria,
+                "hallazgo": hallazgo, "recomendacion": recomendacion_existente,
+                "sugerida": False, "fila_ultimo_hallazgo": fila_ultimo_hallazgo,
+                "fila_ini_sub": sub_ini, "fila_fin_sub": sub_fin,
+            })
+            continue
+
+        sugerido = recomendaciones.sugerir_caso_desde_texto(categoria, hallazgo)
+        recomendacion = sugerido.recomendacion if sugerido else TEXTO_PENDIENTE_MANUAL
+        resultados.append({
             "item": item, "categoria": categoria,
-            "hallazgo": hallazgo, "recomendacion": recomendacion_existente,
-            "sugerida": False, "fila_ultimo_hallazgo": fila_ultimo_hallazgo,
-        }
-
-    sugerido = recomendaciones.sugerir_caso_desde_texto(categoria, hallazgo)
-    recomendacion = sugerido.recomendacion if sugerido else TEXTO_PENDIENTE_MANUAL
-    return {
-        "item": item, "categoria": categoria,
-        "hallazgo": hallazgo, "recomendacion": recomendacion,
-        "sugerida": True, "fila_ultimo_hallazgo": fila_ultimo_hallazgo,
-    }
+            "hallazgo": hallazgo, "recomendacion": recomendacion,
+            "sugerida": True, "fila_ultimo_hallazgo": fila_ultimo_hallazgo,
+            "fila_ini_sub": sub_ini, "fila_fin_sub": sub_fin,
+        })
+    return resultados
 
 
 def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
@@ -257,29 +308,26 @@ def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
             avisos.append(f"Hoja '{nombre_hoja}': no se encontró el TAG de línea en {CELDA_LINEA}.")
             continue
 
-        for item, categoria, fila_ini, fila_fin in _bloques_por_item(ws):
-            info = _procesar_bloque(ws, item, categoria, fila_ini, fila_fin)
-            if info is None:
-                continue
+        for item, categoria, marca, fila_ini, fila_fin in _bloques_por_item(ws):
+            for info in _procesar_bloque(ws, item, categoria, marca, fila_ini, fila_fin):
+                if info["sugerida"]:
+                    # El hallazgo de campo ya quedó capturado en info["hallazgo"]
+                    # (para la tabla de Hallazgos del informe); en el propio
+                    # checklist, esa misma celda de Comentario se REEMPLAZA por
+                    # la recomendación (no se agregan filas ni columnas).
+                    ws.cell(row=info["fila_ultimo_hallazgo"], column=COL_COMENTARIO).value = (
+                        info["recomendacion"]
+                    )
+                    info["escrita_en_excel"] = True
+                    avisos.append(
+                        f"Hoja '{nombre_hoja}' (línea {tag}), ítem {item} [{categoria}]: "
+                        f"recomendación sugerida automáticamente y parchada en el checklist: "
+                        f"{info['recomendacion']}"
+                    )
+                else:
+                    info["escrita_en_excel"] = True
 
-            if info["sugerida"]:
-                # El hallazgo de campo ya quedó capturado en info["hallazgo"]
-                # (para la tabla de Hallazgos del informe); en el propio
-                # checklist, esa misma celda de Comentario se REEMPLAZA por
-                # la recomendación (no se agregan filas ni columnas).
-                ws.cell(row=info["fila_ultimo_hallazgo"], column=COL_COMENTARIO).value = (
-                    info["recomendacion"]
-                )
-                info["escrita_en_excel"] = True
-                avisos.append(
-                    f"Hoja '{nombre_hoja}' (línea {tag}), ítem {item} [{categoria}]: "
-                    f"recomendación sugerida automáticamente y parchada en el checklist: "
-                    f"{info['recomendacion']}"
-                )
-            else:
-                info["escrita_en_excel"] = True
-
-            hallazgos_por_tag.setdefault(tag, []).append(info)
+                hallazgos_por_tag.setdefault(tag, []).append(info)
 
     wb.save(ruta_salida)
     print(f"[✔] Checklist parchado y guardado con éxito en: {ruta_salida}")
@@ -306,11 +354,9 @@ def extraer_hallazgos_por_tag(ruta_checklist):
         if not tag:
             continue
 
-        for item, categoria, fila_ini, fila_fin in _bloques_por_item(ws):
-            info = _procesar_bloque(ws, item, categoria, fila_ini, fila_fin)
-            if info is None:
-                continue
-            resultado.setdefault(tag, []).append(info)
+        for item, categoria, marca, fila_ini, fila_fin in _bloques_por_item(ws):
+            for info in _procesar_bloque(ws, item, categoria, marca, fila_ini, fila_fin):
+                resultado.setdefault(tag, []).append(info)
 
     return resultado
 
