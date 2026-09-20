@@ -9,3 +9,4 @@ plotly
 python-docx
 reportlab
 pypdf
+lxml
