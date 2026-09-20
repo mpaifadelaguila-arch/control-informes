@@ -238,34 +238,26 @@ def _reemplazar_nota_solo_vt(doc, filas_activas):
 SENTENCIA_INTERVALO_POR_CLASE = {
     "clase 1": (
         "Programar la próxima inspección visual y Medición de espesores en "
-        "un periodo no mayor a 5 años, como lo indica API 570, tabla 1, "
-        "tomando en cuenta los mismos CML's de la medición de espesores de "
-        "la presente inspección."
+        "un periodo no mayor a 5 años, como lo indica API 570, tabla 1."
     ),
     "clase 2": (
         "Programar la próxima inspección visual en un periodo no mayor a 5 "
         "años y Medición de espesores en un intervalo máximo de 10 años, "
-        "como lo indica API 570, tabla 1, tomando en cuenta los mismos "
-        "CML's de la medición de espesores de la presente inspección."
+        "como lo indica API 570, tabla 1."
     ),
     "clase 3": (
         "Programar la próxima inspección visual y Medición de espesores en "
-        "un periodo no mayor a 10 años, como lo indica API 570, tabla 1, "
-        "tomando en cuenta los mismos CML's de la medición de espesores de "
-        "la presente inspección."
+        "un periodo no mayor a 10 años, como lo indica API 570, tabla 1."
     ),
     "clase 4": (
         "Programar la próxima medición de espesores en un periodo no mayor "
         "a 10 años y la próxima inspección externa en un periodo no mayor "
-        "a 5 años, como lo indica API 570, tabla 1, tomando en cuenta los "
-        "mismos CML's de la medición de espesores de la presente "
-        "inspección. (opcional por ser tubería clase 04)."
+        "a 5 años, como lo indica API 570, tabla 1. (opcional por ser "
+        "tubería clase 04)."
     ),
     "punto de inyeccion": (
         "Programar la próxima inspección visual y Medición de espesores en "
-        "un periodo no mayor a 3 años, como lo indica API 570, tabla 1, "
-        "tomando en cuenta los mismos CML's de la medición de espesores de "
-        "la presente inspección."
+        "un periodo no mayor a 3 años, como lo indica API 570, tabla 1."
     ),
 }
 
