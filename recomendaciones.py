@@ -366,6 +366,7 @@ RE_TIPO_VALVULA = re.compile(
     re.IGNORECASE,
 )
 RE_TIPO_SOPORTE = re.compile(r"\b(u-?bolt|spring hanger)\b", re.IGNORECASE)
+RE_TRAMO_UBICACION = re.compile(r"tramo\s+(vertical|horizontal)", re.IGNORECASE)
 
 # Vocabulario de elementos/componentes/accesorios que el inspector suele
 # nombrar en el comentario de campo. Se usa para que la Recomendación (y el
@@ -451,6 +452,9 @@ def _extraer_variables_de_texto(texto):
     elementos = _formatear_elementos(_extraer_elementos(texto))
     if elementos:
         variables["elemento"] = elementos
+    m = RE_TRAMO_UBICACION.search(texto)
+    if m:
+        variables["ubicacion"] = f"el tramo {m.group(1).lower()}"
     return variables
 
 
