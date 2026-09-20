@@ -265,6 +265,19 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                         config_anexos, str(dir_anexos_finales)
                     )
 
+                    # --- Informe Compilado al 100%: Informe Word (convertido
+                    # a PDF) + todos los anexos, fusionados en un solo PDF,
+                    # nombrado con el Código de Informe (p.ej.
+                    # "ADEMINSAC-FIAB-RLP-1133-2026"). ---
+                    codigo_informe = resultado.get("codigo_informe") or grupo_input
+                    dir_compilado = tmp_path / "informe_compilado"
+                    ruta_compilado, aviso_compilado = anexos.construir_informe_compilado(
+                        str(out_word_path), anexos_generados, str(dir_compilado), codigo_informe
+                    )
+                    compilado_bytes = (
+                        Path(ruta_compilado).read_bytes() if ruta_compilado else None
+                    )
+
                     # --- Empaquetado en ZIP: anexos reales + fotos de campo ---
                     out_zip_path = tmp_path / f"Anexos_Comprimidos_{grupo_input}.zip"
                     with zipfile.ZipFile(out_zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
@@ -289,10 +302,14 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                 st.session_state["res_word"] = word_bytes
                 st.session_state["res_excel"] = excel_bytes
                 st.session_state["res_anexos"] = anexos_bytes
+                st.session_state["res_compilado"] = compilado_bytes
                 st.session_state["nombre_grupo_archivo"] = nombre_grupo_archivo
+                st.session_state["nombre_compilado_archivo"] = anexos.nombre_archivo_seguro(codigo_informe)
                 st.session_state["ok_gen"] = True
 
                 avisos = list(resultado.get("avisos", [])) + list(avisos_anexos)
+                if aviso_compilado:
+                    avisos.append(aviso_compilado)
                 st.success("¡Informe técnico, checklist y anexos generados y capturados con éxito!")
 
                 pendientes = [a for a in avisos if a.startswith("Hoja") and "PENDIENTE" in a]
@@ -323,6 +340,24 @@ if st.session_state.get("ok_gen", False):
     st.subheader("📥 Descarga de Entregables Generados por el Sistema")
 
     nombre_grupo_archivo = st.session_state.get("nombre_grupo_archivo", "Grupo")
+    nombre_compilado_archivo = st.session_state.get("nombre_compilado_archivo", nombre_grupo_archivo)
+    compilado_data = st.session_state.get("res_compilado")
+    if compilado_data:
+        st.download_button(
+            "📦 Descargar Informe Compilado (100%)",
+            data=compilado_data,
+            file_name=f"{nombre_compilado_archivo}.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+            type="primary",
+        )
+    else:
+        st.warning(
+            "No se pudo generar el Informe Compilado en PDF (LibreOffice no está "
+            "disponible en el servidor). Los entregables individuales sí están "
+            "listos para descarga abajo."
+        )
+
     tiene_excel = st.session_state.get("res_excel") is not None and len(st.session_state.get("res_excel", b"")) > 0
     cols = st.columns(3 if tiene_excel else 2)
 

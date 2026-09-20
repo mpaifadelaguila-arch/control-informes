@@ -136,6 +136,68 @@ def nombre_archivo_seguro(texto):
     return texto
 
 
+def convertir_docx_a_pdf(ruta_docx, dir_salida):
+    """Convierte un .docx a .pdf usando LibreOffice en modo headless --
+    único motor de renderizado real disponible en el servidor sin licencia
+    de Word (requiere el paquete 'libreoffice' listado en packages.txt
+    para que Streamlit Cloud lo instale en el contenedor de despliegue).
+    Devuelve la ruta del PDF generado, o None si LibreOffice no está
+    disponible o falla la conversión -- nunca debe tumbar el resto del
+    proceso: el resto de entregables (Word, checklist, anexos) ya se
+    generaron y se conservan igual."""
+    import shutil
+    import subprocess
+
+    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    if not soffice:
+        return None
+    try:
+        subprocess.run(
+            [
+                soffice,
+                "--headless",
+                "--norestore",
+                "-env:UserInstallation=file:///tmp/lo_profile_informe_compilado",
+                "--convert-to",
+                "pdf",
+                "--outdir",
+                str(dir_salida),
+                str(ruta_docx),
+            ],
+            check=True,
+            timeout=120,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except Exception:
+        return None
+    ruta_pdf = os.path.join(dir_salida, os.path.splitext(os.path.basename(str(ruta_docx)))[0] + ".pdf")
+    return ruta_pdf if os.path.exists(ruta_pdf) else None
+
+
+def construir_informe_compilado(ruta_word, anexos_generados, out_dir, nombre_salida):
+    """Arma el 'Informe Compilado al 100%': el Informe Word convertido a
+    PDF, seguido de todos los anexos ya generados por construir_anexos()
+    (Anexo A, B.1..B.N, C.1..C.N, en ese mismo orden), fusionados en un
+    solo PDF -- tal como se entrega el expediente técnico completo.
+
+    Devuelve (ruta_pdf, aviso). `ruta_pdf` es None si no se pudo generar
+    (p.ej. LibreOffice no disponible en el servidor), en cuyo caso
+    `aviso` trae el motivo para mostrarlo en la interfaz sin interrumpir
+    el resto del proceso."""
+    os.makedirs(out_dir, exist_ok=True)
+    ruta_informe_pdf = convertir_docx_a_pdf(ruta_word, out_dir)
+    if not ruta_informe_pdf:
+        return None, (
+            "No se pudo generar el Informe Compilado en PDF: falló la "
+            "conversión del Informe Word a PDF en el servidor (LibreOffice "
+            "no está disponible o no pudo procesar el archivo)."
+        )
+    ruta_salida = os.path.join(out_dir, f"{nombre_archivo_seguro(nombre_salida)}.pdf")
+    merge_pdfs(ruta_salida, ruta_informe_pdf, *anexos_generados)
+    return ruta_salida, None
+
+
 def construir_anexos(*args, **kwargs):
     """Versión completamente flexible y tolerante a fallos para la construcción de anexos."""
     avisos = []
