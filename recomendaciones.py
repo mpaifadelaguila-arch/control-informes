@@ -289,15 +289,29 @@ CATALOGO = {
         etiqueta="Pérdida de manivela/palanca en válvula de aguja",
         hallazgo_tpl=(
             "Pérdida de la manivela / palanca de accionamiento en la válvula de "
-            "aguja de regulación para manómetro."
+            "{tipo} de NPS {nps}, de bloqueo y purga del indicador de presión "
+            "manómetro."
         ),
         recomendacion_tpl=(
-            "Realizar el reemplazo de la manivela de la válvula de aguja para "
-            "restablecer la maniobrabilidad del elemento de regulación y "
-            "aislamiento, conforme a los lineamientos de la norma API 598 y el "
-            "código ASME B31.3."
+            "Realizar el reemplazo de la manivela de la válvula de aguja de "
+            "NPS {nps} para restablecer la maniobrabilidad del elemento de "
+            "bloqueo y purga, conforme a los lineamientos de la norma API 598 "
+            "y el código ASME B31.3."
         ),
-        variables=(),
+        variables=("tipo", "nps"),
+    ),
+    "VALVULA_PERDIDA_VOLANTE": Caso(
+        id="VALVULA_PERDIDA_VOLANTE",
+        categoria="VALVULA",
+        etiqueta="Pérdida o rotura de volante en válvula de compuerta, globo",
+        hallazgo_tpl=(
+            "Pérdida, rotura de la volante en la válvulas de {tipo} de NPS {nps}."
+        ),
+        recomendacion_tpl=(
+            "Realizar el reemplazo del volante en la válvula de {tipo} de NPS "
+            "{nps}, conforme a la norma API 598 y estándares Repsol aplicables."
+        ),
+        variables=("tipo", "nps"),
     ),
     "VALVULA_FUGA_PRENSAESTOPAS": Caso(
         id="VALVULA_FUGA_PRENSAESTOPAS",
@@ -593,6 +607,47 @@ CATALOGO = {
             "Repsol aplicables."
         ),
         variables=("cantidad", "nps"),
+    ),
+    "BRIDA_PAR_GALVANICO_PARCIAL": Caso(
+        id="BRIDA_PAR_GALVANICO_PARCIAL",
+        categoria="BRIDA",
+        etiqueta="Par galvánico parcial (1 brida inox + 1 brida acero al carbono), corrosión moderada",
+        hallazgo_tpl=(
+            "Par galvánico por incompatibilidad de materiales (1 brida de acero "
+            "inoxidable y 1 brida de acero al carbono) en {cantidad} uniones "
+            "bridadas del circuito NPS {nps}, cada una con {cantidad_elementos} "
+            "elementos de ajuste (espárragos y tuercas) de acero al carbono, "
+            "los cuales presentan corrosión galvánica moderada."
+        ),
+        recomendacion_tpl=(
+            "Realizar el mantenimiento de los elementos de ajuste de acero al "
+            "carbono (espárragos y tuercas) en las {cantidad} uniones bridadas "
+            "afectadas, conforme al procedimiento Repsol "
+            "RLP-FM-MANT-PRO-06-01.006 (Secc. 3.4.2) y los estándares Repsol "
+            "ED-B-06.00-04d y PE-B-0600.01H00R05."
+        ),
+        variables=("cantidad", "cantidad_elementos", "nps"),
+        defaults={"cantidad_elementos": "sus"},
+    ),
+    "BRIDA_PAR_GALVANICO_PARCIAL_SEVERA": Caso(
+        id="BRIDA_PAR_GALVANICO_PARCIAL_SEVERA",
+        categoria="BRIDA",
+        etiqueta="Par galvánico parcial (1 brida inox + 1 brida acero al carbono), corrosión severa",
+        hallazgo_tpl=(
+            "Par galvánico por incompatibilidad de materiales (1 brida de acero "
+            "inoxidable y 1 brida de acero al carbono) en {cantidad} uniones "
+            "bridadas del circuito NPS {nps}, cada una con {cantidad_elementos} "
+            "elementos de ajuste (espárragos y tuercas) de acero al carbono, "
+            "los cuales presentan corrosión galvánica {severidad}."
+        ),
+        recomendacion_tpl=(
+            "Realizar el reemplazo de los elementos de ajuste (espárragos y "
+            "tuercas) de acero al carbono por elementos nuevos del mismo "
+            "material, en las {cantidad} uniones bridadas afectadas, conforme "
+            "a la norma ASME B31.3 y estándares Repsol aplicables."
+        ),
+        variables=("cantidad", "cantidad_elementos", "nps", "severidad"),
+        defaults={"cantidad_elementos": "sus", "severidad": "severa"},
     ),
     "BRIDA_CORROSION_LEVE_MODERADA": Caso(
         id="BRIDA_CORROSION_LEVE_MODERADA",
@@ -926,9 +981,15 @@ def _extraer_variables_de_texto(texto):
     m = RE_NPS.search(texto)
     if m:
         variables["nps"] = m.group(1).strip()
-    m = RE_CANTIDAD.search(texto)
-    if m:
-        variables["cantidad"] = str(int(m.group(1)))
+    # Puede haber dos cantidades distintas en el mismo comentario (p.ej.
+    # "3 uniones bridadas... (04) elementos de ajuste cada una"): la
+    # primera es "cantidad" (uniones/uniformes/válvulas...), la segunda,
+    # si existe, es "cantidad_elementos" (espárragos/tuercas por unión).
+    matches_cantidad = list(RE_CANTIDAD.finditer(texto))
+    if matches_cantidad:
+        variables["cantidad"] = str(int(matches_cantidad[0].group(1)))
+    if len(matches_cantidad) > 1:
+        variables["cantidad_elementos"] = str(int(matches_cantidad[1].group(1)))
     m = RE_LONGITUD.search(texto)
     if m:
         variables["longitud"] = m.group(1)
@@ -970,6 +1031,40 @@ REGLAS_SUGERENCIA = [
             ("leve", "moderada"),
             ("union bridada", "uniones bridadas", "unión bridada", "uniones bridada"),
         ],
+        # Se excluye "galvánic-": si la corrosión es por par galvánico
+        # (bridas de distinto material), el diagnóstico correcto son los
+        # casos BRIDA_PAR_GALVANICO_PARCIAL[_SEVERA], más específicos --
+        # que no se combinen con esta recomendación genérica de limpieza y
+        # mantenimiento de recubrimiento, redundante en ese caso.
+        ("galvan", "gálvan"),
+    ),
+    (
+        # Par galvánico PARCIAL (1 brida inox + 1 de acero al carbono, a
+        # diferencia del BRIDA_PAR_GALVANICO "total" donde AMBAS bridas son
+        # inox): con corrosión moderada -> mantenimiento. Se excluye
+        # "severa" para que un comentario "moderada a severa" (que contiene
+        # ambas palabras) no dispare este caso además del severo.
+        "BRIDA_PAR_GALVANICO_PARCIAL",
+        ("bridas",),
+        [
+            ("1 brida", "una brida"),
+            ("inoxidable", "inox"),
+            ("acero al carbono", "carbono"),
+            ("moderada",),
+        ],
+        ("severa",),
+    ),
+    (
+        # Misma condición de par galvánico parcial, pero con corrosión
+        # severa (o "moderada a severa") -> reemplazo, del mismo material.
+        "BRIDA_PAR_GALVANICO_PARCIAL_SEVERA",
+        ("bridas",),
+        [
+            ("1 brida", "una brida"),
+            ("inoxidable", "inox"),
+            ("acero al carbono", "carbono"),
+            ("severa",),
+        ],
     ),
     (
         "BRIDA_FUGA_EMPAQUE",
@@ -1008,7 +1103,18 @@ REGLAS_SUGERENCIA = [
         ("valvulas", "válvulas"),
         [
             ("volante",),
-            ("suelto", "desprendid", "fuera de posicion", "fuera de posición", "rotura"),
+            ("suelto", "desprendid", "fuera de posicion", "fuera de posición"),
+        ],
+    ),
+    (
+        # "rotura"/"pérdida" de volante -> se reemplaza (a diferencia de
+        # "suelto/desprendido", donde el volante sigue existiendo y solo se
+        # reinstala).
+        "VALVULA_PERDIDA_VOLANTE",
+        ("valvulas", "válvulas"),
+        [
+            ("volante",),
+            ("perdida", "pérdida", "perdido", "rotura", "rota"),
         ],
     ),
     (
@@ -1160,12 +1266,25 @@ def sugerir_caso_desde_texto(categoria_checklist, comentario):
 
     resultados = []
     ids_usados = set()
-    for caso_id, categorias_aplicables, grupos_palabras in REGLAS_SUGERENCIA:
+    for regla in REGLAS_SUGERENCIA:
+        # El 4to elemento (palabras EXCLUIDAS) es opcional -- reglas que no
+        # lo declaran siguen funcionando igual que antes. Sirve para que,
+        # p.ej., un caso de severidad "moderada" no se dispare cuando el
+        # comentario en realidad dice "moderada a severa" (contiene ambas
+        # palabras): la regla exige "moderada" Y que "severa" NO aparezca.
+        if len(regla) == 4:
+            caso_id, categorias_aplicables, grupos_palabras, palabras_excluidas = regla
+        else:
+            caso_id, categorias_aplicables, grupos_palabras = regla
+            palabras_excluidas = ()
+
         if categorias_aplicables != (None,) and not any(
             c in categoria_norm for c in categorias_aplicables
         ):
             continue
         if not all(_contiene_alguna(texto_norm, grupo) for grupo in grupos_palabras):
+            continue
+        if palabras_excluidas and _contiene_alguna(texto_norm, palabras_excluidas):
             continue
 
         datos = {"caso": caso_id, **_extraer_variables_de_texto(comentario)}
