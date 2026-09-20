@@ -68,7 +68,7 @@ def _abstract_num_id_de(numbering_root, num_id):
     return None
 
 
-def _registrar_nuevo_numid(numbering_root, abstract_num_id):
+def _registrar_nuevo_numid(numbering_root, abstract_num_id, ilvl="0"):
     from lxml import etree
 
     existentes = [
@@ -81,6 +81,18 @@ def _registrar_nuevo_numid(numbering_root, abstract_num_id):
     num_el.set(qn("w:numId"), str(nuevo))
     abstract_el = etree.SubElement(num_el, qn("w:abstractNumId"))
     abstract_el.set(qn("w:val"), str(abstract_num_id))
+    # Un w:numId nuevo que solo apunta al mismo abstractNumId NO basta para
+    # que Word reinicie en 1: en la práctica, varias instancias de w:num
+    # que comparten un abstractNumId sin w:lvlOverride/startOverride siguen
+    # mostrando la numeración como si continuaran la fila anterior (esto se
+    # confirmó con un informe real: la fila clonada seguía en "2)" pese a
+    # tener su propio numId nuevo con el abstractNumId correcto). El
+    # override explícito es la misma técnica que usa el propio Word al
+    # elegir "Reiniciar en 1" desde su UI.
+    lvl_override = etree.SubElement(num_el, qn("w:lvlOverride"))
+    lvl_override.set(qn("w:ilvl"), str(ilvl))
+    start_override = etree.SubElement(lvl_override, qn("w:startOverride"))
+    start_override.set(qn("w:val"), "1")
     return nuevo
 
 
@@ -90,22 +102,26 @@ def _renumerar_listas_clonadas(clone, numbering_root):
     entonces trata ambas filas como el mismo listado y continúa la
     numeración en vez de reiniciarla en 1 (p.ej. un grupo de 13 líneas,
     con una plantilla de 12 filas molde, mostraba "2)" en la fila 13 en
-    vez de "1)"). Se le asignan a la fila clonada w:numId nuevos,
-    registrados en numbering.xml apuntando al mismo abstractNumId, para
-    que cada fila clonada reinicie su propia numeración en 1."""
+    vez de "1)"). Se le asignan a la fila clonada w:numId nuevos, con su
+    propio w:lvlOverride/startOverride=1, registrados en numbering.xml
+    apuntando al mismo abstractNumId, para que cada fila clonada reinicie
+    su propia numeración en 1."""
     if numbering_root is None:
         return
-    numids_originales = set()
+    ilvl_por_numid = {}
     for numpr in clone.iter(qn("w:numPr")):
         numid_el = numpr.find(qn("w:numId"))
-        if numid_el is not None:
-            numids_originales.add(numid_el.get(qn("w:val")))
+        if numid_el is None:
+            continue
+        numid_original = numid_el.get(qn("w:val"))
+        ilvl_el = numpr.find(qn("w:ilvl"))
+        ilvl_por_numid.setdefault(numid_original, ilvl_el.get(qn("w:val")) if ilvl_el is not None else "0")
     mapeo = {}
-    for numid_original in numids_originales:
+    for numid_original, ilvl in ilvl_por_numid.items():
         abstract_id = _abstract_num_id_de(numbering_root, numid_original)
         if abstract_id is None:
             continue
-        mapeo[numid_original] = str(_registrar_nuevo_numid(numbering_root, abstract_id))
+        mapeo[numid_original] = str(_registrar_nuevo_numid(numbering_root, abstract_id, ilvl))
     if not mapeo:
         return
     for numpr in clone.iter(qn("w:numPr")):
