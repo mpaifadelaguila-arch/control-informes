@@ -580,4 +580,5 @@ def ejecutar_proceso_grupo(
         "lineas_alcance": lineas_alcance,
         "psaim_por_tag": psaim_por_tag,
         "hallazgos_por_tag": hallazgos_por_tag,
+        "codigo_informe": codigo_informe,
     }
