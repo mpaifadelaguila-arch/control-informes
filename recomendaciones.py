@@ -686,6 +686,21 @@ CATALOGO = {
         variables=("ubicacion", "nps"),
         defaults={"ubicacion": "el tramo observado"},
     ),
+    "SOPORTE_ABRAZADERA_ROTA": Caso(
+        id="SOPORTE_ABRAZADERA_ROTA",
+        categoria="SOPORTE",
+        etiqueta="Rotura de abrazadera",
+        hallazgo_tpl=(
+            "Rotura de la abrazadera tipo {tipo} en la línea NPS {nps}."
+        ),
+        recomendacion_tpl=(
+            "Realizar el reemplazo de la abrazadera tipo {tipo} en la línea "
+            "NPS {nps}, conforme a la norma MSS SP-58 y el estándar Repsol "
+            "ED-L-06.00-05a (sección 5.5)."
+        ),
+        variables=("tipo", "nps"),
+        defaults={"tipo": "U-bolt"},
+    ),
     "SOPORTE_ABRAZADERA_FALTANTE": Caso(
         id="SOPORTE_ABRAZADERA_FALTANTE",
         categoria="SOPORTE",
@@ -794,7 +809,7 @@ RE_NPS = re.compile(r'(\d+(?:\s+\d/\d)?"|\d/\d")')
 RE_CANTIDAD = re.compile(r"\((\d{1,3})\)")
 RE_LONGITUD = re.compile(r"([\d]+(?:\.[\d]+)?)\s*metros", re.IGNORECASE)
 RE_TIPO_VALVULA = re.compile(
-    r"v[aá]lvula[s]?\s+(?:de\s+)?(compuerta|bola|globo|retenci[oó]n|check|"
+    r"v[aá]lvula[s]?\s+(?:de\s+|tipo\s+)?(compuerta|bola|globo|retenci[oó]n|check|"
     r"mariposa|aguja|tap[oó]n|diafragma|control)",
     re.IGNORECASE,
 )
@@ -836,7 +851,8 @@ def _extraer_variables_de_texto(texto):
 REGLAS_SUGERENCIA = [
     (
         "TUBERIA_DETERIORO_RECUBRIMIENTO_GENERALIZADO",
-        ("recubrimientos", "componentes", "placas orificio", "puntos de inyecc"),
+        ("recubrimientos", "componentes", "placas orificio", "puntos de inyecc",
+         "instrumentacion", "instrumentación"),
         [
             ("deterioro del recubrimiento", "deterioro recubrimiento", "deterioro del recubirmiento"),
             ("generaliz", "leve a moderada", "leve  a moderada"),
@@ -905,6 +921,14 @@ REGLAS_SUGERENCIA = [
         [
             ("abrazadera",),
             ("ausencia", "ausente"),
+        ],
+    ),
+    (
+        "SOPORTE_ABRAZADERA_ROTA",
+        ("soportes", "abrazaderas"),
+        [
+            ("abrazadera",),
+            ("rotura", "rota", "quebrada", "fracturada"),
         ],
     ),
     (
