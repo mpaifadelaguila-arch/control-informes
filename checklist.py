@@ -357,22 +357,27 @@ def _filas_del_bloque(ws, fila_ini, fila_fin):
     return filas
 
 
-def _sub_hallazgos_del_bloque(ws, fila_ini, fila_fin):
+def _sub_hallazgos_del_bloque(ws, fotos_hoja, fila_ini, fila_fin):
     """Un mismo ítem puede traer más de una observación de campo
     independiente -- cada una con su propio comentario y su propia foto (o
     par general+detalle, que sigue siendo UNA sola foto/observación) --,
     p.ej. 'Bridas...' con dos tramos distintos inspeccionados, cada uno con
-    su propio hallazgo y su propia recomendación. Se agrupa por cada celda
-    de Comentario con texto de hallazgo (una frase descriptiva nueva
-    siempre abre una observación distinta); si el inspector ya escribió a
-    continuación la recomendación de esa misma observación, se adjunta al
-    mismo grupo. Cada grupo queda delimitado hasta la fila anterior al
-    siguiente grupo (o el fin del bloque, si es el último) -- ese es el
-    rango donde se busca SU propia fotografía."""
+    su propio hallazgo y su propia recomendación. La unidad real de una
+    observación es LA FOTO, no la clasificación gramatical del texto: cada
+    fila de Comentario que tiene su propia fotografía anclada abre una
+    observación nueva, exista o no un verbo imperativo al inicio (un
+    inspector puede escribir directamente "Realizar..." como el hallazgo
+    de una observación fotografiada aparte, sin que eso la convierta en la
+    recomendación de la fila anterior). Una fila sin foto propia se suma
+    como texto adicional (hallazgo o recomendación) de la observación
+    fotografiada más cercana hacia arriba. Cada grupo queda delimitado
+    hasta la fila anterior al siguiente grupo (o el fin del bloque, si es
+    el último) -- ese es el rango donde se busca SU propia fotografía."""
     filas = _filas_del_bloque(ws, fila_ini, fila_fin)
     grupos = []
     for f in filas:
-        if f["tipo"] == "HALLAZGO" or not grupos:
+        tiene_foto_propia = f["fila"] in fotos_hoja
+        if tiene_foto_propia or not grupos:
             grupos.append({"hallazgo_filas": [], "recomendacion_filas": [], "fila_ini": f["fila"]})
         if f["tipo"] == "HALLAZGO":
             grupos[-1]["hallazgo_filas"].append(f)
@@ -400,7 +405,7 @@ def _procesar_bloque(ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin)
     if marca not in ("O", "R"):
         return resultados
 
-    for grupo in _sub_hallazgos_del_bloque(ws, fila_ini, fila_fin):
+    for grupo in _sub_hallazgos_del_bloque(ws, fotos_hoja, fila_ini, fila_fin):
         sub_ini, sub_fin = grupo["fila_ini"], grupo["fila_fin_sub"]
         if not imagenes_del_bloque(fotos_hoja, sub_ini, sub_fin):
             continue
@@ -498,15 +503,30 @@ def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
                         f"{info['recomendacion']}"
                     )
                 elif info["sugerida"]:
-                    # Ninguna regla del motor calzó con confianza: NO se toca
-                    # la celda (el hallazgo de campo original del inspector
-                    # se conserva intacto en el checklist para que el
-                    # especialista lo redacte a mano); solo se reporta.
-                    info["escrita_en_excel"] = False
+                    # Ninguna regla del motor calzó con confianza: el
+                    # hallazgo de campo original del inspector NUNCA se
+                    # pierde (se conserva completo), pero la celda SÍ se
+                    # marca -- se le agrega, a continuación del texto
+                    # original, un aviso explícito de que falta la
+                    # recomendación y debe redactarse a mano. Así ningún
+                    # hallazgo queda sin ninguna recomendación asociada: o
+                    # la sugiere el motor, o queda marcado para que el
+                    # especialista la complete.
+                    texto_original = ws.cell(
+                        row=info["fila_ultimo_hallazgo"], column=COL_COMENTARIO
+                    ).value or ""
+                    parches_por_hoja.setdefault(nombre_hoja, {})[
+                        (info["fila_ultimo_hallazgo"], col_comentario_letra)
+                    ] = (
+                        f"{texto_original}\n\n"
+                        f"⚠ PENDIENTE: falta la recomendación técnica -- "
+                        f"completar manualmente."
+                    )
+                    info["escrita_en_excel"] = True
                     avisos.append(
                         f"Hoja '{nombre_hoja}' (línea {tag}), ítem {item} [{categoria}]: "
-                        f"PENDIENTE — sin regla de sugerencia confiable, se conserva el "
-                        f"hallazgo de campo tal cual en el checklist para redacción manual "
+                        f"PENDIENTE — sin regla de sugerencia confiable; el hallazgo de campo "
+                        f"se conservó intacto en el checklist y se marcó para redacción manual "
                         f"del especialista: {info['hallazgo']}"
                     )
                 else:
