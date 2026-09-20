@@ -670,6 +670,22 @@ CATALOGO = {
         variables=("cantidad", "tipo", "nps"),
         defaults={"cantidad": "1", "tipo": "compuerta"},
     ),
+    "SOPORTE_FALTANTE": Caso(
+        id="SOPORTE_FALTANTE",
+        categoria="SOPORTE",
+        etiqueta="Ausencia total de soporte",
+        hallazgo_tpl=(
+            "Ausencia de soporte en {ubicacion} de la línea NPS {nps}."
+        ),
+        recomendacion_tpl=(
+            "Realizar la instalación de un soporte en {ubicacion} de la línea "
+            "NPS {nps}, conforme a los procedimientos específicos y "
+            "estándares Repsol aplicables (ED-L-06.00-05a, sección 5.5, y la "
+            "norma MSS SP-58)."
+        ),
+        variables=("ubicacion", "nps"),
+        defaults={"ubicacion": "el tramo observado"},
+    ),
     "SOPORTE_ABRAZADERA_FALTANTE": Caso(
         id="SOPORTE_ABRAZADERA_FALTANTE",
         categoria="SOPORTE",
@@ -738,7 +754,9 @@ def generar_hallazgo_y_recomendacion(datos: dict) -> Optional[Resultado]:
 
     valores = dict(caso.defaults)
     for var in caso.variables:
-        valores[var] = _v(datos, var)
+        # Si el checklist no trae el dato, se respeta el valor por defecto
+        # del propio caso (si lo tiene) en vez de caer directo a "SIN DATO".
+        valores[var] = _v(datos, var, valores.get(var, SIN_DATO))
     # Variables genéricas siempre disponibles aunque el caso no las declare
     # explícitamente en `variables` (por si el usuario las incluye en el
     # texto manualmente vía formato libre no usado aquí).
@@ -775,6 +793,12 @@ import re
 RE_NPS = re.compile(r'(\d+(?:\s+\d/\d)?"|\d/\d")')
 RE_CANTIDAD = re.compile(r"\((\d{1,3})\)")
 RE_LONGITUD = re.compile(r"([\d]+(?:\.[\d]+)?)\s*metros", re.IGNORECASE)
+RE_TIPO_VALVULA = re.compile(
+    r"v[aá]lvula[s]?\s+(?:de\s+)?(compuerta|bola|globo|retenci[oó]n|check|"
+    r"mariposa|aguja|tap[oó]n|diafragma|control)",
+    re.IGNORECASE,
+)
+RE_TIPO_SOPORTE = re.compile(r"\b(u-?bolt|spring hanger)\b", re.IGNORECASE)
 
 
 def _contiene_alguna(texto, alternativas):
@@ -792,6 +816,13 @@ def _extraer_variables_de_texto(texto):
     m = RE_LONGITUD.search(texto)
     if m:
         variables["longitud"] = m.group(1)
+    m = RE_TIPO_VALVULA.search(texto)
+    if m:
+        variables["tipo"] = m.group(1).lower()
+    else:
+        m = RE_TIPO_SOPORTE.search(texto)
+        if m:
+            variables["tipo"] = m.group(1)
     return variables
 
 
@@ -874,6 +905,17 @@ REGLAS_SUGERENCIA = [
         [
             ("abrazadera",),
             ("ausencia", "ausente"),
+        ],
+    ),
+    (
+        # No restringido por categoría: una ausencia de soporte puede
+        # registrarse en el ítem "Soportes" o describirse dentro de otro
+        # ítem (p.ej. tubería de instrumentación sin su propio soporte).
+        "SOPORTE_FALTANTE",
+        (None,),
+        [
+            ("soporte",),
+            ("ausencia", "ausente", "falta de soporte", "sin soporte", "carece de soporte"),
         ],
     ),
     (
