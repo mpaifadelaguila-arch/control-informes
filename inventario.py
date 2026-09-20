@@ -138,6 +138,7 @@ ALCANCE_COLS = {
     "unidad": ["UNIDAD", "Unidad"],
     "tag": ["LINEAS", "Líneas"],
     "codigo_informe": ["CODIGO DE INFORME", "Código de informe"],
+    "numero_original": ["N° ORIGINAL", "N ORIGINAL", "NUMERO ORIGINAL", "NÚMERO ORIGINAL"],
     "grupo": ["GRUPO DE TUBERÍAS", "Grupo de tuberías"],
     "sap": ["SAP"],
     "alcance": ["ALCANCE DEL SERVICIO", "Alcance"],

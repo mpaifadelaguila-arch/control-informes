@@ -238,6 +238,10 @@ def construir_anexos(*args, **kwargs):
         merge_pdfs(out_b, sep_b, *contenido)
         generados.append(out_b)
 
+    incluir_anexo_c = args[2] if len(args) > 2 else kwargs.get("incluir_anexo_c", True)
+    if not incluir_anexo_c:
+        return generados, avisos
+
     psaim_pdfs = anexos_cfg.get("psaim_pdf", {})
     j = 1
     for ln in lineas:
