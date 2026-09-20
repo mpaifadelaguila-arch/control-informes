@@ -3,7 +3,6 @@ import os
 import sys
 import tempfile
 import zipfile
-from datetime import datetime
 from pathlib import Path
 import streamlit as st
 
@@ -315,7 +314,6 @@ if st.session_state.get("ok_gen", False):
     st.subheader("📥 Descarga de Entregables Generados por el Sistema")
 
     nombre_grupo_archivo = st.session_state.get("nombre_grupo_archivo", "Grupo")
-    sello_fecha = f"{datetime.now():%Y%m%d_%H%M%S}"
     tiene_excel = st.session_state.get("res_excel") is not None and len(st.session_state.get("res_excel", b"")) > 0
     cols = st.columns(3 if tiene_excel else 2)
 
@@ -325,7 +323,7 @@ if st.session_state.get("ok_gen", False):
             st.download_button(
                 "📄 Descargar Informe Word Real",
                 data=word_data,
-                file_name=f"Informe_{nombre_grupo_archivo}_{sello_fecha}.docx",
+                file_name=f"Informe_{nombre_grupo_archivo}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 use_container_width=True
             )
@@ -336,7 +334,7 @@ if st.session_state.get("ok_gen", False):
             st.download_button(
                 "📊 Descargar VT-CHECK LIST Parchado",
                 data=excel_data,
-                file_name=f"VT-CHECK_LIST_Parchado_{nombre_grupo_archivo}_{sello_fecha}.xlsx",
+                file_name=f"VT-CHECK_LIST_{nombre_grupo_archivo}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
@@ -345,7 +343,7 @@ if st.session_state.get("ok_gen", False):
             st.download_button(
                 "📑 Descargar Anexos ZIP",
                 data=anexos_data,
-                file_name=f"Anexos_{nombre_grupo_archivo}_{sello_fecha}.zip",
+                file_name=f"Anexos_{nombre_grupo_archivo}.zip",
                 mime="application/zip",
                 use_container_width=True
             )
@@ -355,7 +353,7 @@ if st.session_state.get("ok_gen", False):
             st.download_button(
                 "📑 Descargar Anexos ZIP",
                 data=anexos_data,
-                file_name=f"Anexos_{nombre_grupo_archivo}_{sello_fecha}.zip",
+                file_name=f"Anexos_{nombre_grupo_archivo}.zip",
                 mime="application/zip",
                 use_container_width=True
             )

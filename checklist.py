@@ -34,12 +34,22 @@ escribe ahí, marcada como "[SUGERENCIA AUTOMÁTICA - VALIDAR]". Si no hay
 celda disponible o no hay sugerencia confiable, no se toca el archivo y se
 reporta un aviso para redacción manual.
 """
+import posixpath
 import re
+import zipfile
 
 import openpyxl
+from lxml import etree
 from openpyxl.cell.cell import MergedCell
+from openpyxl.utils import get_column_letter
 
 import recomendaciones
+
+_NS_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+_NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+_NS_PKG_REL = "http://schemas.openxmlformats.org/package/2006/relationships"
+_NS_XDR = "http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
+_NS_A = "http://schemas.openxmlformats.org/drawingml/2006/main"
 
 # --- Layout fijo del formato AD-UN05-TL-TUB-VT ------------------------------
 CELDA_LINEA = "Q9"
@@ -124,6 +134,156 @@ def _mejorar_texto(texto):
         if resultado[-1] not in ".!?":
             resultado += "."
     return resultado
+
+
+def _leer_rels(zf, ruta_rels):
+    """Devuelve {Id: Target} de un archivo .rels del paquete OOXML, o {}
+    si no existe."""
+    if ruta_rels not in zf.namelist():
+        return {}
+    root = etree.fromstring(zf.read(ruta_rels))
+    return {
+        el.get("Id"): el.get("Target")
+        for el in root.iter(f"{{{_NS_PKG_REL}}}Relationship")
+    }
+
+
+def _fotos_por_hoja(ruta_xlsx):
+    """Lee, directamente del XML del .xlsx (sin pasar por ws._images de
+    openpyxl), qué fotografías hay ancladas en cada fila de cada hoja.
+
+    openpyxl NO reconoce una foto agrupada junto con una anotación (círculo
+    o flecha) que el inspector dibuja encima de la imagen: en ese caso
+    Excel guarda un grupo de dibujo DENTRO de otro grupo, y openpyxl
+    descarta ese anclaje en silencio (se comprobó con el archivo real:
+    varios hallazgos con foto quedaban marcados como "sin foto" solo por
+    esto). Recorrer el XML de cada `drawingN.xml` a mano, con `.iter()`
+    sobre `a:blip` sin importar la profundidad de anidamiento, evita ese
+    problema por completo.
+
+    Devuelve {nombre_hoja: {fila_excel_1indexed: [bytes_imagen, ...]}}."""
+    resultado = {}
+    with zipfile.ZipFile(ruta_xlsx) as zf:
+        wb_root = etree.fromstring(zf.read("xl/workbook.xml"))
+        wb_rels = _leer_rels(zf, "xl/_rels/workbook.xml.rels")
+
+        for sheet_el in wb_root.iter(f"{{{_NS_MAIN}}}sheet"):
+            nombre_hoja = sheet_el.get("name")
+            resultado[nombre_hoja] = {}
+            rid = sheet_el.get(f"{{{_NS_R}}}id")
+            target = wb_rels.get(rid)
+            if not target:
+                continue
+
+            sheet_path = posixpath.normpath(f"xl/{target}")
+            sheet_rels_path = posixpath.join(
+                posixpath.dirname(sheet_path), "_rels",
+                posixpath.basename(sheet_path) + ".rels",
+            )
+            sheet_rels = _leer_rels(zf, sheet_rels_path)
+            drawing_target = next(
+                (t for rid2, t in sheet_rels.items() if t and "drawing" in t.lower()),
+                None,
+            )
+            if not drawing_target:
+                continue
+            drawing_path = posixpath.normpath(
+                posixpath.join(posixpath.dirname(sheet_path), drawing_target)
+            )
+            if drawing_path not in zf.namelist():
+                continue
+            drawing_rels_path = posixpath.join(
+                posixpath.dirname(drawing_path), "_rels",
+                posixpath.basename(drawing_path) + ".rels",
+            )
+            drawing_rels = _leer_rels(zf, drawing_rels_path)
+
+            drawing_root = etree.fromstring(zf.read(drawing_path))
+            for anchor in drawing_root:
+                if etree.QName(anchor).localname not in ("twoCellAnchor", "oneCellAnchor"):
+                    continue
+                from_el = anchor.find(f"{{{_NS_XDR}}}from")
+                row_el = from_el.find(f"{{{_NS_XDR}}}row") if from_el is not None else None
+                if row_el is None or row_el.text is None:
+                    continue
+                fila_excel = int(row_el.text) + 1
+
+                blobs = []
+                for blip in anchor.iter(f"{{{_NS_A}}}blip"):
+                    rid_img = blip.get(f"{{{_NS_R}}}embed")
+                    target_img = drawing_rels.get(rid_img) if rid_img else None
+                    if not target_img:
+                        continue
+                    media_path = posixpath.normpath(
+                        posixpath.join(posixpath.dirname(drawing_path), target_img)
+                    )
+                    if media_path in zf.namelist():
+                        blobs.append(zf.read(media_path))
+                if blobs:
+                    resultado[nombre_hoja].setdefault(fila_excel, []).extend(blobs)
+    return resultado
+
+
+def _mapa_hoja_a_sheet_path(zf):
+    """Devuelve {nombre_hoja: 'xl/worksheets/sheetN.xml'} a partir del
+    propio workbook.xml (mismo mapeo que usa _fotos_por_hoja)."""
+    wb_root = etree.fromstring(zf.read("xl/workbook.xml"))
+    wb_rels = _leer_rels(zf, "xl/_rels/workbook.xml.rels")
+    mapa = {}
+    for sheet_el in wb_root.iter(f"{{{_NS_MAIN}}}sheet"):
+        nombre_hoja = sheet_el.get("name")
+        rid = sheet_el.get(f"{{{_NS_R}}}id")
+        target = wb_rels.get(rid)
+        if target:
+            mapa[nombre_hoja] = posixpath.normpath(f"xl/{target}")
+    return mapa
+
+
+def _patch_celdas_en_sheet_xml(sheet_xml_bytes, parches):
+    """Reemplaza, dentro del XML crudo de una hoja, el valor de las celdas
+    indicadas en `parches` ({(fila, columna_letra): texto_nuevo}) por un
+    string en línea (inlineStr) -- sin tocar ningún otro nodo del XML
+    (estilos, fusiones, dibujos, fórmulas de otras celdas...). Devuelve los
+    bytes del XML modificado."""
+    root = etree.fromstring(sheet_xml_bytes)
+    for (fila, col), texto in parches.items():
+        ref = f"{col}{fila}"
+        celda = root.find(f".//{{{_NS_MAIN}}}row[@r='{fila}']/{{{_NS_MAIN}}}c[@r='{ref}']")
+        if celda is None:
+            continue
+        for hijo in list(celda):
+            celda.remove(hijo)
+        celda.set("t", "inlineStr")
+        is_el = etree.SubElement(celda, f"{{{_NS_MAIN}}}is")
+        t_el = etree.SubElement(is_el, f"{{{_NS_MAIN}}}t")
+        t_el.text = texto
+        t_el.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+
+
+def _reescribir_xlsx_con_parches(ruta_original, ruta_salida, parches_por_hoja):
+    """Copia el .xlsx original entrada por entrada, byte a byte, y SOLO en
+    las hojas con parches reemplaza el valor de las celdas indicadas (vía
+    XML crudo). openpyxl NUNCA se usa para volver a escribir el archivo:
+    su Workbook.save() no sabe representar una foto agrupada junto con una
+    anotación (círculo/flecha) que el inspector dibuja encima -- una vez
+    reconstruye el paquete .xlsx desde su propio modelo de imágenes,
+    simplemente las pierde (comprobado con el archivo real: TODAS las
+    fotografías de TODAS las hojas desaparecían tras un wb.save(), no solo
+    las agrupadas). Reescribir solo el XML de la celda puntual evita por
+    completo ese problema: dibujos, estilos, fusiones y todo lo demás
+    quedan exactamente como en el archivo original."""
+    with zipfile.ZipFile(ruta_original) as zf_in:
+        hoja_a_path = _mapa_hoja_a_sheet_path(zf_in)
+        path_a_hoja = {v: k for k, v in hoja_a_path.items()}
+
+        with zipfile.ZipFile(ruta_salida, "w", zipfile.ZIP_DEFLATED) as zf_out:
+            for item in zf_in.infolist():
+                data = zf_in.read(item.filename)
+                nombre_hoja = path_a_hoja.get(item.filename)
+                if nombre_hoja and nombre_hoja in parches_por_hoja:
+                    data = _patch_celdas_en_sheet_xml(data, parches_por_hoja[nombre_hoja])
+                zf_out.writestr(item, data)
 
 
 def _bloques_por_item(ws):
@@ -225,7 +385,7 @@ def _sub_hallazgos_del_bloque(ws, fila_ini, fila_fin):
     return grupos
 
 
-def _procesar_bloque(ws, item, categoria, marca, fila_ini, fila_fin):
+def _procesar_bloque(ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin):
     """Resuelve, para un ítem del checklist, cada observación de campo
     independiente que trae -- uno o más pares comentario+foto dentro del
     mismo ítem (p.ej. dos tramos distintos de 'Bridas...') -- su Hallazgo
@@ -242,7 +402,7 @@ def _procesar_bloque(ws, item, categoria, marca, fila_ini, fila_fin):
 
     for grupo in _sub_hallazgos_del_bloque(ws, fila_ini, fila_fin):
         sub_ini, sub_fin = grupo["fila_ini"], grupo["fila_fin_sub"]
-        if not imagenes_del_bloque(ws, sub_ini, sub_fin):
+        if not imagenes_del_bloque(fotos_hoja, sub_ini, sub_fin):
             continue
 
         hallazgo = " ".join(_mejorar_texto(f["texto"]) for f in grupo["hallazgo_filas"])
@@ -296,12 +456,25 @@ def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
     hallazgos_por_tag[tag] = [{"item","categoria","hallazgo","recomendacion",
     "sugerida","escrita_en_excel"}, ...].
     """
+    # Lectura únicamente -- openpyxl JAMÁS vuelve a escribir este archivo:
+    # su Workbook.save() no sabe representar una foto agrupada junto con
+    # una anotación (círculo/flecha) que el inspector dibuja encima, y al
+    # reconstruir el paquete .xlsx desde su propio modelo de imágenes
+    # simplemente las pierde (comprobado con el archivo real: TODAS las
+    # fotografías de TODAS las hojas desaparecían, no solo las agrupadas).
+    # El parchado real se hace más abajo, celda por celda, directamente
+    # sobre el XML crudo (_reescribir_xlsx_con_parches), lo que deja el
+    # resto del archivo -- dibujos incluidos -- intacto.
     wb = openpyxl.load_workbook(ruta_original)
+    fotos_por_hoja = _fotos_por_hoja(ruta_original)
+    col_comentario_letra = get_column_letter(COL_COMENTARIO)
     avisos = []
     hallazgos_por_tag = {}
+    parches_por_hoja = {}
 
     for nombre_hoja in wb.sheetnames:
         ws = wb[nombre_hoja]
+        fotos_hoja = fotos_por_hoja.get(nombre_hoja, {})
         tag = ws[CELDA_LINEA].value
         tag = str(tag).strip() if tag else None
         if not tag:
@@ -309,15 +482,15 @@ def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
             continue
 
         for item, categoria, marca, fila_ini, fila_fin in _bloques_por_item(ws):
-            for info in _procesar_bloque(ws, item, categoria, marca, fila_ini, fila_fin):
+            for info in _procesar_bloque(ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin):
                 if info["sugerida"] and info["recomendacion"] != TEXTO_PENDIENTE_MANUAL:
                     # El hallazgo de campo ya quedó capturado en info["hallazgo"]
                     # (para la tabla de Hallazgos del informe); en el propio
                     # checklist, esa misma celda de Comentario se REEMPLAZA por
                     # la recomendación (no se agregan filas ni columnas).
-                    ws.cell(row=info["fila_ultimo_hallazgo"], column=COL_COMENTARIO).value = (
-                        info["recomendacion"]
-                    )
+                    parches_por_hoja.setdefault(nombre_hoja, {})[
+                        (info["fila_ultimo_hallazgo"], col_comentario_letra)
+                    ] = info["recomendacion"]
                     info["escrita_en_excel"] = True
                     avisos.append(
                         f"Hoja '{nombre_hoja}' (línea {tag}), ítem {item} [{categoria}]: "
@@ -341,7 +514,7 @@ def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
 
                 hallazgos_por_tag.setdefault(tag, []).append(info)
 
-    wb.save(ruta_salida)
+    _reescribir_xlsx_con_parches(ruta_original, ruta_salida, parches_por_hoja)
     print(f"[✔] Checklist parchado y guardado con éxito en: {ruta_salida}")
     if avisos:
         print("[!] Avisos durante el parchado del checklist:")
@@ -357,48 +530,30 @@ def extraer_hallazgos_por_tag(ruta_checklist):
     sin modificar el archivo. Útil para reconstruir el informe sin tener que
     volver a ejecutar el parchado."""
     wb = openpyxl.load_workbook(ruta_checklist, data_only=True)
+    fotos_por_hoja = _fotos_por_hoja(ruta_checklist)
     resultado = {}
 
     for nombre_hoja in wb.sheetnames:
         ws = wb[nombre_hoja]
+        fotos_hoja = fotos_por_hoja.get(nombre_hoja, {})
         tag = ws[CELDA_LINEA].value
         tag = str(tag).strip() if tag else None
         if not tag:
             continue
 
         for item, categoria, marca, fila_ini, fila_fin in _bloques_por_item(ws):
-            for info in _procesar_bloque(ws, item, categoria, marca, fila_ini, fila_fin):
+            for info in _procesar_bloque(ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin):
                 resultado.setdefault(tag, []).append(info)
 
     return resultado
 
 
-def tiene_foto_en_fila(ws, fila_num):
-    """Valida si en una fila específica del checklist existe una imagen
-    incrustada (ancla en esa fila)."""
-    if not hasattr(ws, "_images") or not ws._images:
-        return False
-
-    for img in ws._images:
-        celda_anclaje = img.anchor
-        if hasattr(celda_anclaje, "_from"):
-            row_idx = celda_anclaje._from.row + 1
-            if row_idx == fila_num:
-                return True
-        elif isinstance(celda_anclaje, str):
-            match = re.search(r"\d+", celda_anclaje)
-            if match and int(match.group()) == fila_num:
-                return True
-    return False
-
-
-def imagenes_del_bloque(ws, fila_ini, fila_fin):
-    """Devuelve las imágenes incrustadas cuya ancla cae dentro de
-    [fila_ini, fila_fin] (rango de filas de un ítem del checklist)."""
+def imagenes_del_bloque(fotos_hoja, fila_ini, fila_fin):
+    """Devuelve las fotografías (bytes) cuya ancla cae dentro de
+    [fila_ini, fila_fin] (rango de filas de una observación del
+    checklist), según el mapeo fila->fotos que arma _fotos_por_hoja."""
     imagenes = []
-    for img in getattr(ws, "_images", []):
-        fr = getattr(img.anchor, "_from", None)
-        fila_img = (fr.row + 1) if fr is not None else None
-        if fila_img is not None and fila_ini <= fila_img <= fila_fin:
-            imagenes.append(img)
+    for fila, blobs in fotos_hoja.items():
+        if fila_ini <= fila <= fila_fin:
+            imagenes.extend(blobs)
     return imagenes

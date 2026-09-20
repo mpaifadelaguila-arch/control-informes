@@ -22,7 +22,9 @@ from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage
 
 import psaim
-from checklist import CELDA_LINEA, _bloques_por_item, _procesar_bloque, imagenes_del_bloque
+from checklist import (
+    CELDA_LINEA, _bloques_por_item, _fotos_por_hoja, _procesar_bloque, imagenes_del_bloque,
+)
 
 _STYLES = getSampleStyleSheet()
 _TITULO = ParagraphStyle("TituloAnexo", parent=_STYLES["Heading2"])
@@ -37,10 +39,12 @@ def generar_pdf_checklist_por_tag(ruta_checklist_parchado, dir_salida):
     ítem con marca O/R."""
     os.makedirs(dir_salida, exist_ok=True)
     wb = openpyxl.load_workbook(ruta_checklist_parchado)
+    fotos_por_hoja = _fotos_por_hoja(ruta_checklist_parchado)
 
     rutas = {}
     for nombre_hoja in wb.sheetnames:
         ws = wb[nombre_hoja]
+        fotos_hoja = fotos_por_hoja.get(nombre_hoja, {})
         tag_val = ws[CELDA_LINEA].value
         if not tag_val:
             continue
@@ -48,8 +52,8 @@ def generar_pdf_checklist_por_tag(ruta_checklist_parchado, dir_salida):
 
         items_pdf = []
         for item, categoria, marca, fila_ini, fila_fin in _bloques_por_item(ws):
-            for info in _procesar_bloque(ws, item, categoria, marca, fila_ini, fila_fin):
-                imgs = imagenes_del_bloque(ws, info["fila_ini_sub"], info["fila_fin_sub"])
+            for info in _procesar_bloque(ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin):
+                imgs = imagenes_del_bloque(fotos_hoja, info["fila_ini_sub"], info["fila_fin_sub"])
                 items_pdf.append((categoria, info["hallazgo"], info["recomendacion"], imgs))
 
         if not items_pdf:
@@ -80,10 +84,9 @@ def _construir_pdf_checklist_tag(tag, items, ruta_pdf):
         if recomendacion:
             story.append(Paragraph("Recomendación Técnica", _ETIQUETA))
             story.append(Paragraph(escape(recomendacion), _CUERPO))
-        for img in imgs:
+        for img_bytes in imgs:
             try:
-                data = img._data()
-                rl_img = RLImage(io.BytesIO(data))
+                rl_img = RLImage(io.BytesIO(img_bytes))
                 rl_img._restrictSize(14 * cm, 10 * cm)
                 story.append(rl_img)
                 story.append(Spacer(1, 10))
