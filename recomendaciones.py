@@ -122,6 +122,46 @@ def _omitir_datos_faltantes(texto):
     return t.strip()
 
 
+# Varias plantillas del catálogo escriben "válvula(s)", "unión(es)
+# bridada(s)", etc. para servir tanto al singular como al plural sin
+# necesitar dos redacciones distintas. Si la cantidad real resulta ser 1,
+# no tiene sentido mostrar el "(s)"/"(es)" -- a pedido del usuario, se
+# resuelve automáticamente a la forma singular o plural real según el
+# número que haya quedado justo antes del bloque de palabra(s).
+_RE_CANTIDAD_PLURAL = re.compile(r"(\d+)\s+((?:\S*?\((?:es|s)\)\s*)+)")
+_RE_TOKEN_PLURAL = re.compile(r"(\S*?)\((es|s)\)")
+
+
+def _resolver_plurales(texto):
+    if not texto:
+        return texto
+
+    def _procesar_bloque(m):
+        numero, bloque = m.group(1), m.group(2)
+        try:
+            es_singular = int(numero) == 1
+        except ValueError:
+            es_singular = False
+
+        def _token(tm):
+            palabra, sufijo = tm.group(1), tm.group(2)
+            if es_singular:
+                return palabra
+            # "unión(es)" -> "uniones", no "uniónes": al pluralizar una
+            # palabra terminada en "-ión" se pierde la tilde (regla
+            # ortográfica del español), no se le pega "es" tal cual.
+            if sufijo == "es" and palabra.lower().endswith("ión"):
+                return palabra[:-3] + "iones"
+            return f"{palabra}{sufijo}"
+
+        # Sin .strip(): el espacio final capturado en `bloque` (antes de la
+        # palabra siguiente, p.ej. "válvula(s) de...") debe conservarse tal
+        # cual, o quedarían dos palabras pegadas ("válvulade").
+        return f"{numero} {_RE_TOKEN_PLURAL.sub(_token, bloque)}"
+
+    return _RE_CANTIDAD_PLURAL.sub(_procesar_bloque, texto)
+
+
 _VERBOS_IMPERATIVOS = (
     "Realizar", "Efectuar", "Instalar", "Reemplazar", "Aplicar", "Retirar",
     "Reparar", "Limpiar", "Corregir", "Reforzar", "Verificar", "Solicitar",
@@ -355,8 +395,8 @@ def generar_hallazgo_y_recomendacion(datos: dict) -> Optional[Resultado]:
             f"({caso.etiqueta})."
         )
 
-    hallazgo = _omitir_datos_faltantes(hallazgo)
-    recomendacion = _omitir_datos_faltantes(recomendacion)
+    hallazgo = _resolver_plurales(_omitir_datos_faltantes(hallazgo))
+    recomendacion = _resolver_plurales(_omitir_datos_faltantes(recomendacion))
     return Resultado(caso_id=caso.id, hallazgo=hallazgo, recomendacion=recomendacion)
 
 
