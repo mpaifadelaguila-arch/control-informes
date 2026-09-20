@@ -95,20 +95,26 @@ _RE_OMITIR_LONGITUD_BARE = re.compile(
     r"\s*(?:de\s+)?longitud aprox\.\s+SIN DATO metros\b", re.IGNORECASE
 )
 _RE_OMITIR_MEDIDA = re.compile(
-    r"\s*(?:de\s+)?(?:NPS|Sch|material)\s+SIN DATO\b", re.IGNORECASE
+    r"\s*(?:de\s+)?(?:NPS|Sch|material|tipo)\s+SIN DATO\b", re.IGNORECASE
 )
+# Caso "de {tipo}" sin la palabra "tipo" delante (p.ej. "válvula de {tipo}
+# NPS..." -> "válvula de SIN DATO NPS..."): el conector "de" va pegado
+# directo a SIN DATO, sin otra etiqueta entre medio.
+_RE_OMITIR_DE_BARE = re.compile(r"\s*\bde\s+SIN DATO\b", re.IGNORECASE)
 
 
 def _omitir_datos_faltantes(texto):
-    """Limpia de una frase ya redactada las cláusulas de diámetro (NPS),
-    longitud, schedule o material que hayan quedado en SIN_DATO por no
-    venir en el comentario de campo, dejando la oración gramaticalmente
-    correcta en vez de mostrar el literal "SIN DATO"."""
+    """Limpia de una frase ya redactada cualquier cláusula (diámetro NPS,
+    longitud, schedule, material, tipo de válvula/soporte...) que haya
+    quedado en SIN_DATO por no venir en el comentario de campo, dejando la
+    oración gramaticalmente correcta en vez de mostrar el literal
+    "SIN DATO"."""
     if not texto:
         return texto
     t = _RE_OMITIR_LONGITUD_PARENTESIS.sub("", texto)
     t = _RE_OMITIR_LONGITUD_BARE.sub("", t)
     t = _RE_OMITIR_MEDIDA.sub("", t)
+    t = _RE_OMITIR_DE_BARE.sub("", t)
     t = re.sub(r"\s+([.,;:])", r"\1", t)  # sin espacio antes de puntuación
     t = re.sub(r",\s*,", ",", t)  # comas dobles
     t = re.sub(r"\(\s*\)", "", t)  # paréntesis vacíos
@@ -116,18 +122,31 @@ def _omitir_datos_faltantes(texto):
     return t.strip()
 
 
-def _como_punto_lista(texto):
-    """Convierte la recomendación de un caso individual en un punto de una
-    lista combinada (varios casos detectados en la misma observación). Si
-    ese caso ya trae su propio encabezado "Recomendación:\n• ..." (algunos
-    casos del catálogo ya usan ese formato), se conserva solo el contenido
-    con viñeta, sin duplicar el encabezado."""
+_VERBOS_IMPERATIVOS = (
+    "Realizar", "Efectuar", "Instalar", "Reemplazar", "Aplicar", "Retirar",
+    "Reparar", "Limpiar", "Corregir", "Reforzar", "Verificar", "Solicitar",
+    "Programar", "Colocar", "Restablecer", "Adecuar", "Ejecutar",
+)
+_RE_VERBO_INICIAL = re.compile(
+    r"^(?:" + "|".join(_VERBOS_IMPERATIVOS) + r")\s+", re.IGNORECASE
+)
+
+
+def _como_continuacion(texto):
+    """Convierte la recomendación de un caso ADICIONAL (el 2do, 3er... caso
+    detectado en la misma observación) en la continuación de una sola
+    oración, en vez de una nueva oración imperativa aparte: se le quita el
+    verbo inicial ("Realizar", "Efectuar"...) y se antepone "Así como" --
+    nunca un encabezado "Recomendación:" ni viñetas, que hacían la
+    recomendación combinada más larga y menos legible de lo necesario."""
     t = texto.strip()
     if t.lower().startswith("recomendación:"):
         t = t.split(":", 1)[1].strip()
-    if t.startswith("•"):
-        return t
-    return f"• {t}"
+    t = t.lstrip("•").strip()
+    t = _RE_VERBO_INICIAL.sub("", t)
+    if t:
+        t = t[0].lower() + t[1:]
+    return f"Así como {t}"
 
 
 # ==============================================================================
@@ -521,15 +540,17 @@ def sugerir_caso_desde_texto(categoria_checklist, comentario):
         if len(resultados) == 1:
             return resultados[0]
         # Más de un problema detectado en la MISMA observación (p.ej. una
-        # válvula con corrosión Y volante roto a la vez): se unifica en una
-        # sola recomendación con un punto por acción, en vez de encadenar
-        # párrafos completos que repiten el mismo NPS/tipo y se vuelven
-        # muy extensos.
-        puntos = "\n".join(_como_punto_lista(r.recomendacion) for r in resultados)
+        # válvula con corrosión Y volante roto a la vez): se unifica en UNA
+        # sola oración -- la primera recomendación tal cual, y cada una
+        # adicional conectada con "Así como" en vez de repetirse como una
+        # nueva oración imperativa aparte (sin encabezado "Recomendación:"
+        # ni viñetas, que la hacían ver más larga de lo necesario).
+        partes = [resultados[0].recomendacion.strip()]
+        partes.extend(_como_continuacion(r.recomendacion) for r in resultados[1:])
         return Resultado(
             caso_id="+".join(r.caso_id for r in resultados),
             hallazgo=" ".join(r.hallazgo for r in resultados),
-            recomendacion=f"Recomendación:\n{puntos}",
+            recomendacion=" ".join(partes),
         )
 
     if _RE_LEVE_PUNTUAL.search(texto_norm):
