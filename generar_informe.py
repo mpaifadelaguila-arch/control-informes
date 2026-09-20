@@ -752,8 +752,21 @@ def ejecutar_proceso_grupo_complementario(
         for tr, fila in zip(filas0, filas_activas):
             docxlib.fill_row(tr, [fila["item"], fila["sap"], fila["tag"]])
 
-    # -- Tabla 4: mecanismo de daño asociado ---------------------------------
+    # -- Tabla 4: características de la línea (datos técnicos operación/ ---
+    # -- diseño, igual que la tabla 5 del informe principal) ----------------
     if len(doc.tables) > 4:
+        filas4c = docxlib.clone_table_to_n_rows(doc.tables[4], n_activas, header_rows=2)
+        for tr, fila in zip(filas4c, filas_activas):
+            docxlib.fill_row(tr, [
+                fila["item"], fila["sap"], fila["tag"],
+                fila["pres_oper_psi"], fila["temp_oper_f"],
+                fila["pres_dis_psi"], fila["temp_dis_f"],
+                fila["schedule"], fila["material"],
+                fila["inicio"], fila["termino"], fila["fluido"], fila["clase"],
+            ])
+
+    # -- Tabla 5: mecanismo de daño asociado ---------------------------------
+    if len(doc.tables) > 5:
         todos_los_hallazgos = [
             info["hallazgo"]
             for items_chk in hallazgos_por_tag.values()
@@ -762,17 +775,17 @@ def ejecutar_proceso_grupo_complementario(
         ]
         mecanismos = recomendaciones.detectar_mecanismos_dano(todos_los_hallazgos)
         if mecanismos:
-            filas4 = docxlib.clone_table_to_n_rows(doc.tables[4], len(mecanismos), header_rows=1)
-            for i, (tr, mecanismo) in enumerate(zip(filas4, mecanismos), start=1):
+            filas5 = docxlib.clone_table_to_n_rows(doc.tables[5], len(mecanismos), header_rows=1)
+            for i, (tr, mecanismo) in enumerate(zip(filas5, mecanismos), start=1):
                 docxlib.fill_row(tr, [str(i), mecanismo, ""])
         elif not ruta_checklist:
             docxlib.fill_row(
-                docxlib.clone_table_to_n_rows(doc.tables[4], 1, header_rows=1)[0],
+                docxlib.clone_table_to_n_rows(doc.tables[5], 1, header_rows=1)[0],
                 ["1", "PENDIENTE (falta checklist VT para determinar el mecanismo de daño)", ""],
             )
         else:
             docxlib.fill_row(
-                docxlib.clone_table_to_n_rows(doc.tables[4], 1, header_rows=1)[0],
+                docxlib.clone_table_to_n_rows(doc.tables[5], 1, header_rows=1)[0],
                 ["1", "Sin mecanismos de daño identificados en los hallazgos registrados", ""],
             )
 
@@ -791,10 +804,10 @@ def ejecutar_proceso_grupo_complementario(
                 recomendacion = "PENDIENTE (falta checklist VT para redactar hallazgo/recomendación)"
             docxlib.fill_row_multi(tr, [fila["item"], fila["tag"], recomendacion])
 
-    # -- Tabla 5: hallazgos relevantes en VT por línea (sin PSAIM/UT) -------
-    if len(doc.tables) > 5:
-        filas5 = docxlib.clone_table_to_n_rows(doc.tables[5], n_activas, header_rows=1)
-        for tr, fila in zip(filas5, filas_activas):
+    # -- Tabla 6: hallazgos relevantes en VT por línea (sin PSAIM/UT) -------
+    if len(doc.tables) > 6:
+        filas6 = docxlib.clone_table_to_n_rows(doc.tables[6], n_activas, header_rows=1)
+        for tr, fila in zip(filas6, filas_activas):
             items_chk = hallazgos_por_tag.get(fila["tag"])
             lista_hallazgos = [info["hallazgo"] for info in items_chk if info["hallazgo"]] if items_chk else []
             if not lista_hallazgos:
