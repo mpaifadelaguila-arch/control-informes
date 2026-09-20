@@ -582,3 +582,245 @@ def ejecutar_proceso_grupo(
         "hallazgos_por_tag": hallazgos_por_tag,
         "codigo_informe": codigo_informe,
     }
+
+
+def _reemplazar_sumario_complementario(doc, sumario_texto):
+    """Reemplaza el párrafo "1.0 SUMARIO DE INSPECCIÓN" de la plantilla
+    complementaria por el texto libre escrito por el especialista (a
+    diferencia del informe principal, esta narrativa es demasiado
+    específica -- qué líneas puntuales presentan qué hallazgos -- para
+    redactarla de forma confiable sin intervención humana)."""
+    ancla = "Como resultado de la aplicación de las técnicas de inspección"
+    for p in doc.paragraphs:
+        if ancla in p.text:
+            if sumario_texto and sumario_texto.strip():
+                docxlib.set_para_content(p._p, sumario_texto.strip())
+            return True
+    return False
+
+
+def _reemplazar_nota_anexo_complementario(doc, codigo_informe_principal, filas_activas):
+    """Reemplaza la NOTA de la plantilla complementaria ("El presente
+    documento es un anexo complementario al informe principal...") con el
+    código del informe principal y el N° de las líneas efectivamente
+    incluidas en este anexo (el N° ORIGINAL de cada línea, si el detalle
+    de grupo lo trae; si no, el orden secuencial normal)."""
+    ancla = "es un anexo complementario al informe principal"
+    for p in doc.paragraphs:
+        if ancla in p.text:
+            codigo = (codigo_informe_principal or "").strip() or "PENDIENTE"
+            lista = _lista_espanol([f["item"] for f in filas_activas])
+            nuevo = (
+                f"El presente documento es un anexo complementario al informe "
+                f"principal {codigo}, referente a la inspección de la Línea "
+                f"N° {lista}."
+            )
+            docxlib.set_para_content(p._p, nuevo)
+            return True
+    return False
+
+
+def ejecutar_proceso_grupo_complementario(
+    grupo_buscado,
+    ruta_maestro,
+    ruta_base_lineas,
+    ruta_plantilla_word,
+    dir_salida="salida_informes",
+    ruta_foto=None,
+    ruta_checklist=None,
+    elaborador=None,
+    codigo_informe_principal=None,
+    sumario_texto=None,
+):
+    """Genera un Informe Complementario / Anexo Adicional: mismo flujo que
+    ejecutar_proceso_grupo(), pero para el caso en que un subconjunto de
+    líneas de un grupo YA CERRADO se inspecciona tiempo después y se
+    entrega como anexo al informe principal. Diferencias clave, todas
+    reflejadas en `plantilla_complementario.docx` (una plantilla-molde
+    propia, con 6 tablas en vez de 8 -- sin PSAIM ni datos técnicos
+    completos):
+      - Nunca hay PSAIM/UT: la tabla 0 solo trae N°/SAP/Línea.
+      - El N° de cada línea es el N° ORIGINAL del informe principal (si
+        el detalle de grupo trae esa columna), no un recuento 1..n nuevo.
+      - El Sumario de Inspección es texto libre (ver
+        _reemplazar_sumario_complementario).
+      - Se agrega la NOTA de "anexo complementario al informe principal
+        [código]" en vez de la nota de "solo inspección visual".
+      - La sección RECOMENDACIONES sigue el mismo mecanismo por Clase API
+        570 que el informe principal (se reutiliza tal cual)."""
+    print(f"[*] Iniciando procesamiento de informe complementario para el grupo: {grupo_buscado}")
+    os.makedirs(dir_salida, exist_ok=True)
+    avisos = []
+
+    lineas_alcance = inventario.cargar_alcance(ruta_maestro)
+    if not lineas_alcance:
+        raise ValueError("El archivo de detalle de grupo/líneas no contiene líneas válidas.")
+    tags_ordenados = [ln["tag"] for ln in lineas_alcance]
+    print(f"[*] Líneas detectadas: {tags_ordenados}")
+
+    inv = inventario.cargar_inventario(ruta_base_lineas)
+    inv_por_norm = {k.strip().upper(): v for k, v in inv.items()}
+
+    filas_tecnicas = []
+    for i, ln in enumerate(lineas_alcance, start=1):
+        tag = ln["tag"]
+        inv_row = inv_por_norm.get(tag.strip().upper())
+        datos_tecnicos, avisos_linea = inventario.cruzar_linea(tag, inv_row)
+        avisos.extend(avisos_linea)
+        numero_original = str(ln.get("numero_original") or "").strip()
+        filas_tecnicas.append({
+            "item": numero_original or str(i),
+            "sap": str(ln.get("sap") or "SIN DATO"),
+            "unidad": str(ln.get("unidad") or "SIN DATO"),
+            "tag": tag,
+            "alcance": ln.get("alcance"),
+            "observacion": (str(ln["observacion"]).strip() if ln.get("observacion") else None),
+            **datos_tecnicos,
+        })
+
+    filas_activas = [f for f in filas_tecnicas if not _es_retirada(f.get("observacion"))]
+
+    hallazgos_por_tag = {}
+    ruta_checklist_salida = os.path.join(dir_salida, f"Checklist_VT_{grupo_buscado}.xlsx")
+    if ruta_checklist and os.path.exists(str(ruta_checklist)):
+        print("[*] Procesando y parchando el Checklist VT...")
+        avisos_chk, hallazgos_por_tag = checklist_mod.parchar_checklist_vt(
+            str(ruta_checklist), {}, ruta_checklist_salida
+        )
+        avisos.extend(avisos_chk)
+    else:
+        avisos.append(
+            "No se cargó VT-CHECK LIST: la tabla de Recomendación y Hallazgos "
+            "quedará como 'PENDIENTE' hasta que se suba el checklist."
+        )
+
+    print("[*] Generando informe complementario en Word...")
+    doc = Document(str(ruta_plantilla_word))
+
+    if not elaborador:
+        elaborador = next(
+            (str(ln["elaborador"]).strip() for ln in lineas_alcance if ln.get("elaborador")),
+            None,
+        )
+
+    fecha_ini, fecha_fin, examinadores = inventario.derivar_fecha_y_examinadores(
+        lineas_alcance, elaborador
+    )
+    fecha_ini_txt = fecha_ini or "PENDIENTE"
+    fecha_fin_txt = fecha_fin or "PENDIENTE"
+
+    nombre_grupo_real = next(
+        (str(ln["grupo"]).strip() for ln in lineas_alcance if ln.get("grupo")), None
+    ) or grupo_buscado
+
+    grupo_muestra = doc.tables[2].cell(2, 1).text.strip() if len(doc.tables) > 2 else None
+    codigo_muestra = _primer_texto_cuadro_texto(doc)
+    codigo_informe = next(
+        (str(ln["codigo_informe"]).strip() for ln in lineas_alcance if ln.get("codigo_informe")),
+        None,
+    )
+
+    if len(doc.tables) > 2:
+        tabla_header = doc.tables[2]
+        try:
+            docxlib.set_cell_text(tabla_header.cell(2, 1)._tc, nombre_grupo_real)
+            docxlib.set_cell_text(tabla_header.cell(4, 2)._tc, f"{fecha_ini_txt} al {fecha_fin_txt}")
+            docxlib.set_cell_text(
+                tabla_header.cell(4, 3)._tc, datetime.date.today().strftime("%d/%m/%Y")
+            )
+        except IndexError:
+            avisos.append("La tabla de encabezado de la plantilla no tiene la estructura esperada.")
+
+    if codigo_muestra and codigo_informe:
+        _reemplazar_en_cuadros_texto(doc, codigo_muestra, codigo_informe)
+
+    _reemplazar_fecha_inspeccion_parrafo(doc, fecha_ini_txt, fecha_fin_txt)
+    _reemplazar_bloque_examinadores(doc, examinadores)
+
+    if grupo_muestra and grupo_muestra != nombre_grupo_real:
+        _reemplazar_texto_literal_parrafos(doc, grupo_muestra, nombre_grupo_real)
+
+    _reemplazar_sumario_complementario(doc, sumario_texto)
+    _reemplazar_nota_anexo_complementario(doc, codigo_informe_principal, filas_activas)
+    _reemplazar_recomendaciones_por_clase(doc, filas_activas)
+
+    n_activas = len(filas_activas)
+
+    # -- Tabla 0: N°, SAP, Línea ---------------------------------------------
+    if len(doc.tables) > 0:
+        filas0 = docxlib.clone_table_to_n_rows(doc.tables[0], n_activas, header_rows=1)
+        for tr, fila in zip(filas0, filas_activas):
+            docxlib.fill_row(tr, [fila["item"], fila["sap"], fila["tag"]])
+
+    # -- Tabla 4: mecanismo de daño asociado ---------------------------------
+    if len(doc.tables) > 4:
+        todos_los_hallazgos = [
+            info["hallazgo"]
+            for items_chk in hallazgos_por_tag.values()
+            for info in items_chk
+            if info["hallazgo"]
+        ]
+        mecanismos = recomendaciones.detectar_mecanismos_dano(todos_los_hallazgos)
+        if mecanismos:
+            filas4 = docxlib.clone_table_to_n_rows(doc.tables[4], len(mecanismos), header_rows=1)
+            for i, (tr, mecanismo) in enumerate(zip(filas4, mecanismos), start=1):
+                docxlib.fill_row(tr, [str(i), mecanismo, ""])
+        elif not ruta_checklist:
+            docxlib.fill_row(
+                docxlib.clone_table_to_n_rows(doc.tables[4], 1, header_rows=1)[0],
+                ["1", "PENDIENTE (falta checklist VT para determinar el mecanismo de daño)", ""],
+            )
+        else:
+            docxlib.fill_row(
+                docxlib.clone_table_to_n_rows(doc.tables[4], 1, header_rows=1)[0],
+                ["1", "Sin mecanismos de daño identificados en los hallazgos registrados", ""],
+            )
+
+    # -- Tabla 1: recomendación técnica por línea (del checklist VT) --------
+    if len(doc.tables) > 1:
+        filas1 = docxlib.clone_table_to_n_rows(doc.tables[1], n_activas, header_rows=1)
+        for tr, fila in zip(filas1, filas_activas):
+            items_chk = hallazgos_por_tag.get(fila["tag"])
+            if items_chk:
+                recomendacion = [info["recomendacion"] for info in items_chk if info["recomendacion"]]
+            elif fila.get("observacion"):
+                recomendacion = fila["observacion"]
+            elif ruta_checklist:
+                recomendacion = "Sin hallazgos relevantes registrados en el checklist VT."
+            else:
+                recomendacion = "PENDIENTE (falta checklist VT para redactar hallazgo/recomendación)"
+            docxlib.fill_row_multi(tr, [fila["item"], fila["tag"], recomendacion])
+
+    # -- Tabla 5: hallazgos relevantes en VT por línea (sin PSAIM/UT) -------
+    if len(doc.tables) > 5:
+        filas5 = docxlib.clone_table_to_n_rows(doc.tables[5], n_activas, header_rows=1)
+        for tr, fila in zip(filas5, filas_activas):
+            items_chk = hallazgos_por_tag.get(fila["tag"])
+            lista_hallazgos = [info["hallazgo"] for info in items_chk if info["hallazgo"]] if items_chk else []
+            if not lista_hallazgos:
+                lista_hallazgos = [fila.get("observacion") or "PENDIENTE (línea aún sin inspección de campo)"]
+            docxlib.fill_row_multi(tr, [fila["item"], fila["unidad"], fila["tag"], lista_hallazgos])
+
+    ruta_word_salida = os.path.join(dir_salida, f"Informe_Complementario_{grupo_buscado}.docx")
+
+    if ruta_foto and os.path.exists(str(ruta_foto)):
+        insertar_foto_unidad_segura(doc, ruta_foto)
+        print("[✔] Foto de la unidad procesada e insertada en el informe complementario.")
+
+    doc.save(ruta_word_salida)
+    print(f"[✔] Informe Complementario Word generado con éxito en: {ruta_word_salida}")
+
+    if avisos:
+        print("[!] Avisos del proceso:")
+        for a in avisos:
+            print("    -", a)
+
+    return {
+        "avisos": avisos,
+        "ruta_word": ruta_word_salida,
+        "ruta_checklist": ruta_checklist_salida if (ruta_checklist and os.path.exists(str(ruta_checklist))) else None,
+        "tags": tags_ordenados,
+        "lineas_alcance": lineas_alcance,
+        "hallazgos_por_tag": hallazgos_por_tag,
+        "codigo_informe": codigo_informe,
+    }
