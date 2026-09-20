@@ -20,6 +20,7 @@ try:
     import checklist
     import anexos
     import inventario
+    import recomendaciones
     import reportes_pdf
     from generar_informe import ejecutar_proceso_grupo
     MODULOS_DISPONIBLES = True
@@ -29,6 +30,7 @@ except ImportError as e:
 
 RUTA_PLANTILLA = DIR_RAIZ / "plantilla_base.docx"
 RUTA_MAESTRA = DIR_RAIZ / "BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx"
+RUTA_CATALOGO = DIR_RAIZ / "Catalogo_Hallazgos_Recomendaciones.xlsx"
 DIR_COMPLEMENTO = DIR_RAIZ / "COMPLEMENTO"
 
 st.set_page_config(
@@ -82,14 +84,16 @@ st.html("""
     </div>
 """)
 
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3, c4, c5 = st.columns(5)
 with c1:
     st.success("🟢 Base Maestra OK" if RUTA_MAESTRA.exists() else "⚠️ Falta Base Maestra")
 with c2:
-    st.success("🟢 Plantilla Word OK" if RUTA_PLANTILLA.exists() else "⚠️ Falta Plantilla Word")
+    st.success("🟢 Catálogo Hallazgos OK" if RUTA_CATALOGO.exists() else "⚠️ Falta Catálogo Hallazgos")
 with c3:
-    st.success("🟢 COMPLEMENTO OK" if DIR_COMPLEMENTO.exists() else "⚠️ Falta COMPLEMENTO")
+    st.success("🟢 Plantilla Word OK" if RUTA_PLANTILLA.exists() else "⚠️ Falta Plantilla Word")
 with c4:
+    st.success("🟢 COMPLEMENTO OK" if DIR_COMPLEMENTO.exists() else "⚠️ Falta COMPLEMENTO")
+with c5:
     if MODULOS_DISPONIBLES:
         st.success("🟢 Módulos Backend OK")
     else:
@@ -161,6 +165,11 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
     else:
         with st.spinner("Procesando datos reales, imágenes y motores backend..."):
             try:
+                # Se recarga el catálogo de hallazgos/recomendaciones desde su
+                # Excel en cada generación, para que una edición reciente del
+                # archivo (agregar o corregir un caso) surta efecto sin tener
+                # que reiniciar la app -- igual que BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx.
+                recomendaciones.recargar_catalogo(RUTA_CATALOGO)
                 with tempfile.TemporaryDirectory() as tmpdir:
                     tmp_path = Path(tmpdir)
 
