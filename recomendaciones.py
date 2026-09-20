@@ -102,17 +102,17 @@ CATALOGO = {
         categoria="TUBERIA",
         etiqueta="Deterioro de recubrimiento y corrosión generalizada en circuito",
         hallazgo_tpl=(
-            "Deterioro del recubrimiento y corrosión {severidad} generalizada en el "
-            "tramo/circuito NPS {nps} (longitud aprox. {longitud} metros)."
+            "Deterioro del recubrimiento y corrosión {severidad} generalizada en "
+            "{elemento} (tramo/circuito NPS {nps}, longitud aprox. {longitud} metros)."
         ),
         recomendacion_tpl=(
-            "Efectuar el mantenimiento en la totalidad del recubrimiento de los "
-            "accesorios y componentes pertenecientes al tramo/circuito NPS {nps} "
-            "(longitud aprox. {longitud} metros), siguiendo los estándares Repsol "
+            "Efectuar el mantenimiento en la totalidad del recubrimiento de "
+            "{elemento} pertenecientes al tramo/circuito NPS {nps} (longitud "
+            "aprox. {longitud} metros), siguiendo los estándares Repsol "
             "ED-B-06.00-04d y el documento PE-B-0600.01H00R05."
         ),
-        variables=("severidad", "nps", "longitud"),
-        defaults={"severidad": "leve a moderada"},
+        variables=("severidad", "elemento", "nps", "longitud"),
+        defaults={"severidad": "leve a moderada", "elemento": "los accesorios y componentes"},
     ),
     "TUBERIA_JUNTAS_SOLDADAS_SIN_PINTURA": Caso(
         id="TUBERIA_JUNTAS_SOLDADAS_SIN_PINTURA",
@@ -815,9 +815,61 @@ RE_TIPO_VALVULA = re.compile(
 )
 RE_TIPO_SOPORTE = re.compile(r"\b(u-?bolt|spring hanger)\b", re.IGNORECASE)
 
+# Vocabulario de elementos/componentes/accesorios que el inspector suele
+# nombrar en el comentario de campo. Se usa para que la Recomendación (y el
+# Hallazgo, cuando el caso lo requiere) nombren EXPLÍCITAMENTE el elemento
+# real inspeccionado -- nunca un texto genérico ("accesorios y
+# componentes") -- cuando el propio comentario ya lo indica. Ordenado de
+# más específico a más genérico para que, p.ej., "brida de orificio" se
+# reconozca antes que la sola palabra "brida".
+#
+# NOTA: "protección ignífuga" queda fuera a propósito -- tiene su propio
+# caso (AISLAMIENTO_PROTECCION_IGNIFUGA_AGRIETADA) donde {elemento} es lo
+# que la protección ignífuga recubre (p.ej. una válvula o un soporte), no
+# la protección en sí; incluirla aquí produciría un auto-referencia sin
+# sentido ("protección ignífuga de protección ignífuga").
+_ELEMENTOS_TIPICOS = (
+    "brida de orificio", "placa orificio",
+    "aislamiento térmico", "aislamiento termico",
+    "base de concreto",
+    "unión universal", "union universal",
+    "brida", "válvula", "valvula", "abrazadera", "soporte",
+    "venteo", "drenaje", "dren",
+    "niples", "niple", "cabezal",
+    "espárragos", "esparragos", "espárrago", "esparrago",
+    "manómetro", "manometro", "indicador",
+    "tubería", "tuberia",
+)
+RE_ELEMENTO = re.compile(
+    "|".join(re.escape(e) for e in _ELEMENTOS_TIPICOS), re.IGNORECASE
+)
+
 
 def _contiene_alguna(texto, alternativas):
     return any(alt in texto for alt in alternativas)
+
+
+def _extraer_elementos(texto):
+    """Devuelve, en el orden en que aparecen en el texto, los distintos
+    elementos/accesorios (sin repetir) que el inspector nombró."""
+    vistos_norm = set()
+    encontrados = []
+    for m in RE_ELEMENTO.finditer(texto):
+        valor = m.group(0)
+        norm = valor.lower()
+        if norm in vistos_norm:
+            continue
+        vistos_norm.add(norm)
+        encontrados.append(valor)
+    return encontrados
+
+
+def _formatear_elementos(lista):
+    if not lista:
+        return None
+    if len(lista) == 1:
+        return lista[0]
+    return ", ".join(lista[:-1]) + " y " + lista[-1]
 
 
 def _extraer_variables_de_texto(texto):
@@ -838,6 +890,9 @@ def _extraer_variables_de_texto(texto):
         m = RE_TIPO_SOPORTE.search(texto)
         if m:
             variables["tipo"] = m.group(1)
+    elementos = _formatear_elementos(_extraer_elementos(texto))
+    if elementos:
+        variables["elemento"] = elementos
     return variables
 
 
