@@ -13,6 +13,14 @@ caso en el catálogo, valida/aplica las reglas críticas (severidad leve
 puntual -> sin recomendación, tramo no accesible -> andamios, etc.) y rellena
 la plantilla oficial con los valores recibidos.
 
+El catálogo de casos (CATALOGO) y las reglas de sugerencia automática
+(REGLAS_SUGERENCIA) YA NO están escritos a mano en este archivo: se cargan en
+tiempo de ejecución desde Catalogo_Hallazgos_Recomendaciones.xlsx (raíz del
+repositorio), igual que BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx -- se puede
+agregar o corregir un caso editando ese Excel, sin tocar código ni volver a
+desplegar la app (ver cargar_catalogo_desde_excel() y recargar_catalogo()
+más abajo, y la hoja "Léame" del propio Excel).
+
 Uso típico (desde checklist.py):
 
     from recomendaciones import generar_hallazgo_y_recomendacion
@@ -22,6 +30,7 @@ Uso típico (desde checklist.py):
 """
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 
 
@@ -122,704 +131,124 @@ def _como_punto_lista(texto):
 
 
 # ==============================================================================
-# CATÁLOGO — extraído 1:1 del COMPENDIO REV.1 (secciones A-H), con los
-# marcadores entre corchetes convertidos a placeholders Python ({nps}, {x},
-# {n}, {ubicacion}, {tag}, {color_actual}, {color_norma}, {tipo}, {material},
-# {schedule}, {elemento}).
+# CATÁLOGO — cargado desde Catalogo_Hallazgos_Recomendaciones.xlsx (hoja
+# "Casos"), extraído originalmente 1:1 del COMPENDIO REV.1 (secciones A-H).
+# Ver cargar_catalogo_desde_excel() más abajo para el formato exacto.
 # ==============================================================================
-CATALOGO = {
-    # --- A. TUBERÍAS Y CIRCUITOS ------------------------------------------
-    "TUBERIA_REEMPLAZO_TRAMO": Caso(
-        id="TUBERIA_REEMPLAZO_TRAMO",
-        categoria="TUBERIA",
-        etiqueta="Corrosión / pérdida de espesor con reemplazo de tramo",
-        hallazgo_tpl=(
-            "Corrosión {severidad} y pérdida de espesor (verificado con medición de "
-            "espesores) en tuberías y accesorios ({elemento}) (longitud aprox. {longitud} metros)."
-        ),
-        recomendacion_tpl=(
-            "Efectuar el reemplazo de un (niple/tubería/accesorio) de NPS {nps}, "
-            "Sch {schedule}, material {material}, utilizando su respectivo WPS y "
-            "PQR previamente calificado."
-        ),
-        variables=("severidad", "elemento", "longitud", "nps", "schedule", "material"),
-        defaults={"severidad": "moderada", "elemento": "tubería/accesorio"},
-    ),
-    "TUBERIA_DETERIORO_RECUBRIMIENTO_GENERALIZADO": Caso(
-        id="TUBERIA_DETERIORO_RECUBRIMIENTO_GENERALIZADO",
-        categoria="TUBERIA",
-        etiqueta="Deterioro de recubrimiento y corrosión generalizada en circuito",
-        hallazgo_tpl=(
-            "Deterioro del recubrimiento y corrosión {severidad} generalizada en "
-            "{elemento} (tramo/circuito NPS {nps}, longitud aprox. {longitud} metros)."
-        ),
-        recomendacion_tpl=(
-            "Efectuar el mantenimiento en la totalidad del recubrimiento de "
-            "{elemento} pertenecientes al tramo/circuito NPS {nps} (longitud "
-            "aprox. {longitud} metros), siguiendo los estándares Repsol "
-            "ED-B-06.00-04d y el documento PE-B-0600.01H00R05."
-        ),
-        variables=("severidad", "elemento", "nps", "longitud"),
-        defaults={"severidad": "leve a moderada", "elemento": "los accesorios y componentes"},
-    ),
-    "TUBERIA_JUNTAS_SOLDADAS_SIN_PINTURA": Caso(
-        id="TUBERIA_JUNTAS_SOLDADAS_SIN_PINTURA",
-        categoria="TUBERIA",
-        etiqueta="Juntas soldadas nuevas sin pintura",
-        hallazgo_tpl=(
-            "Corrosión leve en la zona de {cantidad} juntas soldadas sin "
-            "recubrimiento protector (pintura) perteneciente al tramo nuevo del "
-            "circuito NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar la aplicación del recubrimiento protector (pintura) en las "
-            "{cantidad} juntas soldadas del tramo nuevo del circuito NPS {nps}, "
-            "siguiendo los estándares Repsol ED-B-06.00-04d y el documento "
-            "PE-B-0600.01H00R05."
-        ),
-        variables=("cantidad", "nps"),
-    ),
-    "TUBERIA_PANDEO_DEFORMACION": Caso(
-        id="TUBERIA_PANDEO_DEFORMACION",
-        categoria="TUBERIA",
-        etiqueta="Deformación o pandeo en tuberías",
-        hallazgo_tpl=(
-            "Pandeo / Deformación en la tubería cerca de {ubicacion} (NPS {nps}, "
-            "longitud aprox. {longitud} metros)."
-        ),
-        recomendacion_tpl=(
-            "Recomendación:\n"
-            "• Realizar la evaluación de integridad mecánica en el tramo de tubería "
-            "de NPS {nps} y una longitud de {longitud} metros, cerca de {ubicacion}, "
-            "afectado por deformación y pandeo, conforme a los lineamientos del "
-            "código API 570 y los estándares Repsol aplicables."
-        ),
-        variables=("ubicacion", "nps", "longitud"),
-    ),
-    "TUBERIA_TRAMO_NO_ACCESIBLE": Caso(
-        id="TUBERIA_TRAMO_NO_ACCESIBLE",
-        categoria="TUBERIA",
-        etiqueta="Tramo del circuito en altura / no accesible",
-        hallazgo_tpl=(
-            "Presencia de corrosión (otros) en tramo no accesible: circuito NPS "
-            "{nps} evidencia corrosión en zonas sin acceso para inspección visual "
-            "adecuada, por encontrarse en altura."
-        ),
-        recomendacion_tpl=(
-            "Se requiere instalar facilidades (andamios de {longitud} metros) para "
-            "acceder a la zona cerca de {ubicacion} y complementar la inspección de "
-            "la zona observada en la tubería de NPS {nps}."
-        ),
-        variables=("nps", "longitud", "ubicacion"),
-    ),
-    "TUBERIA_COLOR_NO_REGLAMENTARIO": Caso(
-        id="TUBERIA_COLOR_NO_REGLAMENTARIO",
-        categoria="TUBERIA",
-        etiqueta="Adecuación por código de color no reglamentario",
-        hallazgo_tpl=(
-            "Recubrimiento existente en color no reglamentario ({color_actual}) en "
-            "el circuito NPS {nps}, requiriendo el código de color de "
-            "identificación ({color_norma})."
-        ),
-        recomendacion_tpl=(
-            "Realizar la aplicación de la capa de acabado/repintado del circuito "
-            "NPS {nps}, para adecuarlo al color de identificación correspondiente "
-            "al fluido transportado ({color_norma}), en conformidad con el "
-            "estándar Repsol ED-B-06.00-04d y el documento PE-B-0600.01H00R05."
-        ),
-        variables=("color_actual", "nps", "color_norma"),
-    ),
+RUTA_CATALOGO_DEFAULT = Path(__file__).resolve().parent / "Catalogo_Hallazgos_Recomendaciones.xlsx"
 
-    # --- B. VÁLVULAS -------------------------------------------------------
-    "VALVULA_MANUAL_CORROSION_MODERADA": Caso(
-        id="VALVULA_MANUAL_CORROSION_MODERADA",
-        categoria="VALVULA",
-        etiqueta="Válvula manual con corrosión moderada",
-        hallazgo_tpl=(
-            "Deterioro del recubrimiento y corrosión moderada en válvula de {tipo} "
-            "NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Efectuar el mantenimiento del recubrimiento en la válvula de {tipo} "
-            "NPS {nps}, incluyendo el mantenimiento de los mecanismos del volante, "
-            "bonete y prensaestopas, así como su lubricación, según los estándares "
-            "Repsol ED-B-06.00-04d y PE-B-0600.01H00R05."
-        ),
-        variables=("tipo", "nps"),
-    ),
-    "VALVULA_CORROSION_SEVERA_PERNOS": Caso(
-        id="VALVULA_CORROSION_SEVERA_PERNOS",
-        categoria="VALVULA",
-        etiqueta="Válvula con corrosión moderada a severa en pernos y mecanismos",
-        hallazgo_tpl=(
-            "Deterioro del recubrimiento y corrosión moderada a severa en "
-            "{cantidad} válvulas de {tipo} de NPS {nps}, afectando principalmente "
-            "a los pernos de ajuste del volante y de la prensaestopas."
-        ),
-        recomendacion_tpl=(
-            "Realizar el reemplazo de los pernos de ajuste (del volante y de la "
-            "prensaestopas) y el mantenimiento correctivo de los mecanismos "
-            "(volante, bonete y prensaestopas) con su respectiva lubricación en "
-            "las {cantidad} válvulas de {tipo} de NPS {nps}, conforme a los "
-            "lineamientos de la norma API 598 y el código ASME B31.3. (Nota: al "
-            "ser corrosión severa, se excluye el mantenimiento rutinario de "
-            "recubrimiento)."
-        ),
-        variables=("cantidad", "tipo", "nps"),
-    ),
-    "VALVULA_VOLANTE_SUELTO": Caso(
-        id="VALVULA_VOLANTE_SUELTO",
-        categoria="VALVULA",
-        etiqueta="Volante desprendido o suelto",
-        hallazgo_tpl=(
-            "Volante fuera de posición (desprendido del vástago) y sujetado "
-            "provisoriamente con alambre de amarre en válvula de {tipo} de NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el mantenimiento correctivo o reemplazo de la válvula de "
-            "{tipo} de NPS {nps}, reinstalando y fijando de manera definitiva el "
-            "volante al vástago, conforme a la norma API 598 y estándares Repsol "
-            "aplicables."
-        ),
-        variables=("tipo", "nps"),
-    ),
-    "VALVULA_AGUJA_PERDIDA_MANIVELA": Caso(
-        id="VALVULA_AGUJA_PERDIDA_MANIVELA",
-        categoria="VALVULA",
-        etiqueta="Pérdida de manivela/palanca en válvula de aguja",
-        hallazgo_tpl=(
-            "Pérdida de la manivela / palanca de accionamiento en la válvula de "
-            "{tipo} de NPS {nps}, de bloqueo y purga del indicador de presión "
-            "manómetro."
-        ),
-        recomendacion_tpl=(
-            "Realizar el reemplazo de la manivela de la válvula de aguja de "
-            "NPS {nps} para restablecer la maniobrabilidad del elemento de "
-            "bloqueo y purga, conforme a los lineamientos de la norma API 598 "
-            "y el código ASME B31.3."
-        ),
-        variables=("tipo", "nps"),
-    ),
-    "VALVULA_PERDIDA_VOLANTE": Caso(
-        id="VALVULA_PERDIDA_VOLANTE",
-        categoria="VALVULA",
-        etiqueta="Pérdida o rotura de volante en válvula de compuerta, globo",
-        hallazgo_tpl=(
-            "Pérdida, rotura de la volante en la válvulas de {tipo} de NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el reemplazo del volante en la válvula de {tipo} de NPS "
-            "{nps}, conforme a la norma API 598 y estándares Repsol aplicables."
-        ),
-        variables=("tipo", "nps"),
-    ),
-    "VALVULA_FUGA_PRENSAESTOPAS": Caso(
-        id="VALVULA_FUGA_PRENSAESTOPAS",
-        categoria="VALVULA",
-        etiqueta="Residuos de producto / fuga en prensaestopas",
-        hallazgo_tpl=(
-            "Presencia de restos de producto (humedecido) en la zona de la "
-            "prensaestopas en {cantidad} válvulas de {tipo} de NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el mantenimiento correctivo de las {cantidad} válvulas de "
-            "{tipo} de NPS {nps}, incluyendo la limpieza integral del producto "
-            "adherido, inspección de sus componentes, de acuerdo con la práctica "
-            "recomendada API 598 y los estándares Repsol aplicables."
-        ),
-        variables=("cantidad", "tipo", "nps"),
-    ),
-    "VALVULA_LINEA_AISLADA_SIN_AISLAMIENTO_PROPIO": Caso(
-        id="VALVULA_LINEA_AISLADA_SIN_AISLAMIENTO_PROPIO",
-        categoria="VALVULA",
-        etiqueta="Válvula en línea aislada sin aislamiento propio",
-        hallazgo_tpl=(
-            "Presencia de corrosión generalizada en {cantidad} válvulas sin "
-            "aislamiento térmico ({tipo}) en línea aislada."
-        ),
-        recomendacion_tpl=(
-            "Realizar limpieza en {cantidad} válvulas ({tipo}) y mantenimiento de "
-            "elementos de ajuste (espárragos y tuercas), conforme al procedimiento "
-            "Repsol RLP-FM-MANT-PRO-06-01.006. NOTA: si la línea con aislamiento "
-            "térmico excede los 200 °C, ya no corresponde aplicar recubrimiento "
-            "(pintura)."
-        ),
-        variables=("cantidad", "tipo"),
-    ),
-    "VALVULA_CONTROL_FUGA_CUERPO_BONETE": Caso(
-        id="VALVULA_CONTROL_FUGA_CUERPO_BONETE",
-        categoria="VALVULA",
-        etiqueta="Válvula de control con fuga cuerpo-bonete",
-        hallazgo_tpl=(
-            "Fuga de producto / restos de producto en la unión entre cuerpo y "
-            "bonete en válvula de control de tipo {tipo} de NPS {nps} ({tag})."
-        ),
-        recomendacion_tpl=(
-            "Realizar el mantenimiento correctivo de la unión cuerpo-bonete y "
-            "reemplazo del empaque/junta en la válvula de control {tag} / NPS "
-            "{nps}, así como la limpieza integral del producto acumulado, "
-            "siguiendo los lineamientos del código API 570 y los estándares "
-            "Repsol aplicables."
-        ),
-        variables=("tipo", "nps", "tag"),
-    ),
-    "VALVULA_CONTROL_SUCIEDAD_EXTERNA": Caso(
-        id="VALVULA_CONTROL_SUCIEDAD_EXTERNA",
-        categoria="VALVULA",
-        etiqueta="Válvula de control con suciedad externa en instrumentación",
-        hallazgo_tpl=(
-            "Presencia de suciedad en componentes externos (bonete, eje, "
-            "indicador y métrica de posición) de la válvula de control {tag} / "
-            "NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar limpieza de los componentes afectados de la válvula de "
-            "control {tag} / NPS {nps}, conforme a los estándares de "
-            "mantenimiento de instrumentación y lineamientos Repsol aplicables."
-        ),
-        variables=("tag", "nps"),
-    ),
 
-    # --- C. SOPORTES Y ELEMENTOS DE SUJECIÓN --------------------------------
-    "SOPORTE_UBOLT_CONTACTO_DIRECTO": Caso(
-        id="SOPORTE_UBOLT_CONTACTO_DIRECTO",
-        categoria="SOPORTE",
-        etiqueta="Soporte U-bolt con corrosión moderada y contacto directo",
-        hallazgo_tpl=(
-            "Soporte con abrazadera tipo U-bolt presenta corrosión moderada y "
-            "contacto directo con tubería NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el mantenimiento del recubrimiento en soporte y abrazadera "
-            "tipo U-bolt e instalar un aislamiento de protección (teflón, "
-            "elastómero o neopreno) para evitar el contacto directo metal-metal "
-            "en la tubería NPS {nps}, de acuerdo con la norma MSS SP-58 y los "
-            "estándares Repsol ED-B-06.00-04d, PE-B-0600.01H00R05 y "
-            "ED-L-06.00-05a (sección 5.5)."
-        ),
-        variables=("nps",),
-    ),
-    "SOPORTE_LEVE_ABRAZADERA_SEVERA": Caso(
-        id="SOPORTE_LEVE_ABRAZADERA_SEVERA",
-        categoria="SOPORTE",
-        etiqueta="Soporte con corrosión leve y abrazadera/pernos con corrosión severa",
-        hallazgo_tpl=(
-            "Deterioro del recubrimiento y corrosión leve por sectores en "
-            "soporte, y corrosión severa en la abrazadera y sus pernos de ajuste "
-            "(línea NPS {nps})."
-        ),
-        recomendacion_tpl=(
-            "Recomendación:\n"
-            "• Realizar el reemplazo de la abrazadera y sus pernos de ajuste en "
-            "la línea NPS {nps}, de acuerdo con la norma MSS SP-58 y el estándar "
-            "Repsol ED-L-06.00-05a (sección 5.5).\n"
-            "• Nota: si el soporte solo cuenta con corrosión leve y no afecta su "
-            "integridad, no se recomienda acción correctiva o preventiva sobre "
-            "el soporte."
-        ),
-        variables=("nps",),
-    ),
-    "SOPORTE_REEMPLAZO_TOTAL": Caso(
-        id="SOPORTE_REEMPLAZO_TOTAL",
-        categoria="SOPORTE",
-        etiqueta="Reemplazo total de soporte y abrazadera (corrosión severa)",
-        hallazgo_tpl=(
-            "Deterioro del recubrimiento, corrosión moderada y severa en soporte "
-            "y abrazaderas ({cantidad}) en el tramo de la línea NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el reemplazo del soporte y de las {cantidad} abrazaderas "
-            "en el tramo de la línea NPS {nps}, siguiendo los estándares Repsol "
-            "ED-B-06.00-04d, PE-B-0600.01H00R05 y ED-L-06.00-05a (sección 5.5) y "
-            "la norma MSS SP-58. (Sin mantenimiento de recubrimiento/pintura)."
-        ),
-        variables=("cantidad", "nps"),
-    ),
-    "SOPORTE_METALICO_TIPICO": Caso(
-        id="SOPORTE_METALICO_TIPICO",
-        categoria="SOPORTE",
-        etiqueta="Deterioro de recubrimiento y corrosión leve a moderada en soporte metálico típico",
-        hallazgo_tpl=(
-            "Deterioro del recubrimiento y corrosión {severidad} en el soporte "
-            "tipo {tipo} de la línea NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el mantenimiento del recubrimiento en el soporte tipo "
-            "{tipo} de la línea NPS {nps}. La intervención deberá realizarse "
-            "conforme al esquema de pinturas PE-B-0600.01-I, aplicando como "
-            "color de acabado el verde RAL 6001."
-        ),
-        variables=("severidad", "tipo", "nps"),
-        defaults={"severidad": "leve a moderada"},
-    ),
-    "SOPORTE_SPRING_HANGER": Caso(
-        id="SOPORTE_SPRING_HANGER",
-        categoria="SOPORTE",
-        etiqueta="Soporte tipo resorte (spring hanger) con corrosión moderada",
-        hallazgo_tpl=(
-            "Deterioro del recubrimiento y corrosión moderada en soporte de "
-            "resorte (spring hanger) de la línea NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el mantenimiento del recubrimiento en el soporte tipo "
-            "spring hanger de la línea NPS {nps}, conforme a los estándares "
-            "Repsol ED-B-06.00-04d y al documento técnico PE-B-0600.01H00R05. "
-            "(No se especifica código de color de acabado por sus "
-            "consideraciones especiales frente a otros soportes)."
-        ),
-        variables=("nps",),
-    ),
+def _parsear_variables(valor):
+    return tuple(v.strip() for v in (valor or "").split(",") if v.strip())
 
-    # --- D. AISLAMIENTO TÉRMICO Y PROTECCIÓN IGNÍFUGA -----------------------
-    "AISLAMIENTO_VENTANA_INSPECCION": Caso(
-        id="AISLAMIENTO_VENTANA_INSPECCION",
-        categoria="AISLAMIENTO",
-        etiqueta="Contaminación/corrosión moderada en ventana de inspección",
-        hallazgo_tpl=(
-            "Contaminación del aislamiento térmico (humedad), así como también "
-            "se visualiza corrosión moderada en zonas con ventanas de inspección "
-            "(línea NPS {nps})."
-        ),
-        recomendacion_tpl=(
-            "Retirar el aislamiento térmico y efectuar la limpieza de la zona "
-            "corroída para evaluar el grado de daño. En caso de verificarse "
-            "corrosión superficial, aplicar recubrimiento de pintura, siguiendo "
-            "los estándares Repsol ED-B-06.00-04d y el documento "
-            "PE-B-0600.01H00R05. Nota: solo se aplica recubrimiento a tuberías "
-            "con temperatura de operación menor o igual a 200 °C."
-        ),
-        variables=("nps",),
-    ),
-    "AISLAMIENTO_ABERTURAS_ABOLLADURAS": Caso(
-        id="AISLAMIENTO_ABERTURAS_ABOLLADURAS",
-        categoria="AISLAMIENTO",
-        etiqueta="Aberturas, abolladuras o exposición del aislante",
-        hallazgo_tpl=(
-            "Abertura(s) en la cubierta metálica, abolladuras, deterioro y/o "
-            "exposición del material aislante en {ubicacion} del circuito NPS "
-            "{nps}."
-        ),
-        recomendacion_tpl=(
-            "Reparar el aislamiento térmico en {ubicacion} del circuito, "
-            "siguiendo los lineamientos del API 583 sección 9.6.a, del "
-            "estándar Repsol ED-N-01.00-03 y del documento PE-N-0100.01."
-        ),
-        variables=("ubicacion", "nps"),
-    ),
-    "AISLAMIENTO_AUSENCIA": Caso(
-        id="AISLAMIENTO_AUSENCIA",
-        categoria="AISLAMIENTO",
-        etiqueta="Ausencia / falta de aislamiento térmico",
-        hallazgo_tpl=(
-            "Ausencia de aislamiento térmico en {ubicacion} de NPS {nps} "
-            "(longitud aprox. {longitud} metros)."
-        ),
-        recomendacion_tpl=(
-            "Instalar aislamiento térmico en {ubicacion} de NPS {nps} (longitud "
-            "aprox. {longitud} metros), siguiendo los lineamientos del API 583 "
-            "sección 9.6.a, del estándar Repsol ED-N-01.00-03 y del documento "
-            "PE-N-0100.01."
-        ),
-        variables=("ubicacion", "nps", "longitud"),
-    ),
-    "AISLAMIENTO_MANCHAS_SUCIEDAD": Caso(
-        id="AISLAMIENTO_MANCHAS_SUCIEDAD",
-        categoria="AISLAMIENTO",
-        etiqueta="Manchas de producto, suciedad o deterioro superficial del aislamiento",
-        hallazgo_tpl=(
-            "Presencia de manchas de producto, suciedad o deterioro en el "
-            "aislamiento térmico en {cantidad} zonas del circuito (longitud "
-            "aprox. {longitud} metros)."
-        ),
-        recomendacion_tpl=(
-            "Realizar limpieza y/o reemplazo del aislamiento térmico en "
-            "{ubicacion} del circuito, siguiendo los lineamientos del API 583 "
-            "sección 9.6.a, del estándar Repsol ED-N-01.00-03 y del documento "
-            "PE-N-0100.01."
-        ),
-        variables=("cantidad", "longitud", "ubicacion"),
-    ),
-    "AISLAMIENTO_PROTECCION_IGNIFUGA_AGRIETADA": Caso(
-        id="AISLAMIENTO_PROTECCION_IGNIFUGA_AGRIETADA",
-        categoria="AISLAMIENTO",
-        etiqueta="Protección ignífuga agrietada (fireproofing)",
-        hallazgo_tpl=(
-            "Agrietamiento en la protección ignífuga de {elemento} en la zona "
-            "cercana a {ubicacion}."
-        ),
-        recomendacion_tpl=(
-            "Realizar la reparación de la protección ignífuga en {elemento}, "
-            "asegurando el resane de las grietas, conforme a los lineamientos "
-            "de los estándares Repsol aplicables."
-        ),
-        variables=("elemento", "ubicacion"),
-    ),
 
-    # --- E. INDICADORES DE PRESIÓN ------------------------------------------
-    "INDICADOR_MANOMETRO_DETERIORADO": Caso(
-        id="INDICADOR_MANOMETRO_DETERIORADO",
-        categoria="INDICADOR",
-        etiqueta="Manómetro con deterioro, aguja desprendida y opacidad en visor",
-        hallazgo_tpl=(
-            "Manómetro con deterioro, aguja desprendida, contaminación de "
-            "glicerina e imposibilidad de toma de lectura por opacidad del "
-            "visor en línea NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el reemplazo del manómetro en la línea NPS {nps} para "
-            "garantizar la confiabilidad en la lectura del instrumento y "
-            "mantener la integridad operacional, conforme a los estándares de "
-            "instrumentación y lineamientos Repsol aplicables."
-        ),
-        variables=("nps",),
-    ),
+def _parsear_defaults(valor):
+    defaults = {}
+    for par in (valor or "").split(";"):
+        if "=" in par:
+            k, v = par.split("=", 1)
+            k = k.strip()
+            if k:
+                defaults[k] = v.strip()
+    return defaults
 
-    # --- F. BRIDAS -----------------------------------------------------------
-    "BRIDA_ESPARRAGOS_CORTOS": Caso(
-        id="BRIDA_ESPARRAGOS_CORTOS",
-        categoria="BRIDA",
-        etiqueta="Espárragos cortos (longitud insuficiente)",
-        hallazgo_tpl=(
-            "Hallazgo: Longitud insuficiente de espárragos en unión bridada de "
-            "NPS {nps} (no sobresalen de la cara exterior de la tuerca)."
-        ),
-        recomendacion_tpl=(
-            "Reemplazar los espárragos por unos de longitud adecuada que "
-            "garanticen sobresalir al menos dos (2) hilos de rosca por encima "
-            "de la cara exterior de la tuerca, conforme a la norma ASME B31.3 "
-            "y al procedimiento Repsol RLP-FM-MANT-PRO-06-01.006."
-        ),
-        variables=("nps",),
-    ),
-    "BRIDA_PAR_GALVANICO": Caso(
-        id="BRIDA_PAR_GALVANICO",
-        categoria="BRIDA",
-        etiqueta="Par galvánico (bridas inox + espárragos acero al carbono)",
-        hallazgo_tpl=(
-            "Hallazgo: Par galvánico por incompatibilidad de materiales (bridas "
-            "de acero inoxidable con espárragos y tuercas de acero al carbono) "
-            "en {cantidad} uniones bridadas del circuito NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el reemplazo de la totalidad de los elementos de ajuste "
-            "de acero al carbono por espárragos y tuercas de acero inoxidable "
-            "de grado compatible, conforme a la norma ASME B31.3 y estándares "
-            "Repsol aplicables."
-        ),
-        variables=("cantidad", "nps"),
-    ),
-    "BRIDA_PAR_GALVANICO_PARCIAL": Caso(
-        id="BRIDA_PAR_GALVANICO_PARCIAL",
-        categoria="BRIDA",
-        etiqueta="Par galvánico parcial (1 brida inox + 1 brida acero al carbono), corrosión moderada",
-        hallazgo_tpl=(
-            "Par galvánico por incompatibilidad de materiales (1 brida de acero "
-            "inoxidable y 1 brida de acero al carbono) en {cantidad} uniones "
-            "bridadas del circuito NPS {nps}, cada una con {cantidad_elementos} "
-            "elementos de ajuste (espárragos y tuercas) de acero al carbono, "
-            "los cuales presentan corrosión galvánica moderada."
-        ),
-        recomendacion_tpl=(
-            "Realizar el mantenimiento de los elementos de ajuste de acero al "
-            "carbono (espárragos y tuercas) en las {cantidad} uniones bridadas "
-            "afectadas, conforme al procedimiento Repsol "
-            "RLP-FM-MANT-PRO-06-01.006 (Secc. 3.4.2) y los estándares Repsol "
-            "ED-B-06.00-04d y PE-B-0600.01H00R05."
-        ),
-        variables=("cantidad", "cantidad_elementos", "nps"),
-        defaults={"cantidad_elementos": "sus"},
-    ),
-    "BRIDA_PAR_GALVANICO_PARCIAL_SEVERA": Caso(
-        id="BRIDA_PAR_GALVANICO_PARCIAL_SEVERA",
-        categoria="BRIDA",
-        etiqueta="Par galvánico parcial (1 brida inox + 1 brida acero al carbono), corrosión severa",
-        hallazgo_tpl=(
-            "Par galvánico por incompatibilidad de materiales (1 brida de acero "
-            "inoxidable y 1 brida de acero al carbono) en {cantidad} uniones "
-            "bridadas del circuito NPS {nps}, cada una con {cantidad_elementos} "
-            "elementos de ajuste (espárragos y tuercas) de acero al carbono, "
-            "los cuales presentan corrosión galvánica {severidad}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el reemplazo de los elementos de ajuste (espárragos y "
-            "tuercas) de acero al carbono por elementos nuevos del mismo "
-            "material, en las {cantidad} uniones bridadas afectadas, conforme "
-            "a la norma ASME B31.3 y estándares Repsol aplicables."
-        ),
-        variables=("cantidad", "cantidad_elementos", "nps", "severidad"),
-        defaults={"cantidad_elementos": "sus", "severidad": "severa"},
-    ),
-    "BRIDA_CORROSION_LEVE_MODERADA": Caso(
-        id="BRIDA_CORROSION_LEVE_MODERADA",
-        categoria="BRIDA",
-        etiqueta="Corrosión en espárragos/bridas (leve a moderada)",
-        hallazgo_tpl=(
-            "Hallazgo: Deterioro del recubrimiento y presencia de corrosión "
-            "{severidad} en {cantidad} uniones bridadas, incluyendo sus "
-            "elementos de ajuste (espárragos y tuercas) en la línea NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar limpieza mecánica, mantenimiento del recubrimiento y "
-            "aplicar lubricante tipo Molykote 1000 en {cantidad} uniones "
-            "bridadas, incluyendo sus elementos de ajuste (tuercas y "
-            "espárragos), conforme al procedimiento Repsol "
-            "RLP-FM-MANT-PRO-06-01.006 (Secc. 3.4.2) y los estándares Repsol "
-            "ED-B-06.00-04d y PE-B-0600.01H00R05."
-        ),
-        variables=("severidad", "cantidad", "nps"),
-        defaults={"severidad": "leve a moderada"},
-    ),
-    "BRIDA_SEVERA_ESPARRAGOS_MODERADA_BRIDA": Caso(
-        id="BRIDA_SEVERA_ESPARRAGOS_MODERADA_BRIDA",
-        categoria="BRIDA",
-        etiqueta="Corrosión severa en espárragos y moderada en bridas",
-        hallazgo_tpl=(
-            "Hallazgo: Deterioro del recubrimiento y corrosión moderada en "
-            "bridas, con corrosión severa en espárragos y tuercas en "
-            "{cantidad} uniones bridadas de NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el reemplazo de los elementos de ajuste (espárragos y "
-            "tuercas) en las {cantidad} uniones bridadas de NPS {nps}, "
-            "conforme al procedimiento Repsol RLP-FM-MANT-PRO-06-01.006 y ASME "
-            "B31.3; asimismo, efectuar el mantenimiento del recubrimiento en "
-            "las bridas según los estándares Repsol ED-B-06.00-04d y "
-            "PE-B-0600.01H00R05."
-        ),
-        variables=("cantidad", "nps"),
-    ),
-    "BRIDA_PERNOS_EN_LUGAR_DE_ESPARRAGOS": Caso(
-        id="BRIDA_PERNOS_EN_LUGAR_DE_ESPARRAGOS",
-        categoria="BRIDA",
-        etiqueta="Uso de pernos en lugar de espárragos",
-        hallazgo_tpl=(
-            "Hallazgo: Unión bridada de NPS {nps} con uso de pernos en lugar de "
-            "espárragos de ajuste ({cantidad} unidades)."
-        ),
-        recomendacion_tpl=(
-            "Reemplazar los pernos por espárragos con tuercas en la unión "
-            "bridada NPS {nps}, garantizando que sobresalgan al menos dos (2) "
-            "hilos de rosca, conforme a ASME B31.3 y el procedimiento Repsol "
-            "RLP-FM-MANT-PRO-06-01.006."
-        ),
-        variables=("nps", "cantidad"),
-    ),
-    "BRIDA_TUERCA_FALTANTE": Caso(
-        id="BRIDA_TUERCA_FALTANTE",
-        categoria="BRIDA",
-        etiqueta="Falta de elemento de ajuste (tuerca faltante)",
-        hallazgo_tpl=(
-            "Hallazgo: Ausencia de tuerca hexagonal en {cantidad} espárrago(s) "
-            "de la junta bridada de NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Instalar la tuerca hexagonal faltante en el espárrago de la junta "
-            "bridada de NPS {nps} y aplicar apriete/torque verificado para "
-            "garantizar un sellado uniforme, conforme a ASME B31.3 y el "
-            "procedimiento Repsol RLP-FM-MANT-PRO-06-01.006."
-        ),
-        variables=("cantidad", "nps"),
-    ),
-    "BRIDA_FUGA_EMPAQUE": Caso(
-        id="BRIDA_FUGA_EMPAQUE",
-        categoria="BRIDA",
-        etiqueta="Fuga de producto / falla de empaque",
-        hallazgo_tpl=(
-            "Hallazgo: Presencia de fuga de producto / restos humedecidos en "
-            "la junta bridada de NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el mantenimiento de la unión bridada NPS {nps} mediante "
-            "limpieza de caras, cambio de empaque y torqueado controlado "
-            "conforme al código API 570, ASME B31.3 y el procedimiento Repsol "
-            "RLP-FM-MANT-PRO-06-01.006."
-        ),
-        variables=("nps",),
-    ),
 
-    # --- G/H. BRIDAS DE ORIFICIO ---------------------------------------------
-    "BRIDA_ORIFICIO_FALTA_SOLDADURA_SELLO": Caso(
-        id="BRIDA_ORIFICIO_FALTA_SOLDADURA_SELLO",
-        categoria="BRIDA_ORIFICIO",
-        etiqueta="Falta de soldadura de sello en niples de toma de brida de orificio",
-        hallazgo_tpl=(
-            "Se identificó ausencia de soldadura de sello entre los 2 niples "
-            "NPS ½” (tomas alta y baja presión) y las bridas de la placa "
-            "orificio ({tag})."
-        ),
-        recomendacion_tpl=(
-            "Aplicar soldadura de sello en las conexiones de las líneas de "
-            "toma raíz con la brida de orificio {tag}, empleando el WPS y PQR "
-            "correspondientes, debidamente calificados."
-        ),
-        variables=("tag",),
-    ),
+def _parsear_categorias(valor):
+    t = (valor or "").strip()
+    if not t or t.upper() == "CUALQUIERA":
+        return (None,)
+    return tuple(c.strip() for c in t.split(";") if c.strip())
 
-    # --- Casos adicionales frecuentes en campo (mismo estilo del COMPENDIO,
-    # cubren defectos mecánicos directos que el REV.1 no tabuló como "caso
-    # típico" explícito pero que sí caen bajo sus reglas de redacción) -------
-    "VALVULA_VOLANTE_AUSENTE": Caso(
-        id="VALVULA_VOLANTE_AUSENTE",
-        categoria="VALVULA",
-        etiqueta="Ausencia total de volante en válvula",
-        hallazgo_tpl=(
-            "Ausencia de volante en {cantidad} válvula(s) de {tipo} de NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar la instalación de un volante nuevo en {cantidad} "
-            "válvula(s) de {tipo} de NPS {nps}, conforme a la norma API 598 y "
-            "estándares Repsol aplicables."
-        ),
-        variables=("cantidad", "tipo", "nps"),
-        defaults={"cantidad": "1", "tipo": "compuerta"},
-    ),
-    "SOPORTE_FALTANTE": Caso(
-        id="SOPORTE_FALTANTE",
-        categoria="SOPORTE",
-        etiqueta="Ausencia total de soporte",
-        hallazgo_tpl=(
-            "Ausencia de soporte en {ubicacion} de la línea NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar la instalación de un soporte en {ubicacion} de la línea "
-            "NPS {nps}, conforme a los procedimientos específicos y "
-            "estándares Repsol aplicables (ED-L-06.00-05a, sección 5.5, y la "
-            "norma MSS SP-58)."
-        ),
-        variables=("ubicacion", "nps"),
-        defaults={"ubicacion": "el tramo observado"},
-    ),
-    "SOPORTE_ABRAZADERA_ROTA": Caso(
-        id="SOPORTE_ABRAZADERA_ROTA",
-        categoria="SOPORTE",
-        etiqueta="Rotura de abrazadera",
-        hallazgo_tpl=(
-            "Rotura de la abrazadera tipo {tipo} en la línea NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar el reemplazo de la abrazadera tipo {tipo} en la línea "
-            "NPS {nps}, conforme a la norma MSS SP-58 y el estándar Repsol "
-            "ED-L-06.00-05a (sección 5.5)."
-        ),
-        variables=("tipo", "nps"),
-        defaults={"tipo": "U-bolt"},
-    ),
-    "SOPORTE_ABRAZADERA_FALTANTE": Caso(
-        id="SOPORTE_ABRAZADERA_FALTANTE",
-        categoria="SOPORTE",
-        etiqueta="Ausencia total de abrazadera",
-        hallazgo_tpl=(
-            "Ausencia de abrazadera tipo {tipo} en la línea NPS {nps}."
-        ),
-        recomendacion_tpl=(
-            "Realizar la instalación de una abrazadera tipo {tipo} en la "
-            "línea NPS {nps}, conforme a la norma MSS SP-58 y el estándar "
-            "Repsol ED-L-06.00-05a."
-        ),
-        variables=("tipo", "nps"),
-        defaults={"tipo": "U-bolt"},
-    ),
-}
+
+def _parsear_palabras(valor):
+    return tuple(p.strip() for p in (valor or "").split("|") if p.strip())
+
+
+def cargar_catalogo_desde_excel(ruta):
+    """Lee el catálogo de casos y las reglas de sugerencia automática desde
+    el Excel editable (hojas "Casos" y "Reglas_Sugerencia" -- formato
+    documentado en la hoja "Léame" de ese mismo archivo). Devuelve
+    (catalogo_dict, reglas_lista) en el mismo formato que antes vivía
+    escrito a mano en este módulo, para que el resto del motor no note la
+    diferencia."""
+    import openpyxl
+
+    wb = openpyxl.load_workbook(ruta, data_only=True)
+
+    catalogo = {}
+    for row in wb["Casos"].iter_rows(min_row=2, values_only=True):
+        if not row or not row[0]:
+            continue
+        cid, categoria, etiqueta, hallazgo_tpl, recomendacion_tpl, variables_str, defaults_str = (
+            list(row) + [None] * 7
+        )[:7]
+        cid = str(cid).strip()
+        catalogo[cid] = Caso(
+            id=cid,
+            categoria=(categoria or "").strip(),
+            etiqueta=(etiqueta or "").strip(),
+            hallazgo_tpl=hallazgo_tpl or "",
+            recomendacion_tpl=recomendacion_tpl or "",
+            variables=_parsear_variables(variables_str),
+            defaults=_parsear_defaults(defaults_str),
+        )
+
+    reglas_por_num = {}
+    for row in wb["Reglas_Sugerencia"].iter_rows(min_row=2, values_only=True):
+        if not row or row[0] is None:
+            continue
+        regla_num, caso_id, categorias_str, grupo_num, palabras_str, excluidas_str = (
+            list(row) + [None] * 6
+        )[:6]
+        entrada = reglas_por_num.setdefault(int(regla_num), {
+            "caso_id": str(caso_id).strip(),
+            "categorias_str": categorias_str,
+            "grupos": {},
+            "excluidas_str": None,
+        })
+        entrada["grupos"][int(grupo_num)] = _parsear_palabras(palabras_str)
+        if excluidas_str:
+            entrada["excluidas_str"] = excluidas_str
+
+    reglas = []
+    for num in sorted(reglas_por_num):
+        e = reglas_por_num[num]
+        categorias = _parsear_categorias(e["categorias_str"])
+        grupos = [e["grupos"][g] for g in sorted(e["grupos"])]
+        excluidas = _parsear_palabras(e["excluidas_str"])
+        if excluidas:
+            reglas.append((e["caso_id"], categorias, grupos, excluidas))
+        else:
+            reglas.append((e["caso_id"], categorias, grupos))
+
+    return catalogo, reglas
+
+
+def _cargar_catalogo_inicial():
+    try:
+        return cargar_catalogo_desde_excel(RUTA_CATALOGO_DEFAULT)
+    except Exception as e:
+        print(
+            f"[!] No se pudo cargar el catálogo de hallazgos y recomendaciones "
+            f"desde {RUTA_CATALOGO_DEFAULT}: {e}. El motor seguirá funcionando, "
+            f"pero ningún hallazgo tendrá recomendación automática (quedarán "
+            f"todos PENDIENTES de redacción manual) hasta que el archivo esté "
+            f"disponible."
+        )
+        return {}, []
+
+
+CATALOGO, REGLAS_SUGERENCIA = _cargar_catalogo_inicial()
+
+
+def recargar_catalogo(ruta=None):
+    """Vuelve a leer el catálogo desde el Excel y actualiza CATALOGO y
+    REGLAS_SUGERENCIA en caliente -- para que una edición de ese archivo
+    surta efecto sin reiniciar la app, igual que
+    BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx. Se llama automáticamente al inicio
+    de cada generación de informe (ver pages/1_Elaboracion_de_Informe.py)."""
+    global CATALOGO, REGLAS_SUGERENCIA
+    CATALOGO, REGLAS_SUGERENCIA = cargar_catalogo_desde_excel(ruta or RUTA_CATALOGO_DEFAULT)
 
 CATEGORIAS = sorted({c.categoria for c in CATALOGO.values()})
 
@@ -1006,220 +435,12 @@ def _extraer_variables_de_texto(texto):
     return variables
 
 
-# Cada regla: (caso_id, categorías del checklist a las que aplica (substring,
-# minúsculas, o None = cualquiera), grupos de palabras clave -- se exige AL
-# MENOS una coincidencia de CADA grupo para considerar la regla confiable).
-# Reglas derivadas 1:1 de COMPLEMENTO/ROL_Y_OBJETIVO.REV2.txt (ese documento
-# está hecho exactamente para esta transformación hallazgo->recomendación;
-# aquí se aplica como reglas de texto explícitas, sin ningún modelo de
-# lenguaje detrás).
-REGLAS_SUGERENCIA = [
-    (
-        "TUBERIA_DETERIORO_RECUBRIMIENTO_GENERALIZADO",
-        ("recubrimientos", "componentes", "placas orificio", "puntos de inyecc",
-         "instrumentacion", "instrumentación"),
-        [
-            ("deterioro del recubrimiento", "deterioro recubrimiento", "deterioro del recubirmiento"),
-            ("generaliz", "leve a moderada", "leve  a moderada"),
-        ],
-    ),
-    (
-        "BRIDA_CORROSION_LEVE_MODERADA",
-        ("bridas",),
-        [
-            ("corrosion", "corrosión"),
-            ("leve", "moderada"),
-            ("union bridada", "uniones bridadas", "unión bridada", "uniones bridada"),
-        ],
-        # Se excluye "galvánic-": si la corrosión es por par galvánico
-        # (bridas de distinto material), el diagnóstico correcto son los
-        # casos BRIDA_PAR_GALVANICO_PARCIAL[_SEVERA], más específicos --
-        # que no se combinen con esta recomendación genérica de limpieza y
-        # mantenimiento de recubrimiento, redundante en ese caso.
-        ("galvan", "gálvan"),
-    ),
-    (
-        # Par galvánico PARCIAL (1 brida inox + 1 de acero al carbono, a
-        # diferencia del BRIDA_PAR_GALVANICO "total" donde AMBAS bridas son
-        # inox): con corrosión moderada -> mantenimiento. Se excluye
-        # "severa" para que un comentario "moderada a severa" (que contiene
-        # ambas palabras) no dispare este caso además del severo.
-        "BRIDA_PAR_GALVANICO_PARCIAL",
-        ("bridas",),
-        [
-            ("1 brida", "una brida"),
-            ("inoxidable", "inox"),
-            ("acero al carbono", "carbono"),
-            ("moderada",),
-        ],
-        ("severa",),
-    ),
-    (
-        # Misma condición de par galvánico parcial, pero con corrosión
-        # severa (o "moderada a severa") -> reemplazo, del mismo material.
-        "BRIDA_PAR_GALVANICO_PARCIAL_SEVERA",
-        ("bridas",),
-        [
-            ("1 brida", "una brida"),
-            ("inoxidable", "inox"),
-            ("acero al carbono", "carbono"),
-            ("severa",),
-        ],
-    ),
-    (
-        "BRIDA_FUGA_EMPAQUE",
-        ("bridas",),
-        [
-            ("fuga",),
-            ("brida", "empaque", "junta"),
-        ],
-    ),
-    (
-        "BRIDA_TUERCA_FALTANTE",
-        ("bridas",),
-        [
-            ("tuerca",),
-            ("falta", "ausencia", "faltante"),
-        ],
-    ),
-    (
-        "BRIDA_PERNOS_EN_LUGAR_DE_ESPARRAGOS",
-        ("bridas",),
-        [
-            ("perno",),
-            ("lugar de esparrago", "lugar de espárrago", "en vez de esparrago"),
-        ],
-    ),
-    (
-        "VALVULA_MANUAL_CORROSION_MODERADA",
-        ("valvulas", "válvulas"),
-        [
-            ("corrosion", "corrosión"),
-            ("leve", "moderada"),
-        ],
-    ),
-    (
-        "VALVULA_VOLANTE_SUELTO",
-        ("valvulas", "válvulas"),
-        [
-            ("volante",),
-            ("suelto", "desprendid", "fuera de posicion", "fuera de posición"),
-        ],
-    ),
-    (
-        # "rotura"/"pérdida" de volante -> se reemplaza (a diferencia de
-        # "suelto/desprendido", donde el volante sigue existiendo y solo se
-        # reinstala).
-        "VALVULA_PERDIDA_VOLANTE",
-        ("valvulas", "válvulas"),
-        [
-            ("volante",),
-            ("perdida", "pérdida", "perdido", "rotura", "rota"),
-        ],
-    ),
-    (
-        "VALVULA_VOLANTE_AUSENTE",
-        ("valvulas", "válvulas"),
-        [
-            ("volante",),
-            ("ausencia", "ausente", "sin volante"),
-        ],
-    ),
-    (
-        "SOPORTE_ABRAZADERA_FALTANTE",
-        ("soportes", "abrazaderas"),
-        [
-            ("abrazadera",),
-            ("ausencia", "ausente"),
-        ],
-    ),
-    (
-        "SOPORTE_ABRAZADERA_ROTA",
-        ("soportes", "abrazaderas"),
-        [
-            ("abrazadera",),
-            ("rotura", "rota", "quebrada", "fracturada"),
-        ],
-    ),
-    (
-        # No restringido por categoría: una ausencia de soporte puede
-        # registrarse en el ítem "Soportes" o describirse dentro de otro
-        # ítem (p.ej. tubería de instrumentación sin su propio soporte).
-        "SOPORTE_FALTANTE",
-        (None,),
-        [
-            ("soporte",),
-            ("ausencia", "ausente", "falta de soporte", "sin soporte", "carece de soporte"),
-        ],
-    ),
-    (
-        "SOPORTE_UBOLT_CONTACTO_DIRECTO",
-        ("soportes", "abrazaderas"),
-        [
-            ("u-bolt", "u bolt", "ubolt"),
-            ("contacto", "corrosion", "corrosión"),
-        ],
-    ),
-    (
-        # Caso genérico (COMPENDIO C.4): corrosión leve/moderada en soporte
-        # metálico sin una condición más específica (u-bolt, spring hanger,
-        # ausencia, rotura) -- mantenimiento de recubrimiento, seguro por
-        # ser la acción menos invasiva.
-        "SOPORTE_METALICO_TIPICO",
-        ("soportes", "abrazaderas"),
-        [
-            ("corrosion", "corrosión"),
-            ("leve", "moderada"),
-        ],
-    ),
-    (
-        "AISLAMIENTO_PROTECCION_IGNIFUGA_AGRIETADA",
-        (None,),
-        [
-            ("ignifuga", "ignífuga", "ingnifuca", "ignifuca", "fireproofing"),
-            ("grieta", "agrieta"),
-        ],
-    ),
-    (
-        "AISLAMIENTO_AUSENCIA",
-        ("aislamiento",),
-        [
-            ("ausencia", "falta de aislamiento", "sin aislamiento"),
-            ("aislamiento",),
-        ],
-    ),
-    (
-        "AISLAMIENTO_ABERTURAS_ABOLLADURAS",
-        ("aislamiento",),
-        [
-            ("abertura", "abolladura", "expuesto", "exposicion", "exposición"),
-            ("aislamiento", "cubierta metalica", "cubierta metálica"),
-        ],
-    ),
-    (
-        "INDICADOR_MANOMETRO_DETERIORADO",
-        ("instrumentacion", "instrumentación"),
-        [
-            ("manometro", "manómetro"),
-            ("deteriorad", "aguja", "opac", "glicerina"),
-        ],
-    ),
-    (
-        "TUBERIA_COLOR_NO_REGLAMENTARIO",
-        ("recubrimientos", "componentes"),
-        [
-            ("color",),
-            ("no reglamentario", "reglamentario", "identificacion", "identificación"),
-        ],
-    ),
-    (
-        "TUBERIA_PANDEO_DEFORMACION",
-        (None,),
-        [
-            ("pandeo", "deformacion", "deformación"),
-        ],
-    ),
-]
+# REGLAS_SUGERENCIA (caso_id, categorías del checklist a las que aplica
+# -- substring en minúsculas, o (None,) = cualquiera --, grupos de
+# palabras clave -- se exige AL MENOS una coincidencia de CADA grupo --,
+# y opcionalmente un 4to elemento de palabras EXCLUIDAS) se carga arriba
+# junto con CATALOGO, desde la hoja "Reglas_Sugerencia" del Excel.
+# Reglas derivadas 1:1 de COMPLEMENTO/ROL_Y_OBJETIVO.REV2.txt.
 
 # Comentarios que NO representan un hallazgo real (informativos / sin
 # incidencia): nunca se sugiere recomendación para ellos.
