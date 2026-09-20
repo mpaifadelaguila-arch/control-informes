@@ -20,6 +20,7 @@ Uso típico (desde checklist.py):
     if resultado is not None:
         hallazgo, recomendacion = resultado.hallazgo, resultado.recomendacion
 """
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -71,6 +72,53 @@ class Resultado:
 
 def _v(datos, clave, defecto=SIN_DATO):
     return _fmt(datos.get(clave), defecto)
+
+
+# Cuando el checklist no trae un dato de diámetro/longitud/material/schedule,
+# en vez de insertar "SIN DATO" en la frase final (lo que se ve poco
+# profesional y confunde, a pedido del usuario) se omite esa cláusula
+# completa: la recomendación se redacta obviando ese dato, en vez de
+# mostrarlo como faltante.
+_RE_OMITIR_LONGITUD_PARENTESIS = re.compile(
+    r"\s*\(longitud aprox\.\s+SIN DATO metros\)", re.IGNORECASE
+)
+_RE_OMITIR_LONGITUD_BARE = re.compile(
+    r"\s*(?:de\s+)?longitud aprox\.\s+SIN DATO metros\b", re.IGNORECASE
+)
+_RE_OMITIR_MEDIDA = re.compile(
+    r"\s*(?:de\s+)?(?:NPS|Sch|material)\s+SIN DATO\b", re.IGNORECASE
+)
+
+
+def _omitir_datos_faltantes(texto):
+    """Limpia de una frase ya redactada las cláusulas de diámetro (NPS),
+    longitud, schedule o material que hayan quedado en SIN_DATO por no
+    venir en el comentario de campo, dejando la oración gramaticalmente
+    correcta en vez de mostrar el literal "SIN DATO"."""
+    if not texto:
+        return texto
+    t = _RE_OMITIR_LONGITUD_PARENTESIS.sub("", texto)
+    t = _RE_OMITIR_LONGITUD_BARE.sub("", t)
+    t = _RE_OMITIR_MEDIDA.sub("", t)
+    t = re.sub(r"\s+([.,;:])", r"\1", t)  # sin espacio antes de puntuación
+    t = re.sub(r",\s*,", ",", t)  # comas dobles
+    t = re.sub(r"\(\s*\)", "", t)  # paréntesis vacíos
+    t = re.sub(r"\s{2,}", " ", t)  # espacios dobles
+    return t.strip()
+
+
+def _como_punto_lista(texto):
+    """Convierte la recomendación de un caso individual en un punto de una
+    lista combinada (varios casos detectados en la misma observación). Si
+    ese caso ya trae su propio encabezado "Recomendación:\n• ..." (algunos
+    casos del catálogo ya usan ese formato), se conserva solo el contenido
+    con viñeta, sin duplicar el encabezado."""
+    t = texto.strip()
+    if t.lower().startswith("recomendación:"):
+        t = t.split(":", 1)[1].strip()
+    if t.startswith("•"):
+        return t
+    return f"• {t}"
 
 
 # ==============================================================================
@@ -787,6 +835,8 @@ def generar_hallazgo_y_recomendacion(datos: dict) -> Optional[Resultado]:
             f"({caso.etiqueta})."
         )
 
+    hallazgo = _omitir_datos_faltantes(hallazgo)
+    recomendacion = _omitir_datos_faltantes(recomendacion)
     return Resultado(caso_id=caso.id, hallazgo=hallazgo, recomendacion=recomendacion)
 
 
@@ -803,9 +853,8 @@ def generar_hallazgo_y_recomendacion(datos: dict) -> Optional[Resultado]:
 # regla calza con confianza, se devuelve None y el hallazgo queda marcado
 # para redacción manual del especialista (nunca se inventa una
 # recomendación técnica sobre una base ambigua).
-import re
 
-RE_NPS = re.compile(r'(\d+(?:\s+\d/\d)?"|\d/\d")')
+RE_NPS = re.compile(r'(\d+(?:\s+\d/\d)?"|\d/\d"?)')
 RE_CANTIDAD = re.compile(r"\((\d{1,3})\)")
 RE_LONGITUD = re.compile(r"([\d]+(?:\.[\d]+)?)\s*metros", re.IGNORECASE)
 RE_TIPO_VALVULA = re.compile(
@@ -1131,10 +1180,16 @@ def sugerir_caso_desde_texto(categoria_checklist, comentario):
     if resultados:
         if len(resultados) == 1:
             return resultados[0]
+        # Más de un problema detectado en la MISMA observación (p.ej. una
+        # válvula con corrosión Y volante roto a la vez): se unifica en una
+        # sola recomendación con un punto por acción, en vez de encadenar
+        # párrafos completos que repiten el mismo NPS/tipo y se vuelven
+        # muy extensos.
+        puntos = "\n".join(_como_punto_lista(r.recomendacion) for r in resultados)
         return Resultado(
             caso_id="+".join(r.caso_id for r in resultados),
             hallazgo=" ".join(r.hallazgo for r in resultados),
-            recomendacion=" ".join(r.recomendacion for r in resultados),
+            recomendacion=f"Recomendación:\n{puntos}",
         )
 
     if _RE_LEVE_PUNTUAL.search(texto_norm):
