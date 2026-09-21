@@ -103,15 +103,25 @@ st.markdown(
     .status-pill { display: flex; align-items: center; gap: 10px; border-radius: 12px; padding: 11px 13px; }
     .status-pill.ok { background: #F0FAF4; border: 1px solid #CDEDD9; }
     .status-pill.bad { background: #FDF1F0; border: 1px solid #F3C9C6; }
-    .status-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .status-icon {
+        width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center;
+        justify-content: center; flex-shrink: 0; color: #fff; font-size: 12px; font-weight: 900;
+        line-height: 1;
+    }
     .status-icon.ok { background: #159A68; }
     .status-icon.bad { background: #D8534F; }
-    .status-label { font-size: 12.5px; font-weight: 700; color: #0F2E22; }
+    .status-label { font-size: 12.5px; font-weight: 700; color: #0F2E22; overflow-wrap: anywhere; }
     .status-pill.bad .status-label { color: #6B1E1A; }
 
+    /* Columnas nativas de Streamlit: por defecto no se achican por debajo   */
+    /* del contenido interno, lo que descuadra el ancho entre tarjetas con  */
+    /* textos de distinto largo -- se fuerza el reparto parejo.             */
+    [data-testid="stColumn"] { min-width: 0 !important; }
+    [data-testid="stHorizontalBlock"] { align-items: stretch !important; }
+
     /* ETIQUETAS DE CARGA DE ARCHIVOS */
-    .upload-label-row { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; margin-bottom: 4px; }
-    .upload-label-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 750; color: #1E293B; }
+    .upload-label-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-top: 6px; margin-bottom: 4px; }
+    .upload-label-title { font-size: 13px; font-weight: 750; color: #1E293B; overflow-wrap: anywhere; }
     .upload-label-sub { font-size: 11px; color: #8592A3; margin-bottom: 6px; }
     [data-testid="stFileUploaderDropzone"] {
         border: 1.5px dashed #C7D4E1 !important;
@@ -169,8 +179,8 @@ st.html("""
     </div>
 """)
 
-_ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>'
-_ICON_WARN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>'
+_ICON_CHECK = "✓"
+_ICON_WARN = "!"
 
 
 def _status_pill(ok, label):
@@ -205,10 +215,7 @@ if not MODULOS_DISPONIBLES:
 tarjeta_carga = st.container(key="tarjeta_carga")
 tarjeta_carga.html("""
     <div class="section-title-row">
-        <div class="section-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#122F4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
-            Carga de archivos
-        </div>
+        <div class="section-title">📁 Carga de archivos</div>
         <span class="badge-oblig">Obligatorios: 1 y 3</span>
     </div>
 """)
@@ -255,10 +262,7 @@ if f_isometricos:
         tarjeta_iso = st.container(key="tarjeta_iso")
         tarjeta_iso.html("""
             <div class="section-title-row" style="margin-bottom:6px;">
-                <div class="section-title">
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#122F4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H4v-5M20 7h-5V2M4 12L11 5M13 19l7-7"/></svg>
-                    Asignación de isométricos a cada línea
-                </div>
+                <div class="section-title">🔗 Asignación de isométricos a cada línea</div>
             </div>
         """)
 
@@ -464,10 +468,7 @@ if st.session_state.get("ok_gen", False):
     tarjeta_resultados = st.container(key="tarjeta_resultados")
     tarjeta_resultados.html("""
         <div class="section-title-row">
-            <div class="section-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#122F4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
-                Resultados de la generación
-            </div>
+            <div class="section-title">📥 Resultados de la generación</div>
         </div>
     """)
 
