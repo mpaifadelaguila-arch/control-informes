@@ -6,6 +6,7 @@ nunca inventar un diseño nuevo) y fusión (merge) con el contenido real de
 cada anexo (sección 8.3).
 """
 import os
+import re
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase.ttfonts import TTFont
@@ -245,6 +246,42 @@ def construir_informe_compilado(ruta_word, anexos_generados, out_dir, nombre_sal
     return ruta_salida, None
 
 
+def _normalizar_tag(texto):
+    """Normaliza un TAG de línea SOLO para buscar coincidencias entre
+    archivos distintos (Detalle de grupo, VT-CHECK LIST, PSAIM) -- nunca
+    para mostrarlo. Unifica mayúsculas, espacios (incluye NBSP y espacios
+    dobles) y comillas tipográficas de pulgada (”, “, ″, ' ...) a una
+    comilla recta simple, que es la diferencia más común entre cómo un
+    TAG se escribe en un Excel y en otro."""
+    if texto is None:
+        return ""
+    texto = str(texto).strip().upper().replace("\xa0", " ")
+    texto = re.sub(r"\s+", " ", texto)
+    for comilla in ("”", "“", "″", "’", "‘"):
+        texto = texto.replace(comilla, '"')
+    return texto.replace("'", '"')
+
+
+def _buscar_por_tag(diccionario, tag):
+    """Busca `tag` en `diccionario` por igualdad exacta primero: si no
+    aparece (p.ej. el Detalle de grupo trae 4"-22-71-11 y el VT-CHECK LIST
+    lo escribió con una comilla tipográfica o un espacio de más), reintenta
+    por coincidencia normalizada antes de darlo por no encontrado -- para
+    que un detalle de formato entre dos archivos no deje un Anexo B/C sin
+    su checklist o su PSAIM."""
+    if not diccionario:
+        return None
+    if tag in diccionario:
+        return diccionario[tag]
+    objetivo = _normalizar_tag(tag)
+    if not objetivo:
+        return None
+    for clave, valor in diccionario.items():
+        if _normalizar_tag(clave) == objetivo:
+            return valor
+    return None
+
+
 def construir_anexos(*args, **kwargs):
     """Versión completamente flexible y tolerante a fallos para la construcción de anexos."""
     avisos = []
@@ -281,7 +318,14 @@ def construir_anexos(*args, **kwargs):
         sep_b = os.path.join(out_dir, f"_sep_B{i}.pdf")
         separador_anexo_b(sep_b, i, tag)
         out_b = os.path.join(out_dir, f"Anexo B.{i} - {nombre_archivo_seguro(tag)}.pdf")
-        contenido = [p for p in (isometricos.get(tag), checklists_vt.get(tag)) if p and os.path.exists(str(p))]
+        pdf_checklist = _buscar_por_tag(checklists_vt, tag)
+        if checklists_vt and not pdf_checklist:
+            avisos.append(
+                f"Anexo B.{i} ({tag}): el VT-CHECK LIST se cargó pero no se encontró la hoja "
+                "de esta línea (el TAG no calzó ni exacto ni normalizado) -- el anexo quedó "
+                "solo con el separador, sin el checklist."
+            )
+        contenido = [p for p in (_buscar_por_tag(isometricos, tag), pdf_checklist) if p and os.path.exists(str(p))]
         merge_pdfs(out_b, sep_b, *contenido)
         generados.append(out_b)
 
@@ -298,7 +342,7 @@ def construir_anexos(*args, **kwargs):
         sep_c = os.path.join(out_dir, f"_sep_C{j}.pdf")
         separador_anexo_c(sep_c, j, tag)
         out_c = os.path.join(out_dir, f"Anexo C.{j} - {nombre_archivo_seguro(tag)}.pdf")
-        contenido = psaim_pdfs.get(tag)
+        contenido = _buscar_por_tag(psaim_pdfs, tag)
         if contenido and os.path.exists(str(contenido)):
             merge_pdfs(out_c, sep_c, contenido)
         else:
