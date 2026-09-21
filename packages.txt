@@ -1,1 +1,3 @@
 libreoffice
+fonts-crosextra-caladea
+fonts-crosextra-carlito

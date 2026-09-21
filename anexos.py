@@ -29,10 +29,23 @@ def _find_cambria():
     """Devuelve (ruta_regular, ruta_bold) de la primera fuente serif de
     sistema disponible -- la MISMA fuente para toda página generada por
     reportlab en el compilado (separadores de anexo Y el resumen PSAIM),
-    para que no se note un cambio de tipografía entre ellas."""
+    para que no se note un cambio de tipografía entre ellas.
+
+    Caladea va primero porque es la fuente sustituta oficial de Cambria
+    (metric-compatible, del proyecto Chrome OS Core Fonts): es la MISMA
+    que usa LibreOffice para sustituir Cambria al convertir el Informe
+    Word a PDF en el servidor (paquete 'fonts-crosextra-caladea' listado
+    en packages.txt), así que con ella las páginas generadas por
+    reportlab quedan visualmente iguales al resto del Word convertido --
+    Liberation Serif / DejaVu Serif solo quedan de respaldo si ni
+    siquiera Caladea está instalada."""
     candidatos = [
         (r"C:\Windows\Fonts\cambria.ttc", None),
         (r"C:\Windows\Fonts\Cambria.ttf", r"C:\Windows\Fonts\Cambriab.ttf"),
+        (
+            "/usr/share/fonts/truetype/crosextra/Caladea-Regular.ttf",
+            "/usr/share/fonts/truetype/crosextra/Caladea-Bold.ttf",
+        ),
         (
             "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
             "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
