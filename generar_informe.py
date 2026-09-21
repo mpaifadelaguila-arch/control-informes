@@ -15,6 +15,7 @@ sirve de "molde" de tablas (una fila de ejemplo por línea). Por eso el
 llenado se hace clonando/recortando filas a la cantidad real de líneas del
 grupo y sobrescribiendo cada celda con el dato correspondiente.
 """
+import copy
 import os
 import re
 import datetime
@@ -205,6 +206,62 @@ def _lista_espanol(numeros):
     return ", ".join(numeros[:-1]) + " y " + numeros[-1]
 
 
+def _es_pendiente_anexo(fila):
+    return bool(fila.get("entrega_anexo"))
+
+
+def _agregar_nota_pendiente_anexo(doc, filas_tecnicas):
+    """Agrega, como viñeta(s) NUEVA(S) dentro de la misma lista de notas de
+    "1.0 Sumario de Inspección" (justo debajo de la nota de "solo se
+    realizó inspección visual", con el mismo estilo de lista), un aviso
+    por cada texto distinto que el usuario haya escrito en la columna "SE
+    ENTREGARA COMO INFORME ANEXO" del Detalle de grupo. Esas líneas NO
+    llevan hallazgo, ni recomendación, ni checklist, ni Anexo en ESTE
+    informe -- se inspeccionarán después y se entregarán como Informe
+    Complementario / Anexo Adicional aparte.
+
+    Cuando dos o más líneas comparten EXACTAMENTE el mismo texto en esa
+    columna, se unifican en una sola viñeta (prefijada con la lista de
+    líneas a las que aplica); si el texto es distinto entre líneas, cada
+    una conserva su propia viñeta con su propio texto tal cual se
+    escribió -- nunca se inventa una frase genérica que mezcle textos
+    distintos."""
+    pendientes = [f for f in filas_tecnicas if _es_pendiente_anexo(f)]
+    if not pendientes:
+        return False
+
+    grupos = {}
+    orden_grupos = []
+    for f in pendientes:
+        texto = str(f["entrega_anexo"]).strip()
+        clave = texto.lower()
+        if clave not in grupos:
+            grupos[clave] = {"texto": texto, "items": []}
+            orden_grupos.append(clave)
+        grupos[clave]["items"].append(f["item"])
+
+    anchor = None
+    for p in doc.paragraphs:
+        if "solo se realizó inspección visual" in p.text:
+            anchor = p._p
+            break
+    if anchor is None:
+        return False
+
+    punto_insercion = anchor
+    for clave in orden_grupos:
+        grupo = grupos[clave]
+        if len(grupo["items"]) > 1:
+            texto_nota = f"Líneas N° {_lista_espanol(grupo['items'])}: {grupo['texto']}"
+        else:
+            texto_nota = grupo["texto"]
+        nuevo_p = copy.deepcopy(anchor)
+        punto_insercion.addnext(nuevo_p)
+        docxlib.set_para_content(nuevo_p, texto_nota)
+        punto_insercion = nuevo_p
+    return True
+
+
 def _reemplazar_nota_solo_vt(doc, filas_activas):
     """Actualiza el párrafo NOTA de la tabla 0 ("En las líneas N°... solo
     se realizó inspección visual...") con los ítems cuyo alcance del
@@ -349,13 +406,20 @@ def ejecutar_proceso_grupo(
             "tag": tag,
             "alcance": ln.get("alcance"),
             "observacion": (str(ln["observacion"]).strip() if ln.get("observacion") else None),
+            "entrega_anexo": (str(ln["entrega_anexo"]).strip() if ln.get("entrega_anexo") else None),
             **datos_tecnicos,
         })
 
-    # Las líneas retiradas del plan (NOTAS/observación con "retirad...") solo
-    # se muestran en las tablas técnicas (0 y 5); nunca en Recomendación (1)
-    # ni en Hallazgos (7), donde no corresponde ninguna inspección.
-    filas_activas = [f for f in filas_tecnicas if not _es_retirada(f.get("observacion"))]
+    # Las líneas retiradas del plan (NOTAS/observación con "retirad...") y
+    # las que el usuario marcó para entregarse como Informe Complementario
+    # / Anexo Adicional aparte (columna "SE ENTREGARA COMO INFORME ANEXO")
+    # solo se muestran en las tablas técnicas (0 y 5); nunca en
+    # Recomendación (1) ni en Hallazgos (7), donde no corresponde ninguna
+    # inspección todavía.
+    filas_activas = [
+        f for f in filas_tecnicas
+        if not _es_retirada(f.get("observacion")) and not _es_pendiente_anexo(f)
+    ]
 
     # 3. PSAIM: rate de corrosión y vida útil por línea (si se subió el archivo)
     psaim_por_tag = {}
@@ -435,6 +499,7 @@ def ejecutar_proceso_grupo(
     if grupo_muestra and grupo_muestra != nombre_grupo_real:
         _reemplazar_texto_literal_parrafos(doc, grupo_muestra, nombre_grupo_real)
 
+    _agregar_nota_pendiente_anexo(doc, filas_tecnicas)
     _reemplazar_nota_solo_vt(doc, filas_activas)
     _reemplazar_recomendaciones_por_clase(doc, filas_activas)
 

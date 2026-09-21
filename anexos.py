@@ -296,7 +296,13 @@ def construir_anexos(*args, **kwargs):
         return generados, avisos
 
     os.makedirs(out_dir, exist_ok=True)
-    lineas = config.get("lineas", [])
+    # Las líneas marcadas por el usuario para entregarse como Informe
+    # Complementario / Anexo Adicional aparte (columna "SE ENTREGARA COMO
+    # INFORME ANEXO" del Detalle de grupo) nunca llevan Anexo B ni C en
+    # ESTE informe -- se filtran ANTES de numerar, para que el resto de
+    # los Anexos B.1, B.2... queden numerados de forma correlativa, sin
+    # huecos.
+    lineas = [ln for ln in config.get("lineas", []) if not ln.get("entrega_anexo")]
 
     # Anexo A
     sep_a = os.path.join(out_dir, "_sep_A.pdf")
