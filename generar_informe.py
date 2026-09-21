@@ -115,6 +115,18 @@ def _reemplazar_en_cuadros_texto(doc, buscar, reemplazar):
                 docxlib.set_para_content(p_el, texto_parrafo.replace(buscar, reemplazar))
 
 
+def _normalizar_tag_para_match(texto):
+    """Normaliza un TAG SOLO para comparar (nunca para mostrar): unifica
+    mayúsculas, espacios (incluye NBSP) y comillas tipográficas de pulgada
+    a una comilla recta -- la diferencia más común entre cómo un TAG queda
+    escrito en el Detalle de grupo y en el nombre de una hoja de Excel."""
+    texto = str(texto or "").strip().upper().replace("\xa0", " ")
+    texto = re.sub(r"\s+", " ", texto)
+    for comilla in ("”", "“", "″", "’", "‘", "'"):
+        texto = texto.replace(comilla, '"')
+    return texto
+
+
 def _leer_psaim_por_linea(ruta_psaim, tags):
     """Intenta asociar el Excel PSAIM subido a las líneas del grupo.
 
@@ -134,6 +146,15 @@ def _leer_psaim_por_linea(ruta_psaim, tags):
     for nombre_hoja in wb.sheetnames:
         norm = nombre_hoja.strip().upper()
         tag_real = tags_por_norm.get(norm)
+        if tag_real is None:
+            # Reintento tolerante a comillas tipográficas/espacios (p.ej.
+            # el nombre de la hoja quedó con ” en vez de ") antes de
+            # probar la coincidencia parcial, más arriesgada.
+            norm_tol = _normalizar_tag_para_match(nombre_hoja)
+            for tnorm, torig in tags_por_norm.items():
+                if _normalizar_tag_para_match(tnorm) == norm_tol:
+                    tag_real = torig
+                    break
         if tag_real is None:
             for tnorm, torig in tags_por_norm.items():
                 if tnorm and (tnorm in norm or norm in tnorm):
@@ -220,23 +241,32 @@ def _agregar_nota_pendiente_anexo(doc, filas_tecnicas):
     informe -- se inspeccionarán después y se entregarán como Informe
     Complementario / Anexo Adicional aparte.
 
-    Cuando dos o más líneas comparten EXACTAMENTE el mismo texto en esa
-    columna, se unifican en una sola viñeta (prefijada con la lista de
-    líneas a las que aplica); si el texto es distinto entre líneas, cada
-    una conserva su propia viñeta con su propio texto tal cual se
-    escribió -- nunca se inventa una frase genérica que mezcle textos
-    distintos."""
+    Cuando dos o más líneas describen EL MISMO motivo (el mismo texto, sin
+    contar la referencia a "Línea N°..." que cada una trae con su propio
+    número), se unifican en una sola viñeta con la lista de líneas al
+    inicio; si el motivo es distinto entre líneas, cada una conserva su
+    propia viñeta -- nunca se inventa una frase genérica que mezcle
+    motivos distintos."""
     pendientes = [f for f in filas_tecnicas if _es_pendiente_anexo(f)]
     if not pendientes:
         return False
+
+    # Se quita el "Línea N° X" (o "Líneas N° X") que el propio texto trae
+    # al inicio, si lo trae, para comparar solo el MOTIVO real -- dos
+    # textos que solo difieren en el número de línea SÍ deben unificarse.
+    _RE_PREFIJO_LINEA = re.compile(
+        r"^l[íi]neas?\s*n[°ºo]?\.?\s*\d+(?:\s*[,y]\s*\d+)*\s*[:,\-–]?\s*",
+        re.IGNORECASE,
+    )
 
     grupos = {}
     orden_grupos = []
     for f in pendientes:
         texto = str(f["entrega_anexo"]).strip()
-        clave = texto.lower()
+        motivo = _RE_PREFIJO_LINEA.sub("", texto).strip() or texto
+        clave = motivo.lower()
         if clave not in grupos:
-            grupos[clave] = {"texto": texto, "items": []}
+            grupos[clave] = {"motivo": motivo, "items": []}
             orden_grupos.append(clave)
         grupos[clave]["items"].append(f["item"])
 
@@ -251,10 +281,8 @@ def _agregar_nota_pendiente_anexo(doc, filas_tecnicas):
     punto_insercion = anchor
     for clave in orden_grupos:
         grupo = grupos[clave]
-        if len(grupo["items"]) > 1:
-            texto_nota = f"Líneas N° {_lista_espanol(grupo['items'])}: {grupo['texto']}"
-        else:
-            texto_nota = grupo["texto"]
+        etiqueta = "Línea" if len(grupo["items"]) == 1 else "Líneas"
+        texto_nota = f"{etiqueta} N° {_lista_espanol(grupo['items'])}: {grupo['motivo']}"
         nuevo_p = copy.deepcopy(anchor)
         punto_insercion.addnext(nuevo_p)
         docxlib.set_para_content(nuevo_p, texto_nota)
