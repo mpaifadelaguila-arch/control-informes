@@ -72,6 +72,91 @@ st.markdown(
     }
     .header-title { font-size: 24px; font-weight: 800; letter-spacing: 0.3px; margin: 0; color: #FFFFFF; }
     .header-subtitle { font-size: 13.5px; color: #C9DCEE; margin-top: 4px; font-weight: 500; }
+
+    /* TARJETAS DE SECCIÓN */
+    .st-key-tarjeta_estado, .st-key-tarjeta_carga, .st-key-tarjeta_iso,
+    .st-key-tarjeta_resultados {
+        background: #FFFFFF !important;
+        border: 1px solid #DBE5EF;
+        border-radius: 16px;
+        padding: 20px 24px 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 4px 14px rgba(15, 42, 70, 0.05);
+    }
+    .section-title-row {
+        display: flex; align-items: center; justify-content: space-between;
+        border-bottom: 1px solid #E7EDF3; padding-bottom: 12px; margin-bottom: 16px;
+    }
+    .section-title { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 800; color: #122F4C; }
+    .badge-oblig {
+        font-size: 11px; font-weight: 800; color: #8a6d1f; background: #FBF0D9;
+        border: 1px solid #EFD9A0; border-radius: 999px; padding: 4px 12px; white-space: nowrap;
+    }
+    .badge-opt {
+        font-size: 11px; font-weight: 800; color: #64748B; background: #F1F5F9;
+        border-radius: 999px; padding: 4px 12px; white-space: nowrap;
+    }
+
+    /* FILA DE ESTADO DEL SISTEMA */
+    .status-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 1100px) { .status-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    .status-pill { display: flex; align-items: center; gap: 10px; border-radius: 12px; padding: 11px 13px; }
+    .status-pill.ok { background: #F0FAF4; border: 1px solid #CDEDD9; }
+    .status-pill.bad { background: #FDF1F0; border: 1px solid #F3C9C6; }
+    .status-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .status-icon.ok { background: #159A68; }
+    .status-icon.bad { background: #D8534F; }
+    .status-label { font-size: 12.5px; font-weight: 700; color: #0F2E22; }
+    .status-pill.bad .status-label { color: #6B1E1A; }
+
+    /* ETIQUETAS DE CARGA DE ARCHIVOS */
+    .upload-label-row { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; margin-bottom: 4px; }
+    .upload-label-title { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 750; color: #1E293B; }
+    .upload-label-sub { font-size: 11px; color: #8592A3; margin-bottom: 6px; }
+    [data-testid="stFileUploaderDropzone"] {
+        border: 1.5px dashed #C7D4E1 !important;
+        border-radius: 14px !important;
+        background: #FBFDFF !important;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    [data-testid="stFileUploaderDropzone"]:hover {
+        border-color: #D4AF37 !important;
+        box-shadow: 0 6px 18px rgba(15, 42, 70, .10);
+    }
+
+    /* FILAS DE ASIGNACIÓN DE ISOMÉTRICOS */
+    .iso-row-name { display: flex; align-items: center; gap: 10px; font-size: 12.5px; font-weight: 650; color: #475569; padding-top: 8px; }
+
+    /* BOTÓN PRINCIPAL */
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(120deg, #0B2038, #1E4E7E 70%) !important;
+        border: none !important;
+        border-radius: 14px !important;
+        padding: 12px 22px !important;
+        font-weight: 800 !important;
+        letter-spacing: .3px;
+        box-shadow: 0 12px 26px rgba(11, 32, 56, .22);
+        transition: filter .15s ease, transform .15s ease;
+    }
+    .stButton > button[kind="primary"]:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+    /* TARJETA DE DESCARGA DESTACADA (Informe Compilado) */
+    .st-key-dl_compilado {
+        background: linear-gradient(120deg, #0B2038, #1E4E7E 85%) !important;
+        border-radius: 14px; padding: 16px 18px 18px; margin-bottom: 14px;
+    }
+    .dl-compilado-title { font-size: 14.5px; font-weight: 800; color: #FFFFFF; }
+    .dl-compilado-sub { font-size: 11.5px; color: #C9DCEE; margin: 2px 0 10px; }
+    .st-key-dl_compilado .stDownloadButton button {
+        background: #F4D785 !important; color: #0B2038 !important; border: none !important;
+        font-weight: 800 !important; border-radius: 10px !important;
+    }
+    .st-key-dl_compilado .stDownloadButton button:hover { filter: brightness(1.05); }
+
+    /* TARJETAS DE DESCARGA SECUNDARIAS */
+    .st-key-dl_word, .st-key-dl_excel, .st-key-dl_anexos {
+        background: #F8FAFC !important; border: 1px solid #E7EDF3; border-radius: 12px; padding: 8px;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -84,44 +169,73 @@ st.html("""
     </div>
 """)
 
-c1, c2, c3, c4, c5 = st.columns(5)
-with c1:
-    st.success("🟢 Base Maestra OK" if RUTA_MAESTRA.exists() else "⚠️ Falta Base Maestra")
-with c2:
-    st.success("🟢 Catálogo Hallazgos OK" if RUTA_CATALOGO.exists() else "⚠️ Falta Catálogo Hallazgos")
-with c3:
-    st.success("🟢 Plantilla Word OK" if RUTA_PLANTILLA.exists() else "⚠️ Falta Plantilla Word")
-with c4:
-    st.success("🟢 COMPLEMENTO OK" if DIR_COMPLEMENTO.exists() else "⚠️ Falta COMPLEMENTO")
-with c5:
-    if MODULOS_DISPONIBLES:
-        st.success("🟢 Módulos Backend OK")
-    else:
-        st.error("🔴 Error al importar módulos")
+_ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>'
+_ICON_WARN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>'
+
+
+def _status_pill(ok, label):
+    tono = "ok" if ok else "bad"
+    icono = _ICON_CHECK if ok else _ICON_WARN
+    return (
+        f'<div class="status-pill {tono}">'
+        f'<div class="status-icon {tono}">{icono}</div>'
+        f'<span class="status-label">{label}</span></div>'
+    )
+
+
+estado_html = "".join([
+    _status_pill(RUTA_MAESTRA.exists(), "Base Maestra"),
+    _status_pill(RUTA_CATALOGO.exists(), "Catálogo Hallazgos"),
+    _status_pill(RUTA_PLANTILLA.exists(), "Plantilla Word"),
+    _status_pill(DIR_COMPLEMENTO.exists(), "Complemento"),
+    _status_pill(MODULOS_DISPONIBLES, "Módulos Backend"),
+])
+
+tarjeta_estado = st.container(key="tarjeta_estado")
+tarjeta_estado.html(f"""
+    <div class="section-title-row" style="margin-bottom:14px;">
+        <div class="section-title">Estado del sistema</div>
+    </div>
+    <div class="status-grid">{estado_html}</div>
+""")
 
 if not MODULOS_DISPONIBLES:
     st.warning(f"Detalle de importación: {error_import}")
 
-st.markdown("---")
-st.subheader("📁 Carga de Archivos (Obligatorios: 1 y 3)")
+tarjeta_carga = st.container(key="tarjeta_carga")
+tarjeta_carga.html("""
+    <div class="section-title-row">
+        <div class="section-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#122F4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+            Carga de archivos
+        </div>
+        <span class="badge-oblig">Obligatorios: 1 y 3</span>
+    </div>
+""")
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4 = tarjeta_carga.columns(4)
 with col1:
-    f_m3m6 = st.file_uploader("1. Detalle de grupo / líneas (Excel) [Obligatorio]", type=["xlsx", "xls"], key="m3m6")
+    st.html('<div class="upload-label-row"><span class="upload-label-title">1. Detalle de grupo / líneas</span><span class="badge-oblig">Obligatorio</span></div><div class="upload-label-sub">Excel (.xlsx, .xls)</div>')
+    f_m3m6 = st.file_uploader("1. Detalle de grupo / líneas", type=["xlsx", "xls"], key="m3m6", label_visibility="collapsed")
 with col2:
-    f_cons = st.file_uploader("2. VT-CHECK LIST (Excel) [Opcional]", type=["xlsx", "xls"], key="cons")
+    st.html('<div class="upload-label-row"><span class="upload-label-title">2. VT-CHECK LIST</span><span class="badge-opt">Opcional</span></div><div class="upload-label-sub">Excel (.xlsx, .xls)</div>')
+    f_cons = st.file_uploader("2. VT-CHECK LIST", type=["xlsx", "xls"], key="cons", label_visibility="collapsed")
 with col3:
-    f_fotos = st.file_uploader("3. Fotos de la Unidad [Obligatorio]", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="fotos")
+    st.html('<div class="upload-label-row"><span class="upload-label-title">3. Fotos de la Unidad</span><span class="badge-oblig">Obligatorio</span></div><div class="upload-label-sub">JPG, PNG · múltiples</div>')
+    f_fotos = st.file_uploader("3. Fotos de la Unidad", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="fotos", label_visibility="collapsed")
 with col4:
-    f_psaim = st.file_uploader("4. Archivo PSAIM (Excel, una hoja por línea) [Opcional]", type=["xlsx", "xls"], key="psaim")
+    st.html('<div class="upload-label-row"><span class="upload-label-title">4. Archivo PSAIM</span><span class="badge-opt">Opcional</span></div><div class="upload-label-sub">Excel · una hoja por línea</div>')
+    f_psaim = st.file_uploader("4. Archivo PSAIM", type=["xlsx", "xls"], key="psaim", label_visibility="collapsed")
 
-col5, col6 = st.columns(2)
+col5, col6 = tarjeta_carga.columns(2)
 with col5:
-    f_pid = st.file_uploader("5. P&ID del grupo (PDF) [Opcional]", type=["pdf"], key="pid")
+    st.html('<div class="upload-label-row"><span class="upload-label-title">5. P&amp;ID del grupo</span><span class="badge-opt">Opcional</span></div><div class="upload-label-sub">PDF</div>')
+    f_pid = st.file_uploader("5. P&ID del grupo", type=["pdf"], key="pid", label_visibility="collapsed")
 with col6:
+    st.html('<div class="upload-label-row"><span class="upload-label-title">6. Isométricos por línea</span><span class="badge-opt">Opcional</span></div><div class="upload-label-sub">PDF · uno por archivo</div>')
     f_isometricos = st.file_uploader(
-        "6. Isométricos por línea (PDF, uno por archivo) [Opcional]",
-        type=["pdf"], accept_multiple_files=True, key="isometricos"
+        "6. Isométricos por línea",
+        type=["pdf"], accept_multiple_files=True, key="isometricos", label_visibility="collapsed"
     )
 
 # --- Detección de tags y asignación de isométricos a cada línea -------------
@@ -138,7 +252,15 @@ if f_isometricos:
     if not tags_detectados:
         st.info("Carga primero el Detalle de grupo/líneas (1) para poder asignar cada isométrico a su línea.")
     else:
-        st.markdown("**Asignación de isométricos a cada línea:**")
+        tarjeta_iso = st.container(key="tarjeta_iso")
+        tarjeta_iso.html("""
+            <div class="section-title-row" style="margin-bottom:6px;">
+                <div class="section-title">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#122F4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H4v-5M20 7h-5V2M4 12L11 5M13 19l7-7"/></svg>
+                    Asignación de isométricos a cada línea
+                </div>
+            </div>
+        """)
 
         def _normaliza(s):
             return "".join(c for c in str(s).upper() if c.isalnum())
@@ -149,15 +271,18 @@ if f_isometricos:
             sugerido = next((t for tn, t in tags_norm.items() if tn and tn in nombre_norm), None)
             opciones = ["-- Sin asignar --"] + tags_detectados
             idx_default = opciones.index(sugerido) if sugerido in opciones else 0
-            seleccion = st.selectbox(
-                f"Línea para «{f_iso.name}»", opciones, index=idx_default, key=f"iso_tag_{f_iso.name}"
-            )
+            col_nombre, col_select = tarjeta_iso.columns([2, 1], vertical_alignment="center")
+            with col_nombre:
+                st.html(f'<div class="iso-row-name">{f_iso.name}</div>')
+            with col_select:
+                seleccion = st.selectbox(
+                    f"Línea para «{f_iso.name}»", opciones, index=idx_default,
+                    key=f"iso_tag_{f_iso.name}", label_visibility="collapsed",
+                )
             if seleccion != "-- Sin asignar --":
                 isometricos_por_tag[seleccion] = f_iso
 
-st.markdown("---")
-
-if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_container_width=True, icon=":material/play_arrow:"):
+if st.button("Ejecutar Generación de Informe Real", type="primary", use_container_width=True, icon=":material/play_arrow:"):
     if not (f_m3m6 and f_fotos):
         st.error("Por favor, asegúrate de cargar el Detalle de líneas (1) y las Fotos de la Unidad (3) para continuar.")
     elif not MODULOS_DISPONIBLES:
@@ -336,15 +461,27 @@ if st.button("🚀 Ejecutar Generación de Informe Real", type="primary", use_co
                 st.session_state["ok_gen"] = False
 
 if st.session_state.get("ok_gen", False):
-    st.markdown("---")
-    st.subheader("📥 Descarga de Entregables Generados por el Sistema")
+    tarjeta_resultados = st.container(key="tarjeta_resultados")
+    tarjeta_resultados.html("""
+        <div class="section-title-row">
+            <div class="section-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#122F4C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+                Resultados de la generación
+            </div>
+        </div>
+    """)
 
     nombre_grupo_archivo = st.session_state.get("nombre_grupo_archivo", "Grupo")
     nombre_compilado_archivo = st.session_state.get("nombre_compilado_archivo", nombre_grupo_archivo)
     compilado_data = st.session_state.get("res_compilado")
     if compilado_data:
-        st.download_button(
-            "📦 Descargar Informe Compilado (100%)",
+        dl_compilado = tarjeta_resultados.container(key="dl_compilado")
+        dl_compilado.html(f"""
+            <div class="dl-compilado-title">📦 Informe Compilado al 100%</div>
+            <div class="dl-compilado-sub">{nombre_compilado_archivo}.pdf · Word + todos los anexos en un solo PDF</div>
+        """)
+        dl_compilado.download_button(
+            "Descargar Informe Compilado (100%)",
             data=compilado_data,
             file_name=f"{nombre_compilado_archivo}.pdf",
             mime="application/pdf",
@@ -352,20 +489,21 @@ if st.session_state.get("ok_gen", False):
             type="primary",
         )
     else:
-        st.warning(
+        tarjeta_resultados.warning(
             "No se pudo generar el Informe Compilado en PDF (LibreOffice no está "
             "disponible en el servidor). Los entregables individuales sí están "
             "listos para descarga abajo."
         )
 
     tiene_excel = st.session_state.get("res_excel") is not None and len(st.session_state.get("res_excel", b"")) > 0
-    cols = st.columns(3 if tiene_excel else 2)
+    cols = tarjeta_resultados.columns(3 if tiene_excel else 2)
 
     with cols[0]:
         word_data = st.session_state.get("res_word", b"")
         if word_data:
-            st.download_button(
-                "📄 Descargar Informe Word Real",
+            dl_word = st.container(key="dl_word")
+            dl_word.download_button(
+                "📄 Informe Word Real",
                 data=word_data,
                 file_name=f"Informe_{nombre_grupo_archivo}.docx",
                 mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -375,8 +513,9 @@ if st.session_state.get("ok_gen", False):
     if tiene_excel:
         with cols[1]:
             excel_data = st.session_state.get("res_excel")
-            st.download_button(
-                "📊 Descargar VT-CHECK LIST Parchado",
+            dl_excel = st.container(key="dl_excel")
+            dl_excel.download_button(
+                "📊 VT-CHECK LIST Parchado",
                 data=excel_data,
                 file_name=f"VT-CHECK_LIST_{nombre_grupo_archivo}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -384,8 +523,9 @@ if st.session_state.get("ok_gen", False):
             )
         with cols[2]:
             anexos_data = st.session_state.get("res_anexos", b"")
-            st.download_button(
-                "📑 Descargar Anexos ZIP",
+            dl_anexos = st.container(key="dl_anexos")
+            dl_anexos.download_button(
+                "📑 Anexos ZIP",
                 data=anexos_data,
                 file_name=f"Anexos_{nombre_grupo_archivo}.zip",
                 mime="application/zip",
@@ -394,8 +534,9 @@ if st.session_state.get("ok_gen", False):
     else:
         with cols[1]:
             anexos_data = st.session_state.get("res_anexos", b"")
-            st.download_button(
-                "📑 Descargar Anexos ZIP",
+            dl_anexos = st.container(key="dl_anexos")
+            dl_anexos.download_button(
+                "📑 Anexos ZIP",
                 data=anexos_data,
                 file_name=f"Anexos_{nombre_grupo_archivo}.zip",
                 mime="application/zip",
