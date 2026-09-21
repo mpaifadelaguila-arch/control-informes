@@ -16,44 +16,65 @@ PAGE_W, PAGE_H = 595.92, 841.92
 MARGIN = 0.85 * 28.3465  # ~0.85 cm en puntos
 
 FONT_NAME = "CambriaLike"
-# Fuente base de reportlab (siempre disponible, sin archivo externo) -- se
-# usa como respaldo cuando el contenedor de despliegue (p.ej. Streamlit
+FONT_NAME_BOLD = "CambriaLike-Bold"
+# Fuentes base de reportlab (siempre disponibles, sin archivo externo) -- se
+# usan como respaldo cuando el contenedor de despliegue (p.ej. Streamlit
 # Cloud) no tiene instalada ninguna fuente serif de sistema.
 FALLBACK_FONT_NAME = "Times-Roman"
+FALLBACK_FONT_NAME_BOLD = "Times-Bold"
 _FONT_REGISTERED = False
 
 
 def _find_cambria():
+    """Devuelve (ruta_regular, ruta_bold) de la primera fuente serif de
+    sistema disponible -- la MISMA fuente para toda página generada por
+    reportlab en el compilado (separadores de anexo Y el resumen PSAIM),
+    para que no se note un cambio de tipografía entre ellas."""
     candidatos = [
-        r"C:\Windows\Fonts\cambria.ttc",
-        r"C:\Windows\Fonts\Cambria.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
-        "/usr/share/fonts/truetype/msttcorefonts/Cambria.ttf",
+        (r"C:\Windows\Fonts\cambria.ttc", None),
+        (r"C:\Windows\Fonts\Cambria.ttf", r"C:\Windows\Fonts\Cambriab.ttf"),
+        (
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
+        ),
+        (
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
+        ),
+        ("/usr/share/fonts/truetype/msttcorefonts/Cambria.ttf", None),
     ]
-    for c in candidatos:
-        if os.path.exists(c):
-            return c
-    return None
+    for regular, bold in candidatos:
+        if os.path.exists(regular):
+            return regular, (bold if bold and os.path.exists(bold) else None)
+    return None, None
 
 
 def _ensure_font():
-    """Registra la fuente serif de sistema si existe; si no hay ninguna
-    disponible en el contenedor (caso típico de un despliegue en la nube),
-    cae de respaldo a Times-Roman, que reportlab trae incorporada y no
-    requiere ningún archivo de fuente externo."""
-    global _FONT_REGISTERED, FONT_NAME
+    """Registra la fuente serif de sistema (regular y, si existe, negrita)
+    si hay alguna disponible; si no hay ninguna en el contenedor (caso
+    típico de un despliegue en la nube), cae de respaldo a Times-Roman /
+    Times-Bold, que reportlab trae incorporadas y no requieren ningún
+    archivo de fuente externo."""
+    global _FONT_REGISTERED, FONT_NAME, FONT_NAME_BOLD
     if _FONT_REGISTERED:
         return
-    path = _find_cambria()
-    if path is None:
+    regular, bold = _find_cambria()
+    if regular is None:
         FONT_NAME = FALLBACK_FONT_NAME
+        FONT_NAME_BOLD = FALLBACK_FONT_NAME_BOLD
         _FONT_REGISTERED = True
         return
     try:
-        registerFont(TTFont(FONT_NAME, path, subfontIndex=0))
+        registerFont(TTFont(FONT_NAME, regular, subfontIndex=0))
     except Exception:
-        registerFont(TTFont(FONT_NAME, path))
+        registerFont(TTFont(FONT_NAME, regular))
+    if bold:
+        try:
+            registerFont(TTFont(FONT_NAME_BOLD, bold, subfontIndex=0))
+        except Exception:
+            registerFont(TTFont(FONT_NAME_BOLD, bold))
+    else:
+        FONT_NAME_BOLD = FONT_NAME
     _FONT_REGISTERED = True
 
 
@@ -136,43 +157,56 @@ def nombre_archivo_seguro(texto):
     return texto
 
 
-def convertir_docx_a_pdf(ruta_docx, dir_salida):
-    """Convierte un .docx a .pdf usando LibreOffice en modo headless --
-    único motor de renderizado real disponible en el servidor sin licencia
-    de Word (requiere el paquete 'libreoffice' listado en packages.txt
-    para que Streamlit Cloud lo instale en el contenedor de despliegue).
-    Devuelve la ruta del PDF generado, o None si LibreOffice no está
-    disponible o falla la conversión -- nunca debe tumbar el resto del
-    proceso: el resto de entregables (Word, checklist, anexos) ya se
-    generaron y se conservan igual."""
+def _convertir_a_pdf(ruta_archivo, dir_salida):
+    """Convierte un .docx o .xlsx a .pdf usando LibreOffice en modo
+    headless -- único motor de renderizado real disponible en el
+    servidor sin licencia de Office (requiere el paquete 'libreoffice'
+    listado en packages.txt para que Streamlit Cloud lo instale en el
+    contenedor de despliegue). Cada llamada usa un perfil de usuario
+    temporal propio (nunca uno fijo compartido): con un perfil fijo se
+    detectó contenido de una conversión anterior filtrándose en la
+    siguiente cuando se llama repetidas veces seguidas (p.ej. una
+    conversión por línea del checklist VT). Devuelve la ruta del PDF
+    generado, o None si LibreOffice no está disponible o falla la
+    conversión -- nunca debe tumbar el resto del proceso."""
     import shutil
     import subprocess
+    import tempfile
 
     soffice = shutil.which("soffice") or shutil.which("libreoffice")
     if not soffice:
         return None
-    try:
-        subprocess.run(
-            [
-                soffice,
-                "--headless",
-                "--norestore",
-                "-env:UserInstallation=file:///tmp/lo_profile_informe_compilado",
-                "--convert-to",
-                "pdf",
-                "--outdir",
-                str(dir_salida),
-                str(ruta_docx),
-            ],
-            check=True,
-            timeout=120,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-    except Exception:
-        return None
-    ruta_pdf = os.path.join(dir_salida, os.path.splitext(os.path.basename(str(ruta_docx)))[0] + ".pdf")
+    with tempfile.TemporaryDirectory(prefix="lo_profile_") as perfil_dir:
+        try:
+            subprocess.run(
+                [
+                    soffice,
+                    "--headless",
+                    "--norestore",
+                    f"-env:UserInstallation=file://{perfil_dir}",
+                    "--convert-to",
+                    "pdf",
+                    "--outdir",
+                    str(dir_salida),
+                    str(ruta_archivo),
+                ],
+                check=True,
+                timeout=120,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            return None
+    ruta_pdf = os.path.join(dir_salida, os.path.splitext(os.path.basename(str(ruta_archivo)))[0] + ".pdf")
     return ruta_pdf if os.path.exists(ruta_pdf) else None
+
+
+def convertir_docx_a_pdf(ruta_docx, dir_salida):
+    return _convertir_a_pdf(ruta_docx, dir_salida)
+
+
+def convertir_xlsx_a_pdf(ruta_xlsx, dir_salida):
+    return _convertir_a_pdf(ruta_xlsx, dir_salida)
 
 
 def construir_informe_compilado(ruta_word, anexos_generados, out_dir, nombre_salida):

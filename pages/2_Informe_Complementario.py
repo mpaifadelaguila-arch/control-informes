@@ -256,7 +256,7 @@ if st.button("🚀 Ejecutar Generación de Informe Complementario", type="primar
 
                     checklists_vt_pdf = {}
                     if out_excel_path and out_excel_path.exists():
-                        checklists_vt_pdf = reportes_pdf.generar_pdf_checklist_por_tag(
+                        checklists_vt_pdf = reportes_pdf.generar_pdf_checklist_vt_por_tag(
                             str(out_excel_path), str(dir_anexos)
                         )
 
