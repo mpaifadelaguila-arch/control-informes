@@ -120,7 +120,56 @@ Solo `--detalle` y `--fotos` son obligatorios. Ejecuta
 
 ---
 
-## Importante (aplica a ambas opciones)
+## INFORME COMPLEMENTARIO / ANEXO ADICIONAL
+
+Para cuando, de un grupo de tuberías ya entregado, quedaron líneas sin
+inspeccionar en su momento y ahora se inspeccionan e informan como anexo al
+informe principal (solo inspección visual VT, nunca lleva PSAIM/Anexo C).
+Es un módulo **independiente** del informe normal: usa su propia plantilla
+(`plantilla_complementario.docx`) y su propio script
+(`generar_informe_complementario_cli.py`), sin afectar en nada al flujo
+anterior.
+
+**Archivos:**
+- Obligatorios: Detalle de líneas (Excel, **debe traer la columna
+  "N° ORIGINAL"** para conservar la numeración del informe principal) y el
+  texto del Sumario de Inspección (se redacta a mano, es muy específico
+  para generarlo automáticamente).
+- Opcionales: VT-CHECK LIST, Fotos, P&ID, Isométricos. **Nunca PSAIM.**
+- El código de este informe (p.ej. `ADEMINSAC-FIAB-RLP-634-1-2026`, con el
+  número de anexo antes del año) se toma de la columna "CODIGO DE INFORME"
+  del propio Detalle de líneas — no hay que calcularlo aparte.
+
+**Proyecto de claude.ai:** igual que el informe principal, pero adjuntando
+`plantilla_complementario.docx` (nunca la dejes solo en Contexto, por la
+misma razón que `plantilla_base.docx`) y usando este mensaje:
+
+> Adjunto `plantilla_complementario.docx`, el Detalle de líneas
+> `Detalle_GT-023_complementario.xlsx` y [demás archivos que tengas]. El
+> código del informe principal es `ADEMINSAC-FIAB-RLP-634-2026`. El
+> Sumario de Inspección es: "[tu texto]". Usando
+> generar_informe_complementario_cli.py, genera el Informe Complementario,
+> el VT-CHECK LIST parchado, los Anexos y el Informe Compilado en PDF.
+
+**Claude Code / línea de comandos:**
+
+```
+python3 generar_informe_complementario_cli.py \
+  --detalle "Detalle_GT-023_complementario.xlsx" \
+  --sumario "Como resultado de la aplicación de las técnicas de inspección..." \
+  --codigo-principal "ADEMINSAC-FIAB-RLP-634-2026" \
+  --checklist "VT-CHECK_LIST.xlsx" \
+  --fotos fotos/ \
+  --salida salida_complementario/
+```
+
+Solo `--detalle` y `--sumario` son obligatorios. Ejecuta
+`python3 generar_informe_complementario_cli.py --help` para ver todas las
+opciones.
+
+---
+
+## Importante (aplica a todo lo anterior)
 
 - Los archivos `BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx` (base técnica de líneas)
   y `Catalogo_Hallazgos_Recomendaciones.xlsx` (catálogo de hallazgos y
