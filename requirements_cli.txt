@@ -1,0 +1,9 @@
+# Dependencias mínimas para generar informes por línea de comandos
+# (generar_informe_cli.py), sin la interfaz Streamlit ni las integraciones
+# de Google Drive del panel de control -- instalar con:
+#     pip install -r requirements_cli.txt
+openpyxl
+python-docx
+reportlab
+pypdf
+lxml
