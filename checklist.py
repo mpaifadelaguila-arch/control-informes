@@ -287,6 +287,54 @@ def _reescribir_xlsx_con_parches(ruta_original, ruta_salida, parches_por_hoja):
                 zf_out.writestr(item, data)
 
 
+def extraer_hoja_a_xlsx(ruta_original, nombre_hoja, ruta_salida):
+    """Copia el .xlsx original entero, pero deja en workbook.xml SOLO la
+    hoja `nombre_hoja` en la lista de hojas -- remapeando/filtrando los
+    nombres definidos (p.ej. Print_Area) que están fijados por
+    localSheetId a esa hoja -- todo lo demás (estilos, dibujos, fotos,
+    formato) queda exactamente igual que en _reescribir_xlsx_con_parches:
+    nunca se pasa por openpyxl para no perder las fotografías agrupadas
+    con anotación. Se usa para exportar a PDF una sola hoja (una línea)
+    del VT-CHECK LIST con su formato y fotos originales intactos, sin
+    arrastrar las demás hojas del checklist completo (Anexo B)."""
+    with zipfile.ZipFile(ruta_original) as zf_in:
+        wb_root = etree.fromstring(zf_in.read("xl/workbook.xml"))
+        sheets_el = wb_root.find(f"{{{_NS_MAIN}}}sheets")
+        hojas = list(sheets_el)
+        idx_objetivo = next(
+            (i for i, el in enumerate(hojas) if el.get("name") == nombre_hoja), None
+        )
+        if idx_objetivo is None:
+            raise ValueError(f"Hoja «{nombre_hoja}» no encontrada en {ruta_original}")
+
+        for el in hojas:
+            if el.get("name") != nombre_hoja:
+                sheets_el.remove(el)
+
+        defined_names_el = wb_root.find(f"{{{_NS_MAIN}}}definedNames")
+        if defined_names_el is not None:
+            for dn in list(defined_names_el):
+                local_id = dn.get("localSheetId")
+                if local_id is None:
+                    continue
+                if int(local_id) == idx_objetivo:
+                    dn.set("localSheetId", "0")
+                else:
+                    defined_names_el.remove(dn)
+
+        workbook_xml_nuevo = etree.tostring(
+            wb_root, xml_declaration=True, encoding="UTF-8", standalone=True
+        )
+
+        with zipfile.ZipFile(ruta_salida, "w", zipfile.ZIP_DEFLATED) as zf_out:
+            for item in zf_in.infolist():
+                data = (
+                    workbook_xml_nuevo if item.filename == "xl/workbook.xml"
+                    else zf_in.read(item.filename)
+                )
+                zf_out.writestr(item, data)
+
+
 def _bloques_por_item(ws):
     """Agrupa las filas de la hoja en bloques (item, categoría, marca,
     fila_ini, fila_fin), respetando exactamente las filas que ya trae el
