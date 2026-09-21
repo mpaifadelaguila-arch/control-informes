@@ -27,10 +27,13 @@ import anexos
 import psaim
 from checklist import CELDA_LINEA, extraer_hoja_a_xlsx
 
+# Misma tipografía que las páginas separadoras de anexo (anexos.py), para
+# que el resumen PSAIM no desentone con el resto del compilado.
+anexos._ensure_font()
 _STYLES = getSampleStyleSheet()
-_TITULO = ParagraphStyle("TituloAnexo", parent=_STYLES["Heading2"])
-_CUERPO = ParagraphStyle("CuerpoAnexo", parent=_STYLES["BodyText"], spaceAfter=6)
-_ETIQUETA = ParagraphStyle("EtiquetaAnexo", parent=_STYLES["BodyText"], fontName="Helvetica-Bold")
+_TITULO = ParagraphStyle("TituloAnexo", parent=_STYLES["Heading2"], fontName=anexos.FONT_NAME_BOLD)
+_CUERPO = ParagraphStyle("CuerpoAnexo", parent=_STYLES["BodyText"], fontName=anexos.FONT_NAME, spaceAfter=6)
+_ETIQUETA = ParagraphStyle("EtiquetaAnexo", parent=_STYLES["BodyText"], fontName=anexos.FONT_NAME_BOLD)
 
 
 def generar_pdf_checklist_vt_por_tag(ruta_checklist_parchado, dir_salida):

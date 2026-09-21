@@ -16,44 +16,65 @@ PAGE_W, PAGE_H = 595.92, 841.92
 MARGIN = 0.85 * 28.3465  # ~0.85 cm en puntos
 
 FONT_NAME = "CambriaLike"
-# Fuente base de reportlab (siempre disponible, sin archivo externo) -- se
-# usa como respaldo cuando el contenedor de despliegue (p.ej. Streamlit
+FONT_NAME_BOLD = "CambriaLike-Bold"
+# Fuentes base de reportlab (siempre disponibles, sin archivo externo) -- se
+# usan como respaldo cuando el contenedor de despliegue (p.ej. Streamlit
 # Cloud) no tiene instalada ninguna fuente serif de sistema.
 FALLBACK_FONT_NAME = "Times-Roman"
+FALLBACK_FONT_NAME_BOLD = "Times-Bold"
 _FONT_REGISTERED = False
 
 
 def _find_cambria():
+    """Devuelve (ruta_regular, ruta_bold) de la primera fuente serif de
+    sistema disponible -- la MISMA fuente para toda página generada por
+    reportlab en el compilado (separadores de anexo Y el resumen PSAIM),
+    para que no se note un cambio de tipografía entre ellas."""
     candidatos = [
-        r"C:\Windows\Fonts\cambria.ttc",
-        r"C:\Windows\Fonts\Cambria.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
-        "/usr/share/fonts/truetype/msttcorefonts/Cambria.ttf",
+        (r"C:\Windows\Fonts\cambria.ttc", None),
+        (r"C:\Windows\Fonts\Cambria.ttf", r"C:\Windows\Fonts\Cambriab.ttf"),
+        (
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+            "/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf",
+        ),
+        (
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf",
+        ),
+        ("/usr/share/fonts/truetype/msttcorefonts/Cambria.ttf", None),
     ]
-    for c in candidatos:
-        if os.path.exists(c):
-            return c
-    return None
+    for regular, bold in candidatos:
+        if os.path.exists(regular):
+            return regular, (bold if bold and os.path.exists(bold) else None)
+    return None, None
 
 
 def _ensure_font():
-    """Registra la fuente serif de sistema si existe; si no hay ninguna
-    disponible en el contenedor (caso típico de un despliegue en la nube),
-    cae de respaldo a Times-Roman, que reportlab trae incorporada y no
-    requiere ningún archivo de fuente externo."""
-    global _FONT_REGISTERED, FONT_NAME
+    """Registra la fuente serif de sistema (regular y, si existe, negrita)
+    si hay alguna disponible; si no hay ninguna en el contenedor (caso
+    típico de un despliegue en la nube), cae de respaldo a Times-Roman /
+    Times-Bold, que reportlab trae incorporadas y no requieren ningún
+    archivo de fuente externo."""
+    global _FONT_REGISTERED, FONT_NAME, FONT_NAME_BOLD
     if _FONT_REGISTERED:
         return
-    path = _find_cambria()
-    if path is None:
+    regular, bold = _find_cambria()
+    if regular is None:
         FONT_NAME = FALLBACK_FONT_NAME
+        FONT_NAME_BOLD = FALLBACK_FONT_NAME_BOLD
         _FONT_REGISTERED = True
         return
     try:
-        registerFont(TTFont(FONT_NAME, path, subfontIndex=0))
+        registerFont(TTFont(FONT_NAME, regular, subfontIndex=0))
     except Exception:
-        registerFont(TTFont(FONT_NAME, path))
+        registerFont(TTFont(FONT_NAME, regular))
+    if bold:
+        try:
+            registerFont(TTFont(FONT_NAME_BOLD, bold, subfontIndex=0))
+        except Exception:
+            registerFont(TTFont(FONT_NAME_BOLD, bold))
+    else:
+        FONT_NAME_BOLD = FONT_NAME
     _FONT_REGISTERED = True
 
 
