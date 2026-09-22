@@ -110,6 +110,21 @@ _RE_OMITIR_DE_BARE = re.compile(r"\s*\bde\s+SIN DATO\b", re.IGNORECASE)
 _RE_OMITIR_SLASH_AMBOS = re.compile(r"\bSIN DATO\s*/\s*SIN DATO\b", re.IGNORECASE)
 _RE_OMITIR_SLASH_IZQ = re.compile(r"\bSIN DATO\s*/\s*", re.IGNORECASE)
 _RE_OMITIR_SLASH_DER = re.compile(r"\s*/\s*SIN DATO\b", re.IGNORECASE)
+# Red de seguridad final: pase lo que pase con la variable (un caso nuevo,
+# una combinación no prevista por las reglas específicas de arriba), esto
+# GARANTIZA que la palabra "SIN DATO" nunca llegue al texto entregado --
+# a pedido explícito y estricto del usuario. Primero intenta quitar
+# también la preposición/paréntesis que la introduce (para que el texto
+# quede lo más natural posible); si ni así calza con un patrón conocido,
+# el último recurso es borrar únicamente las dos palabras.
+_RE_OMITIR_PREPOSICION_GENERICA = re.compile(
+    r"\s*\((?:[^()]*\bSIN DATO\b[^()]*)\)", re.IGNORECASE
+)
+_RE_OMITIR_PREP_SIN_DATO = re.compile(
+    r"\s*\b(?:en|de|del|de la|de el|con|desde|hacia|sobre|por|a)\s+SIN DATO\b",
+    re.IGNORECASE,
+)
+_RE_SIN_DATO_RESIDUAL = re.compile(r"SIN DATO", re.IGNORECASE)
 
 
 def _omitir_datos_faltantes(texto):
@@ -128,6 +143,17 @@ def _omitir_datos_faltantes(texto):
     t = _RE_OMITIR_SLASH_AMBOS.sub("", t)
     t = _RE_OMITIR_SLASH_IZQ.sub("", t)
     t = _RE_OMITIR_SLASH_DER.sub("", t)
+    # Red de seguridad: cualquier "SIN DATO" que ninguna regla específica
+    # de arriba haya anticipado se quita igual, primero con su paréntesis
+    # o preposición si los tiene, y si no, a secas -- nunca debe sobrevivir.
+    t = _RE_OMITIR_PREPOSICION_GENERICA.sub("", t)
+    t = _RE_OMITIR_PREP_SIN_DATO.sub("", t)
+    t = _RE_SIN_DATO_RESIDUAL.sub("", t)
+    t = _limpiar_puntuacion(t)
+    return t.strip()
+
+
+def _limpiar_puntuacion(t):
     t = re.sub(r"\s+([.,;:])", r"\1", t)  # sin espacio antes de puntuación
     t = re.sub(r"(?:,\s*){2,}", ", ", t)  # dos o más comas seguidas (p.ej. al
     # perderse NPS, Sch y material a la vez) colapsadas en una sola
@@ -135,7 +161,7 @@ def _omitir_datos_faltantes(texto):
     t = re.sub(r"\(\s*\)", "", t)  # paréntesis vacíos
     t = re.sub(r"\s{2,}", " ", t)  # espacios dobles
     t = re.sub(r"^,\s*", "", t)  # coma colgando al inicio de la frase
-    return t.strip()
+    return t
 
 
 # Varias plantillas del catálogo escriben "válvula(s)", "unión(es)
