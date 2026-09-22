@@ -340,6 +340,7 @@ def construir_anexos(*args, **kwargs):
         return generados, avisos
 
     psaim_pdfs = anexos_cfg.get("psaim_pdf", {})
+    isometricos_ut = anexos_cfg.get("isometricos_ut", {})
     j = 1
     for ln in lineas:
         if str(ln.get("alcance", "")).upper() != "LINEAS":
@@ -348,11 +349,14 @@ def construir_anexos(*args, **kwargs):
         sep_c = os.path.join(out_dir, f"_sep_C{j}.pdf")
         separador_anexo_c(sep_c, j, tag)
         out_c = os.path.join(out_dir, f"Anexo C.{j} - {nombre_archivo_seguro(tag)}.pdf")
-        contenido = _buscar_por_tag(psaim_pdfs, tag)
-        if contenido and os.path.exists(str(contenido)):
-            merge_pdfs(out_c, sep_c, contenido)
-        else:
-            merge_pdfs(out_c, sep_c)
+        # El isométrico UT (propio del PSAIM, distinto del isométrico VT que
+        # ya lleva el Anexo B de esta misma línea) va primero, igual que en
+        # el Anexo B -- isométrico, luego el reporte.
+        contenido = [
+            p for p in (_buscar_por_tag(isometricos_ut, tag), _buscar_por_tag(psaim_pdfs, tag))
+            if p and os.path.exists(str(p))
+        ]
+        merge_pdfs(out_c, sep_c, *contenido)
         generados.append(out_c)
         j += 1
 

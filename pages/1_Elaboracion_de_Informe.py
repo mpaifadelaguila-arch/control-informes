@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import sys
 import tempfile
 import zipfile
@@ -272,13 +273,20 @@ if f_isometricos:
         def _normaliza(s):
             return "".join(c for c in str(s).upper() if c.isalnum())
 
+        # Una línea con ALCANCE "LINEAS" (medición de espesores) trae DOS
+        # isométricos propios -- uno para el checklist visual (VT) y otro
+        # para el PSAIM (UT) -- así que además de la línea hay que elegir
+        # a cuál de los dos corresponde cada archivo; si no, uno pisaría al
+        # otro en el mismo Anexo.
         tags_norm = {_normaliza(t): t for t in tags_detectados}
+        isometricos_ut_por_tag = {}
         for f_iso in f_isometricos:
             nombre_norm = _normaliza(f_iso.name)
             sugerido = next((t for tn, t in tags_norm.items() if tn and tn in nombre_norm), None)
             opciones = ["-- Sin asignar --"] + tags_detectados
             idx_default = opciones.index(sugerido) if sugerido in opciones else 0
-            col_nombre, col_select = tarjeta_iso.columns([2, 1], vertical_alignment="center")
+            es_ut_sugerido = bool(re.search(r"\bUT\b", f_iso.name, re.IGNORECASE))
+            col_nombre, col_select, col_tipo = tarjeta_iso.columns([2, 1, 1], vertical_alignment="center")
             with col_nombre:
                 st.html(f'<div class="iso-row-name">{f_iso.name}</div>')
             with col_select:
@@ -286,8 +294,17 @@ if f_isometricos:
                     f"Línea para «{f_iso.name}»", opciones, index=idx_default,
                     key=f"iso_tag_{f_iso.name}", label_visibility="collapsed",
                 )
+            with col_tipo:
+                tipo = st.selectbox(
+                    f"Tipo para «{f_iso.name}»", ["Checklist (VT)", "PSAIM (UT)"],
+                    index=1 if es_ut_sugerido else 0,
+                    key=f"iso_tipo_{f_iso.name}", label_visibility="collapsed",
+                )
             if seleccion != "-- Sin asignar --":
-                isometricos_por_tag[seleccion] = f_iso
+                if tipo == "PSAIM (UT)":
+                    isometricos_ut_por_tag[seleccion] = f_iso
+                else:
+                    isometricos_por_tag[seleccion] = f_iso
 
 if st.button("Ejecutar Generación de Informe Real", type="primary", use_container_width=True, icon=":material/play_arrow:"):
     if not (f_m3m6 and f_fotos):
@@ -334,6 +351,11 @@ if st.button("Ejecutar Generación de Informe Real", type="primary", use_contain
                         p_iso = dir_iso / f_iso.name
                         p_iso.write_bytes(f_iso.getbuffer())
                         rutas_iso_por_tag[tag] = str(p_iso)
+                    rutas_iso_ut_por_tag = {}
+                    for tag, f_iso in isometricos_ut_por_tag.items():
+                        p_iso = dir_iso / f_iso.name
+                        p_iso.write_bytes(f_iso.getbuffer())
+                        rutas_iso_ut_por_tag[tag] = str(p_iso)
 
                     dir_fotos = tmp_path / "fotos"
                     dir_fotos.mkdir(exist_ok=True)
@@ -385,6 +407,7 @@ if st.button("Ejecutar Generación de Informe Real", type="primary", use_contain
                         "anexos": {
                             "pid_pdf": str(path_pid) if path_pid else None,
                             "isometricos": rutas_iso_por_tag,
+                            "isometricos_ut": rutas_iso_ut_por_tag,
                             "checklists_vt_pdf": checklists_vt_pdf,
                             "psaim_pdf": psaim_pdf_por_tag,
                         },
