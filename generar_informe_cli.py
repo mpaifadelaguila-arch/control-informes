@@ -20,6 +20,7 @@ Solo --detalle y --fotos son obligatorios; todo lo demás es opcional, igual
 que en la interfaz web (página "Elaboración de Informe").
 """
 import argparse
+import json
 import os
 import re
 import sys
@@ -31,6 +32,7 @@ if str(DIR_RAIZ) not in sys.path:
     sys.path.insert(0, str(DIR_RAIZ))
 
 import anexos
+import checklist as checklist_mod
 import inventario
 import recomendaciones
 import reportes_pdf
@@ -112,6 +114,45 @@ def _asignar_isometricos(rutas_iso, lineas_preview):
     return asignados, sin_asignar
 
 
+def _cargar_casos_manual(ruta):
+    """Lee el JSON --casos-manual: una lista [{"tag","fila","caso_id"}, ...]
+    -- pensada para que un agente de IA (o una persona) elija, para cada
+    hallazgo PENDIENTE listado en pendientes.json, cuál caso YA APROBADO
+    del catálogo corresponde. El texto final sigue saliendo exacto del
+    catálogo -- nunca se redacta nada nuevo, solo se elige el caso."""
+    if not ruta:
+        return None
+    with open(ruta, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _escribir_pendientes_json(hallazgos_por_tag, dir_salida):
+    """Si quedó algún hallazgo PENDIENTE (ninguna regla automática calzó ni
+    se resolvió con --casos-manual), escribe pendientes.json con los datos
+    que hacen falta para construir el --casos-manual de la siguiente
+    corrida: tag, fila (identifica la observación exacta dentro de esa
+    hoja) y el texto real del hallazgo. Devuelve la ruta, o None si no
+    quedó ningún pendiente."""
+    pendientes = [
+        {
+            "tag": tag,
+            "fila": info["fila_ultimo_hallazgo"],
+            "item": info["item"],
+            "categoria": info["categoria"],
+            "hallazgo": info["hallazgo"],
+        }
+        for tag, items in (hallazgos_por_tag or {}).items()
+        for info in items
+        if info.get("recomendacion") == checklist_mod.TEXTO_PENDIENTE_MANUAL
+    ]
+    if not pendientes:
+        return None
+    ruta_pendientes = Path(dir_salida) / "pendientes.json"
+    with open(ruta_pendientes, "w", encoding="utf-8") as f:
+        json.dump(pendientes, f, ensure_ascii=False, indent=2)
+    return ruta_pendientes
+
+
 def generar(
     ruta_detalle,
     rutas_fotos,
@@ -123,6 +164,7 @@ def generar(
     ruta_base_maestra=RUTA_MAESTRA_DEFAULT,
     ruta_plantilla=RUTA_PLANTILLA_DEFAULT,
     ruta_catalogo=RUTA_CATALOGO_DEFAULT,
+    ruta_casos_manual=None,
 ):
     ruta_detalle = Path(ruta_detalle)
     dir_salida = Path(dir_salida)
@@ -158,6 +200,7 @@ def generar(
         ruta_foto=fotos[0],
         ruta_checklist=ruta_checklist,
         ruta_psaim=rutas_psaim,
+        casos_manual=_cargar_casos_manual(ruta_casos_manual),
     )
 
     out_word_path = Path(resultado["ruta_word"])
@@ -176,15 +219,8 @@ def generar(
 
     psaim_pdf_por_tag = {}
     if resultado.get("psaim_por_tag"):
-        inv = inventario.cargar_inventario(str(ruta_base_maestra))
-        inv_norm = {k.strip().upper(): v for k, v in inv.items()}
-        filas_tecnicas = []
-        for ln in resultado["lineas_alcance"]:
-            tag = ln["tag"]
-            datos, _ = inventario.cruzar_linea(tag, inv_norm.get(tag.strip().upper()))
-            filas_tecnicas.append({"tag": tag, **datos})
         psaim_pdf_por_tag = reportes_pdf.generar_pdf_psaim_por_tag(
-            resultado["psaim_por_tag"], filas_tecnicas, str(dir_anexos)
+            resultado["psaim_por_tag"], str(dir_anexos)
         )
 
     config_anexos = {
@@ -248,11 +284,24 @@ def generar(
         for a in otros:
             print(f"  - {a}")
 
+    ruta_pendientes = _escribir_pendientes_json(resultado.get("hallazgos_por_tag"), dir_salida)
+    if ruta_pendientes:
+        print(
+            f"\n📋 Se escribió {ruta_pendientes} con el detalle de cada hallazgo PENDIENTE "
+            "(tag, fila, ítem, categoría y el texto real del inspector). Para resolverlos: "
+            "lee cada uno junto con Catalogo_Hallazgos_Recomendaciones.xlsx, elige el caso_id "
+            "del catálogo que corresponda a cada hallazgo (NUNCA redactes un hallazgo o "
+            "recomendación nuevos -- el texto final sale siempre del catálogo), arma un JSON "
+            '[{"tag": "...", "fila": N, "caso_id": "..."}, ...] y vuelve a generar el informe '
+            "agregando --casos-manual ese_archivo.json."
+        )
+
     return {
         "word": str(out_word_path),
         "excel": str(out_excel_path) if out_excel_path else None,
         "anexos_zip": str(out_zip_path),
         "compilado": str(ruta_compilado) if ruta_compilado else None,
+        "pendientes_json": str(ruta_pendientes) if ruta_pendientes else None,
         "avisos": avisos,
     }
 
@@ -276,6 +325,12 @@ def main():
     ap.add_argument("--base-maestra", default=str(RUTA_MAESTRA_DEFAULT))
     ap.add_argument("--plantilla", default=str(RUTA_PLANTILLA_DEFAULT))
     ap.add_argument("--catalogo", default=str(RUTA_CATALOGO_DEFAULT))
+    ap.add_argument(
+        "--casos-manual",
+        help="JSON [{\"tag\",\"fila\",\"caso_id\"}, ...] con el caso del catálogo elegido "
+             "explícitamente (por una persona o por un agente de IA) para los hallazgos que "
+             "quedaron PENDIENTE en una corrida anterior -- ver pendientes.json en --salida.",
+    )
     args = ap.parse_args()
 
     generar(
@@ -289,6 +344,7 @@ def main():
         ruta_base_maestra=args.base_maestra,
         ruta_plantilla=args.plantilla,
         ruta_catalogo=args.catalogo,
+        ruta_casos_manual=args.casos_manual,
     )
 
 

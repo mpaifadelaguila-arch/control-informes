@@ -376,15 +376,8 @@ if st.button("Ejecutar Generación de Informe Real", type="primary", use_contain
 
                     psaim_pdf_por_tag = {}
                     if resultado.get("psaim_por_tag"):
-                        inv = inventario.cargar_inventario(RUTA_MAESTRA)
-                        inv_norm = {k.strip().upper(): v for k, v in inv.items()}
-                        filas_tecnicas = []
-                        for ln in resultado["lineas_alcance"]:
-                            tag = ln["tag"]
-                            datos, _ = inventario.cruzar_linea(tag, inv_norm.get(tag.strip().upper()))
-                            filas_tecnicas.append({"tag": tag, **datos})
                         psaim_pdf_por_tag = reportes_pdf.generar_pdf_psaim_por_tag(
-                            resultado["psaim_por_tag"], filas_tecnicas, str(dir_anexos)
+                            resultado["psaim_por_tag"], str(dir_anexos)
                         )
 
                     config_anexos = {
