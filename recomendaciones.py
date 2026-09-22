@@ -128,7 +128,12 @@ def _omitir_datos_faltantes(texto):
 # no tiene sentido mostrar el "(s)"/"(es)" -- a pedido del usuario, se
 # resuelve automáticamente a la forma singular o plural real según el
 # número que haya quedado justo antes del bloque de palabra(s).
-_RE_CANTIDAD_PLURAL = re.compile(r"(\d+)\s+((?:\S*?\((?:es|s)\)\s*)+)")
+# La cantidad puede ser un número real ("3") o, cuando el comentario de
+# campo no la especifica, el valor por defecto "varias"/"varios" (nunca
+# singular -- si no se sabe cuántas son, no se afirma que sea solo una).
+_RE_CANTIDAD_PLURAL = re.compile(
+    r"(\d+|varias?|varios?)\s+((?:\S*?\((?:es|s)\)\s*)+)", re.IGNORECASE
+)
 _RE_TOKEN_PLURAL = re.compile(r"(\S*?)\((es|s)\)")
 
 
@@ -138,10 +143,7 @@ def _resolver_plurales(texto):
 
     def _procesar_bloque(m):
         numero, bloque = m.group(1), m.group(2)
-        try:
-            es_singular = int(numero) == 1
-        except ValueError:
-            es_singular = False
+        es_singular = numero.isdigit() and int(numero) == 1
 
         def _token(tm):
             palabra, sufijo = tm.group(1), tm.group(2)
@@ -415,7 +417,18 @@ def generar_hallazgo_y_recomendacion(datos: dict) -> Optional[Resultado]:
 # recomendación técnica sobre una base ambigua).
 
 RE_NPS = re.compile(r'(\d+(?:\s+\d/\d)?"|\d/\d"?)')
-RE_CANTIDAD = re.compile(r"\((\d{1,3})\)")
+# Dos formas reales de escribir la cantidad en el checklist: entre
+# paréntesis "(3)" (grupo 1), o un número suelto -- a veces con cero a la
+# izquierda, "01 unión bridada" -- justo antes de uno de los sustantivos
+# contables típicos del catálogo (grupo 2). Nunca un número cualquiera
+# (evita capturar el NPS o una fecha): exige que el sustantivo aparezca
+# pegado al número.
+RE_CANTIDAD = re.compile(
+    r"\((\d{1,3})\)"
+    r"|\b0*(\d{1,3})\s+(?:uni[oó]n(?:es)?|v[aá]lvulas?|abrazaderas?|soportes?|"
+    r"juntas?|esp[aá]rragos?|zonas?|bridas?|tramos?)\b",
+    re.IGNORECASE,
+)
 RE_LONGITUD = re.compile(r"([\d]+(?:\.[\d]+)?)\s*metros", re.IGNORECASE)
 RE_TIPO_VALVULA = re.compile(
     r"v[aá]lvula[s]?\s+(?:de\s+|tipo\s+)?(compuerta|bola|globo|retenci[oó]n|check|"
@@ -493,9 +506,9 @@ def _extraer_variables_de_texto(texto):
     # si existe, es "cantidad_elementos" (espárragos/tuercas por unión).
     matches_cantidad = list(RE_CANTIDAD.finditer(texto))
     if matches_cantidad:
-        variables["cantidad"] = str(int(matches_cantidad[0].group(1)))
+        variables["cantidad"] = str(int(matches_cantidad[0].group(1) or matches_cantidad[0].group(2)))
     if len(matches_cantidad) > 1:
-        variables["cantidad_elementos"] = str(int(matches_cantidad[1].group(1)))
+        variables["cantidad_elementos"] = str(int(matches_cantidad[1].group(1) or matches_cantidad[1].group(2)))
     m = RE_LONGITUD.search(texto)
     if m:
         variables["longitud"] = m.group(1)
