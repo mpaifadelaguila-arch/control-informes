@@ -476,10 +476,20 @@ RE_NPS_ETIQUETADO = re.compile(r'(?:NPS|Ø)\s*(\d+(?:\s+\d/\d)?"|\d/\d"?)', re.I
 RE_CANTIDAD = re.compile(
     r"\((\d{1,3})\)"
     r"|\b0*(\d{1,3})\s+(?:uni[oó]n(?:es)?|v[aá]lvulas?|abrazaderas?|soportes?|"
-    r"juntas?|esp[aá]rragos?|zonas?|bridas?|tramos?)\b",
+    r"juntas?|esp[aá]rragos?|zonas?|sectores?|bridas?|tramos?)\b",
     re.IGNORECASE,
 )
-RE_LONGITUD = re.compile(r"([\d]+(?:\.[\d]+)?)\s*metros", re.IGNORECASE)
+# El inspector a veces da varias longitudes juntas para varios sectores/
+# tramos, antes de un único "metros" final (p.ej. "longitud aproximada de
+# 1.5 y 0.5 metros"): el patrón anterior solo exigía un número PEGADO a
+# "metros", así que se quedaba solo con el último (0.5) y perdía el
+# primero (1.5) en silencio. Ahora se captura la secuencia completa de
+# números separados por coma/"y" que preceden a "metros", tal cual la
+# escribió el inspector.
+RE_LONGITUD = re.compile(
+    r"([\d]+(?:\.[\d]+)?(?:\s*(?:,|y)\s*[\d]+(?:\.[\d]+)?)*)\s*metros",
+    re.IGNORECASE,
+)
 RE_TIPO_VALVULA = re.compile(
     r"v[aá]lvula[s]?\s+(?:de\s+|tipo\s+)?(compuerta|bola|globo|retenci[oó]n|check|"
     r"mariposa|aguja|tap[oó]n|diafragma|control|seguridad)",
