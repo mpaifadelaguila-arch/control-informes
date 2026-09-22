@@ -91,6 +91,7 @@ def _clasificar(texto):
 # solo prolijidad de redacción antes de volcarlo al informe.
 CORRECCIONES_TEXTO = {
     "corrosion": "corrosión", "corrsoion": "corrosión",
+    "macha": "mancha",
     "atmosferica": "atmosférica",
     "proteccion": "protección", "ingnifuca": "ignífuga", "ignifuca": "ignífuga",
     "diametro": "diámetro",

@@ -432,7 +432,7 @@ RE_CANTIDAD = re.compile(
 RE_LONGITUD = re.compile(r"([\d]+(?:\.[\d]+)?)\s*metros", re.IGNORECASE)
 RE_TIPO_VALVULA = re.compile(
     r"v[aá]lvula[s]?\s+(?:de\s+|tipo\s+)?(compuerta|bola|globo|retenci[oó]n|check|"
-    r"mariposa|aguja|tap[oó]n|diafragma|control)",
+    r"mariposa|aguja|tap[oó]n|diafragma|control|seguridad)",
     re.IGNORECASE,
 )
 RE_TIPO_SOPORTE = re.compile(r"\b(u-?bolt|spring hanger)\b", re.IGNORECASE)
