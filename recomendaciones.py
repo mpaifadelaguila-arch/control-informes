@@ -479,6 +479,17 @@ RE_CANTIDAD = re.compile(
     r"juntas?|esp[aá]rragos?|zonas?|sectores?|bridas?|tramos?)\b",
     re.IGNORECASE,
 )
+# Caso "N de M <sustantivo>" (p.ej. "01 de 8 espárrago"): el inspector da
+# el TOTAL de elementos y, aparte, cuántos de esos están afectados -- la
+# cantidad que importa para la recomendación es la AFECTADA (N), no el
+# total (M). Sin este patrón, RE_CANTIDAD de arriba capturaba el número
+# pegado al sustantivo (M, el total) en vez del real afectado (N). Se
+# prueba primero, antes del patrón genérico.
+RE_CANTIDAD_DE_TOTAL = re.compile(
+    r"\b0*(\d{1,3})\s+de\s+0*(\d{1,3})\s+(?:esp[aá]rragos?|uni[oó]n(?:es)?|"
+    r"v[aá]lvulas?|abrazaderas?|soportes?|juntas?|zonas?|sectores?|bridas?|tramos?)\b",
+    re.IGNORECASE,
+)
 # El inspector a veces da varias longitudes juntas para varios sectores/
 # tramos, antes de un único "metros" final (p.ej. "longitud aproximada de
 # 1.5 y 0.5 metros"): el patrón anterior solo exigía un número PEGADO a
@@ -574,12 +585,15 @@ def _extraer_variables_de_texto(texto):
     m = RE_NPS_ETIQUETADO.search(texto) or RE_NPS.search(texto)
     if m:
         variables["nps"] = m.group(1).strip()
+    m_de_total = RE_CANTIDAD_DE_TOTAL.search(texto)
+    if m_de_total:
+        variables["cantidad"] = str(int(m_de_total.group(1)))
     # Puede haber dos cantidades distintas en el mismo comentario (p.ej.
     # "3 uniones bridadas... (04) elementos de ajuste cada una"): la
     # primera es "cantidad" (uniones/uniformes/válvulas...), la segunda,
     # si existe, es "cantidad_elementos" (espárragos/tuercas por unión).
     matches_cantidad = list(RE_CANTIDAD.finditer(texto))
-    if matches_cantidad:
+    if matches_cantidad and not m_de_total:
         variables["cantidad"] = str(int(matches_cantidad[0].group(1) or matches_cantidad[0].group(2)))
     if len(matches_cantidad) > 1:
         variables["cantidad_elementos"] = str(int(matches_cantidad[1].group(1) or matches_cantidad[1].group(2)))
