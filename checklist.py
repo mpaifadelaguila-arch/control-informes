@@ -439,7 +439,7 @@ def _sub_hallazgos_del_bloque(ws, fotos_hoja, fila_ini, fila_fin):
     return grupos
 
 
-def _procesar_bloque(ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin):
+def _procesar_bloque(ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin, tag=None, overrides=None):
     """Resuelve, para un ítem del checklist, cada observación de campo
     independiente que trae -- uno o más pares comentario+foto dentro del
     mismo ítem (p.ej. dos tramos distintos de 'Bridas...') -- su Hallazgo
@@ -449,7 +449,14 @@ def _procesar_bloque(ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin)
     descarta (una observación O/R sin foto no lleva recomendación ni pasa
     al informe), pero las demás observaciones del mismo ítem que sí tengan
     foto se conservan. Devuelve una lista (puede tener más de un elemento
-    por ítem, o ninguno)."""
+    por ítem, o ninguno).
+
+    `overrides`, si se provee, es un dict {(tag, fila_ultimo_hallazgo):
+    caso_id} -- cuando sugerir_caso_desde_texto() no encuentra ninguna
+    regla (PENDIENTE), se prueba con recomendaciones.aplicar_caso_manual()
+    usando el caso_id elegido explícitamente para esa fila (por una
+    persona o por un agente de IA que leyó el catálogo), en vez de
+    redactar nada nuevo."""
     resultados = []
     if marca not in ("O", "R"):
         return resultados
@@ -483,17 +490,28 @@ def _procesar_bloque(ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin)
             continue
 
         sugerido = recomendaciones.sugerir_caso_desde_texto(categoria, hallazgo)
+        aviso_override = None
+        if sugerido is None and overrides:
+            caso_manual = overrides.get((tag, fila_ultimo_hallazgo))
+            if caso_manual:
+                try:
+                    sugerido = recomendaciones.aplicar_caso_manual(caso_manual, hallazgo)
+                except ValueError as e:
+                    aviso_override = str(e)
         recomendacion = sugerido.recomendacion if sugerido else TEXTO_PENDIENTE_MANUAL
-        resultados.append({
+        info = {
             "item": item, "categoria": categoria,
             "hallazgo": hallazgo, "recomendacion": recomendacion,
             "sugerida": True, "fila_ultimo_hallazgo": fila_ultimo_hallazgo,
             "fila_ini_sub": sub_ini, "fila_fin_sub": sub_fin,
-        })
+        }
+        if aviso_override:
+            info["aviso_override"] = aviso_override
+        resultados.append(info)
     return resultados
 
 
-def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
+def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida, overrides=None):
     """Recorre las hojas del VT-CHECK LIST real (una por línea). Para cada
     ítem con hallazgo real (marca O/R) resuelve su Hallazgo (mejorado) y su
     Recomendación -- si ya estaba escrita por el inspector, se usa tal cual;
@@ -505,6 +523,10 @@ def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
     de todas formas viaja en `hallazgos_por_tag` para que el informe Word y
     los anexos la incluyan, y se reporta como aviso para que quede además en
     el checklist en la próxima revisión manual.
+
+    `overrides`, si se provee, es un dict {(tag, fila_ultimo_hallazgo):
+    caso_id} para los hallazgos que sugerir_caso_desde_texto() no pudo
+    resolver por palabras clave -- ver _procesar_bloque().
 
     Devuelve (avisos, hallazgos_por_tag), con
     hallazgos_por_tag[tag] = [{"item","categoria","hallazgo","recomendacion",
@@ -536,7 +558,16 @@ def parchar_checklist_vt(ruta_original, contexto_ignorado, ruta_salida):
             continue
 
         for item, categoria, marca, fila_ini, fila_fin in _bloques_por_item(ws):
-            for info in _procesar_bloque(ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin):
+            for info in _procesar_bloque(
+                ws, fotos_hoja, item, categoria, marca, fila_ini, fila_fin,
+                tag=tag, overrides=overrides,
+            ):
+                if info.get("aviso_override"):
+                    avisos.append(
+                        f"Hoja '{nombre_hoja}' (línea {tag}), ítem {item} [{categoria}]: "
+                        f"el caso manual indicado para la fila {info['fila_ultimo_hallazgo']} "
+                        f"no existe en el catálogo ({info['aviso_override']}); se dejó PENDIENTE."
+                    )
                 if info["sugerida"] and info["recomendacion"] != TEXTO_PENDIENTE_MANUAL:
                     # El hallazgo de campo ya quedó capturado en info["hallazgo"]
                     # (para la tabla de Hallazgos del informe); en el propio

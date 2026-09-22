@@ -628,6 +628,22 @@ def sugerir_caso_desde_texto(categoria_checklist, comentario):
     return None
 
 
+def aplicar_caso_manual(caso_id, comentario):
+    """Aplica un caso del CATALOGO elegido explícitamente (nunca por
+    palabras clave) a un comentario de campo -- pensado para cuando
+    sugerir_caso_desde_texto() no encuentra ninguna regla con confianza
+    (hallazgo marcado PENDIENTE) y una tercera parte (persona o un agente de
+    IA leyendo el propio COMPENDIO) decide cuál de los casos YA APROBADOS
+    del catálogo corresponde. El hallazgo y la recomendación finales siguen
+    saliendo EXACTOS del catalogo_tpl -- igual que con la sugerencia
+    automática, nunca se redacta texto nuevo ni se inventa una
+    recomendación: solo cambia QUIÉN elige el caso, nunca de dónde sale el
+    texto. Lanza ValueError si caso_id no existe en el catálogo (mismo
+    comportamiento que generar_hallazgo_y_recomendacion)."""
+    datos = {"caso": caso_id, **_extraer_variables_de_texto(comentario)}
+    return generar_hallazgo_y_recomendacion(datos)
+
+
 # ==============================================================================
 # MECANISMOS DE DAÑO (catálogo fijo de 20, cruzado por palabras clave contra
 # los hallazgos detectados en la inspección -- sin IA).
