@@ -127,7 +127,7 @@ def _normalizar_tag_para_match(texto):
     return texto
 
 
-def _leer_psaim_por_linea(rutas_psaim, tags):
+def _leer_psaim_por_linea(rutas_psaim, tags, tags_con_psaim_esperado=None):
     """Intenta asociar el/los Excel(es) PSAIM subido(s) a las líneas del
     grupo. En la práctica real, cada línea trae su propia medición de
     espesores (PSAIM) en un archivo aparte -- por eso `rutas_psaim` puede
@@ -140,14 +140,22 @@ def _leer_psaim_por_linea(rutas_psaim, tags):
        ítem del software PSAIM, donde la hoja no queda nombrada con el
        TAG): se busca el TAG dentro del NOMBRE DEL ARCHIVO (misma
        convención ya usada para los isométricos).
-    3. Último respaldo: si nada de lo anterior coincidió y el grupo tiene
-       exactamente una línea, se aplica ese archivo directo a esa línea."""
+    3. Respaldo por ALCANCE DEL SERVICIO: según la regla del proyecto
+       (ALCANCE = "LINEAS" implica inspección visual + PSAIM; "VT-CIRCUITOS"
+       es solo visual), si nada de lo anterior coincidió pero hay
+       exactamente UNA línea del grupo con ALCANCE "LINEAS" que todavía no
+       tiene PSAIM asignado, el archivo es obviamente de esa línea -- se
+       aplica directo, sin importar cuántas líneas totales tenga el grupo.
+    4. Último respaldo: si nada de lo anterior coincidió y el grupo tiene
+       exactamente una línea en total, se aplica ese archivo directo a
+       esa línea."""
     if isinstance(rutas_psaim, (str, os.PathLike)):
         rutas_psaim = [rutas_psaim]
 
     avisos = []
     resultados = {}
     tags_por_norm = {t.strip().upper(): t for t in tags}
+    tags_con_psaim_esperado = list(tags_con_psaim_esperado or [])
 
     for ruta in rutas_psaim:
         nombre_archivo = os.path.basename(str(ruta))
@@ -192,9 +200,15 @@ def _leer_psaim_por_linea(rutas_psaim, tags):
              if tnorm and _normalizar_tag_para_match(tnorm) in nombre_archivo_norm),
             None,
         )
+        candidatos_alcance = [t for t in tags_con_psaim_esperado if t not in resultados]
         if tag_por_nombre:
             try:
                 resultados[tag_por_nombre] = psaim.leer_psaim(ruta)
+            except psaim.PSAIMFaltaDetalle as e:
+                avisos.append(str(e))
+        elif len(candidatos_alcance) == 1:
+            try:
+                resultados[candidatos_alcance[0]] = psaim.leer_psaim(ruta)
             except psaim.PSAIMFaltaDetalle as e:
                 avisos.append(str(e))
         elif len(tags) == 1:
@@ -494,7 +508,13 @@ def ejecutar_proceso_grupo(
     rutas_psaim_lista = [r for r in rutas_psaim_lista if r and os.path.exists(str(r))]
     if rutas_psaim_lista:
         print("[*] Procesando reporte(s) PSAIM...")
-        psaim_por_tag, avisos_psaim = _leer_psaim_por_linea(rutas_psaim_lista, tags_ordenados)
+        tags_con_psaim_esperado = [
+            ln["tag"] for ln in lineas_alcance
+            if str(ln.get("alcance") or "").strip().upper() == "LINEAS"
+        ]
+        psaim_por_tag, avisos_psaim = _leer_psaim_por_linea(
+            rutas_psaim_lista, tags_ordenados, tags_con_psaim_esperado
+        )
         avisos.extend(avisos_psaim)
 
     # 4. Checklist VT: parchar con el motor de reglas (recomendaciones.py)
