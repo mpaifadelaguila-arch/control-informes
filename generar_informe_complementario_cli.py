@@ -22,6 +22,7 @@ Detalle de líneas + Sumario de Inspección). El detalle debe traer la
 columna "N° ORIGINAL" para conservar la numeración del informe principal.
 """
 import argparse
+import json
 import os
 import re
 import sys
@@ -33,6 +34,7 @@ if str(DIR_RAIZ) not in sys.path:
     sys.path.insert(0, str(DIR_RAIZ))
 
 import anexos
+import checklist as checklist_mod
 import inventario
 import recomendaciones
 import reportes_pdf
@@ -91,6 +93,34 @@ def _asignar_isometricos(rutas_iso, tags_detectados):
     return asignados, sin_asignar
 
 
+def _cargar_casos_manual(ruta):
+    if not ruta:
+        return None
+    with open(ruta, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _escribir_pendientes_json(hallazgos_por_tag, dir_salida):
+    pendientes = [
+        {
+            "tag": tag,
+            "fila": info["fila_ultimo_hallazgo"],
+            "item": info["item"],
+            "categoria": info["categoria"],
+            "hallazgo": info["hallazgo"],
+        }
+        for tag, items in (hallazgos_por_tag or {}).items()
+        for info in items
+        if info.get("recomendacion") == checklist_mod.TEXTO_PENDIENTE_MANUAL
+    ]
+    if not pendientes:
+        return None
+    ruta_pendientes = Path(dir_salida) / "pendientes.json"
+    with open(ruta_pendientes, "w", encoding="utf-8") as f:
+        json.dump(pendientes, f, ensure_ascii=False, indent=2)
+    return ruta_pendientes
+
+
 def generar(
     ruta_detalle,
     sumario_texto,
@@ -103,6 +133,7 @@ def generar(
     ruta_base_maestra=RUTA_MAESTRA_DEFAULT,
     ruta_plantilla=RUTA_PLANTILLA_DEFAULT,
     ruta_catalogo=RUTA_CATALOGO_DEFAULT,
+    ruta_casos_manual=None,
 ):
     ruta_detalle = Path(ruta_detalle)
     dir_salida = Path(dir_salida)
@@ -143,6 +174,7 @@ def generar(
         ruta_checklist=ruta_checklist,
         codigo_informe_principal=codigo_informe_principal,
         sumario_texto=sumario_texto,
+        casos_manual=_cargar_casos_manual(ruta_casos_manual),
     )
 
     out_word_path = Path(resultado["ruta_word"])
@@ -209,12 +241,25 @@ def generar(
         for a in avisos:
             print(f"  - {a}")
 
+    ruta_pendientes = _escribir_pendientes_json(resultado.get("hallazgos_por_tag"), dir_salida)
+    if ruta_pendientes:
+        print(
+            f"\n📋 Se escribió {ruta_pendientes} con el detalle de cada hallazgo PENDIENTE "
+            "(tag, fila, ítem, categoría y el texto real del inspector). Para resolverlos: "
+            "lee cada uno junto con Catalogo_Hallazgos_Recomendaciones.xlsx, elige el caso_id "
+            "del catálogo que corresponda a cada hallazgo (NUNCA redactes un hallazgo o "
+            "recomendación nuevos -- el texto final sale siempre del catálogo), arma un JSON "
+            '[{"tag": "...", "fila": N, "caso_id": "..."}, ...] y vuelve a generar el informe '
+            "agregando --casos-manual ese_archivo.json."
+        )
+
     return {
         "codigo_informe": codigo_informe,
         "word": str(out_word_path),
         "excel": str(out_excel_path) if out_excel_path else None,
         "anexos_zip": str(out_zip_path),
         "compilado": str(ruta_compilado) if ruta_compilado else None,
+        "pendientes_json": str(ruta_pendientes) if ruta_pendientes else None,
         "avisos": avisos,
     }
 
@@ -239,6 +284,12 @@ def main():
     ap.add_argument("--base-maestra", default=str(RUTA_MAESTRA_DEFAULT))
     ap.add_argument("--plantilla", default=str(RUTA_PLANTILLA_DEFAULT))
     ap.add_argument("--catalogo", default=str(RUTA_CATALOGO_DEFAULT))
+    ap.add_argument(
+        "--casos-manual",
+        help="JSON [{\"tag\",\"fila\",\"caso_id\"}, ...] con el caso del catálogo elegido "
+             "explícitamente (por una persona o por un agente de IA) para los hallazgos que "
+             "quedaron PENDIENTE en una corrida anterior -- ver pendientes.json en --salida.",
+    )
     args = ap.parse_args()
 
     generar(
@@ -252,6 +303,7 @@ def main():
         rutas_isometricos=args.isometricos,
         ruta_base_maestra=args.base_maestra,
         ruta_plantilla=args.plantilla,
+        ruta_casos_manual=args.casos_manual,
         ruta_catalogo=args.catalogo,
     )
 

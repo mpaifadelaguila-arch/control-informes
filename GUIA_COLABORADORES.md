@@ -200,6 +200,54 @@ opciones.
 
 ---
 
+## Hallazgos PENDIENTE — resolverlos con ayuda de un agente de IA
+
+El motor de hallazgos/recomendaciones **no usa IA**: son reglas de palabras
+clave contra un catálogo cerrado y ya aprobado
+(`Catalogo_Hallazgos_Recomendaciones.xlsx`, hoja "Casos"), a propósito, para
+que nunca se invente una recomendación técnica. Cuando un hallazgo real no
+calza con ninguna regla, queda marcado **PENDIENTE** en el checklist — no es
+un error, es el sistema negándose a adivinar.
+
+Para resolver esos PENDIENTE sin tener que redactarlos tú a mano, usa a
+Claude (el mismo agente del chat) como ayuda para **elegir** el caso correcto
+del catálogo — nunca para redactar texto nuevo:
+
+1. Genera el informe normalmente. Si quedó algún hallazgo PENDIENTE, se
+   escribe automáticamente `pendientes.json` en la carpeta de salida, con el
+   texto real de cada uno (tag, fila, ítem, categoría, hallazgo).
+2. Pídele a Claude algo así:
+
+   > Lee `pendientes.json` y, para cada hallazgo, elige cuál caso de
+   > `Catalogo_Hallazgos_Recomendaciones.xlsx` (hoja "Casos", columna `id`)
+   > corresponde — apóyate en `ROL_Y_OBJETIVO_REV2.txt` (la matriz de
+   > decisión por severidad, bridas, válvulas, soportes, aislamiento, etc.)
+   > para decidir. Nunca redactes un hallazgo o recomendación nuevos: el
+   > texto final siempre sale exacto del catálogo. Si un hallazgo no calza
+   > razonablemente con ningún caso, déjalo fuera en vez de forzarlo.
+   > Arma el archivo `casos_manual.json` con el resultado.
+
+   **Agrega `ROL_Y_OBJETIVO_REV2.txt` al Contexto del Proyecto** (si no lo
+   tienes ya) — es la guía de decisión completa (matriz de severidad,
+   reglas de bridas/válvulas/soportes/aislamiento, normas aplicables) que
+   Claude debe usar para elegir bien.
+3. El formato de `casos_manual.json` es una lista:
+   ```json
+   [
+     {"tag": "4\"-P-02-619-0-D3", "fila": 18, "caso_id": "BRIDA_ESPARRAGOS_CORTOS"}
+   ]
+   ```
+   (`tag` y `fila` vienen tal cual de `pendientes.json`, no los cambies.)
+4. Vuelve a generar el informe agregando `--casos-manual casos_manual.json`
+   (o pídeselo a Claude directamente). Los hallazgos resueltos ya no quedan
+   PENDIENTE; el hallazgo y la recomendación siguen saliendo **exactos**
+   del catálogo, igual que los que sí calzaron por palabras clave. Los que
+   de verdad no correspondan a ningún caso del catálogo quedan PENDIENTE
+   para que el especialista los redacte a mano — eso sí sigue siendo
+   manual, a propósito.
+
+---
+
 ## Importante (aplica a todo lo anterior)
 
 - Los archivos `BASE_DE_DATOS_DE_LINEAS_FASE1.xlsx` (base técnica de líneas)
