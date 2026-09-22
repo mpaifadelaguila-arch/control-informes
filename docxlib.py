@@ -407,7 +407,17 @@ def set_cell_text_prefijo_mas_lista(tc, prefijo, items):
             if rpr0 is not None:
                 fallback_rpr = copy.deepcopy(rpr0)
         anchor = paras[1]
-        nuevos = clone_paragraph_block(anchor, list(items) if items else [""])
+        if not items:
+            # Sin hallazgos de VT que numerar (p.ej. línea con PSAIM sano y
+            # sin hallazgo visual): se quita el párrafo numerado molde en
+            # vez de dejarlo vacío -- de lo contrario Word igual dibuja la
+            # numeración ("1)") sin ningún texto al lado.
+            anchor.getparent().remove(anchor)
+            for p in paras[2:]:
+                if not "".join(t.text or "" for t in p.findall(f'.//{qn("w:t")}')).strip():
+                    p.getparent().remove(p)
+            return tc
+        nuevos = clone_paragraph_block(anchor, list(items))
         if fallback_rpr is not None:
             for p in nuevos:
                 r = p.find(qn("w:r"))
