@@ -459,6 +459,14 @@ def generar_hallazgo_y_recomendacion(datos: dict) -> Optional[Resultado]:
 # recomendación técnica sobre una base ambigua).
 
 RE_NPS = re.compile(r'(\d+(?:\s+\d/\d)?"|\d/\d"?)')
+# El patrón genérico de arriba encuentra CUALQUIER número-comillas, sin
+# importar a qué se refiere -- en un comentario real como "01 de 8
+# espárrago de 5/8" en la brida de NPS 4"..." capturaba el diámetro del
+# espárrago (5/8") en vez del NPS real de la línea/brida (4"), porque
+# aparece primero en el texto. Se prueba primero, explícitamente, el
+# número que viene inmediatamente después de la palabra "NPS" (o "Ø"),
+# y solo si no aparece se cae al patrón genérico de respaldo.
+RE_NPS_ETIQUETADO = re.compile(r'(?:NPS|Ø)\s*(\d+(?:\s+\d/\d)?"|\d/\d"?)', re.IGNORECASE)
 # Dos formas reales de escribir la cantidad en el checklist: entre
 # paréntesis "(3)" (grupo 1), o un número suelto -- a veces con cero a la
 # izquierda, "01 unión bridada" -- justo antes de uno de los sustantivos
@@ -468,10 +476,20 @@ RE_NPS = re.compile(r'(\d+(?:\s+\d/\d)?"|\d/\d"?)')
 RE_CANTIDAD = re.compile(
     r"\((\d{1,3})\)"
     r"|\b0*(\d{1,3})\s+(?:uni[oó]n(?:es)?|v[aá]lvulas?|abrazaderas?|soportes?|"
-    r"juntas?|esp[aá]rragos?|zonas?|bridas?|tramos?)\b",
+    r"juntas?|esp[aá]rragos?|zonas?|sectores?|bridas?|tramos?)\b",
     re.IGNORECASE,
 )
-RE_LONGITUD = re.compile(r"([\d]+(?:\.[\d]+)?)\s*metros", re.IGNORECASE)
+# El inspector a veces da varias longitudes juntas para varios sectores/
+# tramos, antes de un único "metros" final (p.ej. "longitud aproximada de
+# 1.5 y 0.5 metros"): el patrón anterior solo exigía un número PEGADO a
+# "metros", así que se quedaba solo con el último (0.5) y perdía el
+# primero (1.5) en silencio. Ahora se captura la secuencia completa de
+# números separados por coma/"y" que preceden a "metros", tal cual la
+# escribió el inspector.
+RE_LONGITUD = re.compile(
+    r"([\d]+(?:\.[\d]+)?(?:\s*(?:,|y)\s*[\d]+(?:\.[\d]+)?)*)\s*metros",
+    re.IGNORECASE,
+)
 RE_TIPO_VALVULA = re.compile(
     r"v[aá]lvula[s]?\s+(?:de\s+|tipo\s+)?(compuerta|bola|globo|retenci[oó]n|check|"
     r"mariposa|aguja|tap[oó]n|diafragma|control|seguridad)",
@@ -553,7 +571,7 @@ def _formatear_elementos(lista):
 
 def _extraer_variables_de_texto(texto):
     variables = {}
-    m = RE_NPS.search(texto)
+    m = RE_NPS_ETIQUETADO.search(texto) or RE_NPS.search(texto)
     if m:
         variables["nps"] = m.group(1).strip()
     # Puede haber dos cantidades distintas en el mismo comentario (p.ej.
