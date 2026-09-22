@@ -34,6 +34,22 @@ depende de la plantilla).
 chat cada vez que pides generar un informe** (no se deja solo en Contexto).
 Usa este mensaje como plantilla, adjuntando los archivos que corresponda:
 
+### Cómo reconocer cada archivo adjunto
+
+No hace falta usar el nombre exacto de archivo de los ejemplos: basta con
+que el nombre incluya la palabra clave correspondiente para que se
+identifique correctamente, sin importar el resto del nombre:
+
+- **Plantilla Word**: `plantilla_base.docx` / `plantilla_complementario.docx`.
+- **PSAIM**: cualquier archivo Excel cuyo nombre incluya la palabra
+  **"PSAIM"** (p.ej. `Informe PSAIM ITEM 120 Comp. Temp.xlsx`) se asume
+  como el archivo PSAIM del informe.
+- **VT-CHECK LIST**: cualquier archivo Excel cuyo nombre incluya
+  "CHECK LIST" o "CHECKLIST".
+- **Detalle de grupo / Detalle de líneas**: el Excel que trae las columnas
+  ITEM, SAP, LINEAS, ALCANCE DEL SERVICIO, etc. (identifícalo por su
+  contenido si el nombre no es claro).
+
 > Adjunto `plantilla_base.docx` (la plantilla Word real), el detalle de
 > grupo `Detalle_GT-023.xlsx`, las fotos de la unidad y el VT-CHECK LIST
 > `VT-CHECK_LIST_GT-023.xlsx`. Usando generar_informe_cli.py (ya está en el
