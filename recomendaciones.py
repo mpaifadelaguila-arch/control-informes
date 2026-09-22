@@ -476,7 +476,7 @@ RE_NPS_ETIQUETADO = re.compile(r'(?:NPS|Ø)\s*(\d+(?:\s+\d/\d)?"|\d/\d"?)', re.I
 RE_CANTIDAD = re.compile(
     r"\((\d{1,3})\)"
     r"|\b0*(\d{1,3})\s+(?:uni[oó]n(?:es)?|v[aá]lvulas?|abrazaderas?|soportes?|"
-    r"juntas?|esp[aá]rragos?|zonas?|sectores?|bridas?|tramos?)\b",
+    r"juntas?|esp[aá]rragos?|zonas?|sectores?|bridas?|tramos?|aberturas?)\b",
     re.IGNORECASE,
 )
 # Caso "N de M <sustantivo>" (p.ej. "01 de 8 espárrago"): el inspector da

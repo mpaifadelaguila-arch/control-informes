@@ -241,16 +241,36 @@ def _mapa_hoja_a_sheet_path(zf):
     return mapa
 
 
+# Ancho aproximado en caracteres de la fusión K:R (columna de Comentario)
+# -- usado solo para estimar cuántas líneas de texto va a envolver Excel al
+# parchar una recomendación larga (varios casos combinados con "Asimismo,"/
+# "Así como..."), y así agrandar la fila para que no quede cortada
+# visualmente. Es una estimación (el ancho real de columna puede variar
+# levemente entre archivos), no un cálculo exacto de layout.
+_ANCHO_CARACTERES_COMENTARIO = 70
+_ALTO_POR_LINEA_PT = 15
+_ALTO_MINIMO_PT = 15
+
+
 def _patch_celdas_en_sheet_xml(sheet_xml_bytes, parches):
     """Reemplaza, dentro del XML crudo de una hoja, el valor de las celdas
     indicadas en `parches` ({(fila, columna_letra): texto_nuevo}) por un
     string en línea (inlineStr) -- sin tocar ningún otro nodo del XML
-    (estilos, fusiones, dibujos, fórmulas de otras celdas...). Devuelve los
-    bytes del XML modificado."""
+    (estilos, fusiones, dibujos, fórmulas de otras celdas...). También
+    agranda la altura de la fila parchada si el texto nuevo es más largo de
+    lo que la fila original podía mostrar (p.ej. una recomendación combinada
+    de varios casos, mucho más larga que el comentario original del
+    inspector) -- de lo contrario Excel/LibreOffice recortan visualmente el
+    texto sin avisar, aunque "ajustar texto" esté activado, porque la altura
+    de fila fija en el XML no crece sola. Nunca la achica (solo la agranda
+    si hace falta). Devuelve los bytes del XML modificado."""
     root = etree.fromstring(sheet_xml_bytes)
     for (fila, col), texto in parches.items():
         ref = f"{col}{fila}"
-        celda = root.find(f".//{{{_NS_MAIN}}}row[@r='{fila}']/{{{_NS_MAIN}}}c[@r='{ref}']")
+        row_el = root.find(f".//{{{_NS_MAIN}}}row[@r='{fila}']")
+        if row_el is None:
+            continue
+        celda = row_el.find(f"{{{_NS_MAIN}}}c[@r='{ref}']")
         if celda is None:
             continue
         for hijo in list(celda):
@@ -260,6 +280,13 @@ def _patch_celdas_en_sheet_xml(sheet_xml_bytes, parches):
         t_el = etree.SubElement(is_el, f"{{{_NS_MAIN}}}t")
         t_el.text = texto
         t_el.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+
+        lineas_necesarias = max(1, -(-len(texto) // _ANCHO_CARACTERES_COMENTARIO))  # ceil
+        alto_necesario = max(_ALTO_MINIMO_PT, lineas_necesarias * _ALTO_POR_LINEA_PT)
+        alto_actual = float(row_el.get("ht", "0") or 0)
+        if alto_necesario > alto_actual:
+            row_el.set("ht", str(alto_necesario))
+            row_el.set("customHeight", "1")
     return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
 
 
