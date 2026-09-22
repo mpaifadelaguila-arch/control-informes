@@ -567,7 +567,8 @@ def ejecutar_proceso_grupo(
             for info in items_chk
             if info["hallazgo"]
         ]
-        mecanismos = recomendaciones.detectar_mecanismos_dano(todos_los_hallazgos)
+        fluidos_activos = [f.get("fluido") for f in filas_activas]
+        mecanismos = recomendaciones.detectar_mecanismos_dano(todos_los_hallazgos, fluidos_activos)
         if mecanismos:
             filas6 = docxlib.clone_table_to_n_rows(doc.tables[6], len(mecanismos), header_rows=1)
             for i, (tr, mecanismo) in enumerate(zip(filas6, mecanismos), start=1):
@@ -866,7 +867,8 @@ def ejecutar_proceso_grupo_complementario(
             for info in items_chk
             if info["hallazgo"]
         ]
-        mecanismos = recomendaciones.detectar_mecanismos_dano(todos_los_hallazgos)
+        fluidos_activos = [f.get("fluido") for f in filas_activas]
+        mecanismos = recomendaciones.detectar_mecanismos_dano(todos_los_hallazgos, fluidos_activos)
         if mecanismos:
             filas5 = docxlib.clone_table_to_n_rows(doc.tables[5], len(mecanismos), header_rows=1)
             for i, (tr, mecanismo) in enumerate(zip(filas5, mecanismos), start=1):
