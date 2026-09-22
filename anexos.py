@@ -29,29 +29,46 @@ _FONT_REGISTERED = False
 
 
 def _find_cambria():
-    """Devuelve (ruta_regular, ruta_bold) de la primera fuente serif de
-    sistema disponible -- la MISMA fuente para toda página generada por
-    reportlab en el compilado (separadores de anexo Y el resumen PSAIM),
-    para que no se note un cambio de tipografía entre ellas.
+    """Devuelve (ruta_regular, indice_regular, ruta_bold, indice_bold) de
+    la fuente serif a usar -- la MISMA fuente para toda página generada
+    por reportlab en el compilado (separadores de anexo Y el resumen
+    PSAIM), para que no se note un cambio de tipografía entre ellas.
 
-    Caladea va primero porque es la fuente sustituta oficial de Cambria
-    (metric-compatible, del proyecto Chrome OS Core Fonts): es la MISMA
-    que se fuerza también en la conversión de Word a PDF vía LibreOffice
-    (ver _fonts_dir_para_libreoffice), así que con ella las páginas
-    generadas por reportlab quedan visualmente iguales al resto del Word
-    convertido. Se prueba primero la copia empaquetada en fonts/ (dentro
-    de este mismo repositorio, sección "packages.txt es solo para
-    Streamlit Cloud" -- el chat-agent u otro entorno que ejecute estos
-    scripts directamente NO instala paquetes del sistema, así que no se
-    puede depender de que 'fonts-crosextra-caladea' esté instalado ahí);
-    las rutas de sistema y Liberation Serif / DejaVu Serif solo quedan de
-    respaldo si por algún motivo la copia empaquetada no está presente."""
+    PRIORIDAD 1 -- Cambria REAL: la plantilla Word (word/styles.xml) usa
+    literalmente "Cambria" (fuente propietaria de Microsoft, incluida en
+    Windows/Office). Caladea es solo metric-compatible (mismo ancho de
+    caracter, para que el texto no se reacomode distinto) pero NO es un
+    clon visual -- el diseño de cada letra es distinto, por eso una
+    comparación lado a lado contra el Word real muestra una tipografía
+    visiblemente diferente. Como Cambria es propietaria, este repositorio
+    nunca la distribuye -- si el usuario coloca su propia copia (con
+    licencia legítima vía su Windows/Office) en fonts/, junto a los
+    Caladea-*.ttf que sí vienen versionados, se usa esa por sobre Caladea.
+    Se admite tanto un único "Cambria.ttc" (la colección que trae Windows,
+    cara 0 = regular, cara 1 = negrita) como "Cambria-Regular.ttf" /
+    "Cambria-Bold.ttf" sueltos.
+
+    PRIORIDAD 2 -- Caladea empaquetada en fonts/ (dentro de este mismo
+    repositorio, sección "packages.txt es solo para Streamlit Cloud" --
+    el chat-agent u otro entorno que ejecute estos scripts directamente
+    NO instala paquetes del sistema, así que no se puede depender de que
+    'fonts-crosextra-caladea' esté instalado ahí).
+
+    Las rutas de sistema y Liberation Serif / DejaVu Serif solo quedan de
+    respaldo si nada de lo anterior está presente."""
+    for ttc in (os.path.join(DIR_FONTS, "Cambria.ttc"), r"C:\Windows\Fonts\cambria.ttc"):
+        if os.path.exists(ttc):
+            return ttc, 0, ttc, 1
+
     candidatos = [
+        (
+            os.path.join(DIR_FONTS, "Cambria-Regular.ttf"),
+            os.path.join(DIR_FONTS, "Cambria-Bold.ttf"),
+        ),
         (
             os.path.join(DIR_FONTS, "Caladea-Regular.ttf"),
             os.path.join(DIR_FONTS, "Caladea-Bold.ttf"),
         ),
-        (r"C:\Windows\Fonts\cambria.ttc", None),
         (r"C:\Windows\Fonts\Cambria.ttf", r"C:\Windows\Fonts\Cambriab.ttf"),
         (
             "/usr/share/fonts/truetype/crosextra/Caladea-Regular.ttf",
@@ -69,8 +86,8 @@ def _find_cambria():
     ]
     for regular, bold in candidatos:
         if os.path.exists(regular):
-            return regular, (bold if bold and os.path.exists(bold) else None)
-    return None, None
+            return regular, 0, (bold if bold and os.path.exists(bold) else None), 0
+    return None, 0, None, 0
 
 
 def _ensure_font():
@@ -82,21 +99,25 @@ def _ensure_font():
     global _FONT_REGISTERED, FONT_NAME, FONT_NAME_BOLD
     if _FONT_REGISTERED:
         return
-    regular, bold = _find_cambria()
+    regular, regular_idx, bold, bold_idx = _find_cambria()
     if regular is None:
         FONT_NAME = FALLBACK_FONT_NAME
         FONT_NAME_BOLD = FALLBACK_FONT_NAME_BOLD
         _FONT_REGISTERED = True
         return
     try:
-        registerFont(TTFont(FONT_NAME, regular, subfontIndex=0))
+        registerFont(TTFont(FONT_NAME, regular, subfontIndex=regular_idx))
     except Exception:
         registerFont(TTFont(FONT_NAME, regular))
     if bold:
         try:
-            registerFont(TTFont(FONT_NAME_BOLD, bold, subfontIndex=0))
+            registerFont(TTFont(FONT_NAME_BOLD, bold, subfontIndex=bold_idx))
         except Exception:
-            registerFont(TTFont(FONT_NAME_BOLD, bold))
+            # La cara "negrita" pedida (p.ej. índice 1 de un .ttc) no
+            # cargó -- nunca reintentar sin subfontIndex, porque eso
+            # registraría por error la cara regular (índice 0) como si
+            # fuera la negrita.
+            FONT_NAME_BOLD = FONT_NAME
     else:
         FONT_NAME_BOLD = FONT_NAME
     _FONT_REGISTERED = True
@@ -182,16 +203,22 @@ def nombre_archivo_seguro(texto):
 
 
 def _preparar_home_con_fuentes_empaquetadas(base_dir):
-    """Crea un directorio ~/.fonts dentro de `base_dir` con las copias de
-    Caladea empaquetadas en fonts/ (sección "packages.txt es solo para
-    Streamlit Cloud"): el chat-agent u otro entorno que ejecute estos
-    scripts directamente nunca instala paquetes del sistema, así que no
-    se puede depender de 'fonts-crosextra-caladea' estar instalado ahí.
-    fontconfig (usado por LibreOffice en Linux) escanea ~/.fonts por
-    defecto, así que basta con apuntar la variable HOME del subproceso
-    a `base_dir` para que la conversión SIEMPRE tenga Caladea disponible,
-    sin necesitar permisos de administrador ni tocar el sistema real.
-    No falla si no hay fuentes empaquetadas (deja el HOME normal)."""
+    """Crea un directorio ~/.fonts dentro de `base_dir` con TODAS las
+    fuentes presentes en fonts/: si el usuario agregó su propia copia de
+    Cambria real (Cambria.ttc, o Cambria-Regular.ttf/Cambria-Bold.ttf --
+    ver _find_cambria), fontconfig la indexa bajo el nombre de familia
+    real "Cambria" leído del propio archivo, así que Word (que pide
+    exactamente "Cambria") la usa de forma DIRECTA, sin ninguna
+    sustitución -- resultado idéntico letra por letra. Si no está, quedan
+    los Caladea-*.ttf versionados en el repo como plan B (sección
+    "packages.txt es solo para Streamlit Cloud": el chat-agent u otro
+    entorno que ejecute estos scripts directamente nunca instala paquetes
+    del sistema, así que no se puede depender de 'fonts-crosextra-caladea'
+    estar instalado ahí). fontconfig (usado por LibreOffice en Linux)
+    escanea ~/.fonts por defecto, así que basta con apuntar la variable
+    HOME del subproceso a `base_dir`, sin necesitar permisos de
+    administrador ni tocar el sistema real. No falla si no hay fuentes
+    empaquetadas (deja el HOME normal)."""
     import shutil
 
     if not os.path.isdir(DIR_FONTS):
@@ -200,7 +227,7 @@ def _preparar_home_con_fuentes_empaquetadas(base_dir):
     os.makedirs(dir_home_fonts, exist_ok=True)
     copiada_alguna = False
     for nombre in os.listdir(DIR_FONTS):
-        if nombre.lower().endswith(".ttf"):
+        if nombre.lower().endswith((".ttf", ".ttc")):
             shutil.copy(os.path.join(DIR_FONTS, nombre), os.path.join(dir_home_fonts, nombre))
             copiada_alguna = True
     return base_dir if copiada_alguna else None

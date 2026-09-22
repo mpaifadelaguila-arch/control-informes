@@ -1,2 +1,9 @@
 __pycache__/
 *.pyc
+
+# Cambria es propietaria de Microsoft (Windows/Office) -- nunca se
+# redistribuye en este repositorio. Solo Caladea (fonts/Caladea-*.ttf,
+# licencia SIL OFL) va versionada; una copia real de Cambria que el
+# usuario agregue localmente a fonts/ queda excluida del commit.
+fonts/Cambria*.ttf
+fonts/Cambria*.ttc
