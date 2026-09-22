@@ -197,7 +197,10 @@ def _leer_psaim_por_linea(rutas_psaim, tags, tags_con_psaim_esperado=None):
             if tag_real is None:
                 continue
             try:
-                resultados[tag_real] = psaim.leer_psaim_hoja(wb[nombre_hoja])
+                datos = psaim.leer_psaim_hoja(wb[nombre_hoja])
+                datos["ruta_archivo"] = str(ruta)
+                datos["nombre_hoja"] = nombre_hoja
+                resultados[tag_real] = datos
                 encontrado = True
             except psaim.PSAIMFaltaDetalle as e:
                 avisos.append(str(e))
@@ -212,19 +215,17 @@ def _leer_psaim_por_linea(rutas_psaim, tags, tags_con_psaim_esperado=None):
             None,
         )
         candidatos_alcance = [t for t in tags_con_psaim_esperado if t not in resultados]
-        if tag_por_nombre:
+        tag_destino = tag_por_nombre or (
+            candidatos_alcance[0] if len(candidatos_alcance) == 1
+            else tags[0] if len(tags) == 1
+            else None
+        )
+        if tag_destino:
             try:
-                resultados[tag_por_nombre] = psaim.leer_psaim(ruta)
-            except psaim.PSAIMFaltaDetalle as e:
-                avisos.append(str(e))
-        elif len(candidatos_alcance) == 1:
-            try:
-                resultados[candidatos_alcance[0]] = psaim.leer_psaim(ruta)
-            except psaim.PSAIMFaltaDetalle as e:
-                avisos.append(str(e))
-        elif len(tags) == 1:
-            try:
-                resultados[tags[0]] = psaim.leer_psaim(ruta)
+                datos = psaim.leer_psaim_hoja(wb[wb.sheetnames[0]])
+                datos["ruta_archivo"] = str(ruta)
+                datos["nombre_hoja"] = wb.sheetnames[0]
+                resultados[tag_destino] = datos
             except psaim.PSAIMFaltaDetalle as e:
                 avisos.append(str(e))
         else:
@@ -289,6 +290,24 @@ def _lista_espanol(numeros):
 
 def _es_pendiente_anexo(fila):
     return bool(fila.get("entrega_anexo"))
+
+
+def _normalizar_casos_manual(casos_manual):
+    """Convierte la lista [{"tag","fila","caso_id"}, ...] (formato del JSON
+    --casos-manual, pensado para que un agente de IA -- o una persona --
+    elija el caso del catálogo que corresponde a cada hallazgo PENDIENTE,
+    identificándolo por línea + número de fila del checklist) al dict
+    {(tag, fila): caso_id} que espera checklist.parchar_checklist_vt."""
+    if not casos_manual:
+        return None
+    overrides = {}
+    for entrada in casos_manual:
+        tag = str(entrada.get("tag") or "").strip()
+        fila = entrada.get("fila")
+        caso_id = str(entrada.get("caso_id") or "").strip()
+        if tag and fila and caso_id:
+            overrides[(tag, int(fila))] = caso_id
+    return overrides
 
 
 def _agregar_nota_pendiente_anexo(doc, filas_tecnicas):
@@ -462,6 +481,7 @@ def ejecutar_proceso_grupo(
     ruta_checklist=None,
     ruta_psaim=None,
     elaborador=None,
+    casos_manual=None,
 ):
     print(f"[*] Iniciando procesamiento automático para el grupo: {grupo_buscado}")
     os.makedirs(dir_salida, exist_ok=True)
@@ -534,7 +554,8 @@ def ejecutar_proceso_grupo(
     if ruta_checklist and os.path.exists(str(ruta_checklist)):
         print("[*] Procesando y parchando el Checklist VT...")
         avisos_chk, hallazgos_por_tag = checklist_mod.parchar_checklist_vt(
-            str(ruta_checklist), {}, ruta_checklist_salida
+            str(ruta_checklist), {}, ruta_checklist_salida,
+            overrides=_normalizar_casos_manual(casos_manual),
         )
         avisos.extend(avisos_chk)
         print("[✔] Checklist parchado correctamente.")
@@ -797,6 +818,7 @@ def ejecutar_proceso_grupo_complementario(
     elaborador=None,
     codigo_informe_principal=None,
     sumario_texto=None,
+    casos_manual=None,
 ):
     """Genera un Informe Complementario / Anexo Adicional: mismo flujo que
     ejecutar_proceso_grupo(), pero para el caso en que un subconjunto de
@@ -851,7 +873,8 @@ def ejecutar_proceso_grupo_complementario(
     if ruta_checklist and os.path.exists(str(ruta_checklist)):
         print("[*] Procesando y parchando el Checklist VT...")
         avisos_chk, hallazgos_por_tag = checklist_mod.parchar_checklist_vt(
-            str(ruta_checklist), {}, ruta_checklist_salida
+            str(ruta_checklist), {}, ruta_checklist_salida,
+            overrides=_normalizar_casos_manual(casos_manual),
         )
         avisos.extend(avisos_chk)
     else:

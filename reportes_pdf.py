@@ -8,32 +8,20 @@ Anexos del informe (anexos.py):
         el Anexo B muestra el checklist real que llenó el inspector, no un
         resumen reconstruido.
 
-    generar_pdf_psaim_por_tag(...)      -> Anexo C: resumen del cálculo de
-        Rate de Corrosión / Vida Útil por línea (psaim.py), a partir del
-        Excel PSAIM que se subió a la interfaz.
+    generar_pdf_psaim_por_tag(...)      -> Anexo C: exporta la hoja real del
+        PSAIM (Siemens Energy) de cada línea tal cual -- con su formato,
+        logo y tabla de TML originales, vía LibreOffice -- el Anexo C
+        muestra el reporte de ultrasonido real, no un resumen reconstruido
+        (mismo criterio que el Anexo B del checklist VT).
 """
 import os
 import shutil
 import tempfile
-from xml.sax.saxutils import escape
 
 import openpyxl
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 
 import anexos
-import psaim
 from checklist import CELDA_LINEA, extraer_hoja_a_xlsx
-
-# Misma tipografía que las páginas separadoras de anexo (anexos.py), para
-# que el resumen PSAIM no desentone con el resto del compilado.
-anexos._ensure_font()
-_STYLES = getSampleStyleSheet()
-_TITULO = ParagraphStyle("TituloAnexo", parent=_STYLES["Heading2"], fontName=anexos.FONT_NAME_BOLD)
-_CUERPO = ParagraphStyle("CuerpoAnexo", parent=_STYLES["BodyText"], fontName=anexos.FONT_NAME, spaceAfter=6)
-_ETIQUETA = ParagraphStyle("EtiquetaAnexo", parent=_STYLES["BodyText"], fontName=anexos.FONT_NAME_BOLD)
 
 
 def generar_pdf_checklist_vt_por_tag(ruta_checklist_parchado, dir_salida):
@@ -72,39 +60,33 @@ def _slug(texto):
     return "".join(c if c.isalnum() else "_" for c in str(texto)).strip("_")
 
 
-def generar_pdf_psaim_por_tag(psaim_por_tag, filas_tecnicas, dir_salida):
-    """Arma, por TAG, un PDF de una página con el cálculo de Rate de
-    Corrosión y Vida Útil (psaim.py) a partir del Excel PSAIM subido."""
+def generar_pdf_psaim_por_tag(psaim_por_tag, dir_salida):
+    """Por cada línea con PSAIM, exporta la hoja REAL de ese archivo (la que
+    quedó identificada al emparejar el PSAIM con la línea, ver
+    generar_informe._leer_psaim_por_linea) tal cual -- con su formato, logo
+    y tabla de TML originales intactos -- a un PDF independiente vía
+    LibreOffice, igual que el Anexo B del checklist VT (checklist.
+    extraer_hoja_a_xlsx aísla la hoja a nivel de XML crudo, sin perder
+    formato en el camino)."""
     os.makedirs(dir_salida, exist_ok=True)
-    clase_por_tag = {f["tag"]: f.get("clase", "") for f in filas_tecnicas}
     rutas = {}
 
-    for tag, datos in psaim_por_tag.items():
-        rate = psaim.rate_corrosion_mm_anio(datos["rcr_mpy"])
-        vida = psaim.vida_util_display(datos["vida_util_anios"], clase_por_tag.get(tag, ""))
+    with tempfile.TemporaryDirectory() as tmp_hojas:
+        for tag, datos in psaim_por_tag.items():
+            ruta_archivo = datos.get("ruta_archivo")
+            nombre_hoja = datos.get("nombre_hoja")
+            if not ruta_archivo or not nombre_hoja:
+                continue
 
-        nombre_archivo = f"PSAIM_{_slug(tag)}.pdf"
-        ruta_pdf = os.path.join(dir_salida, nombre_archivo)
-        doc = SimpleDocTemplate(
-            ruta_pdf, pagesize=A4,
-            leftMargin=2 * cm, rightMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm,
-        )
-        story = [
-            Paragraph(f"Reporte de Ultrasonido (PSAIM) — Línea {escape(tag)}", _TITULO),
-            Spacer(1, 12),
-            Paragraph("RCR (dato de cabecera del PSAIM)", _ETIQUETA),
-            Paragraph(f"{datos['rcr_mpy']:g} MPY", _CUERPO),
-            Paragraph("Rate de Corrosión", _ETIQUETA),
-            Paragraph(f"{rate:g} mm/año", _CUERPO),
-            Paragraph("Vida Remanente (mínimo de TML Vida Útil)", _ETIQUETA),
-            Paragraph(
-                f"{escape(str(vida))} años (según Clase API 570: {escape(str(clase_por_tag.get(tag, 'SIN DATO')))})",
-                _CUERPO,
-            ),
-            Paragraph("Puntos de medición (TML) considerados", _ETIQUETA),
-            Paragraph(str(datos.get("n_tml", "SIN DATO")), _CUERPO),
-        ]
-        doc.build(story)
-        rutas[tag] = ruta_pdf
+            ruta_hoja_xlsx = os.path.join(tmp_hojas, f"psaim_{_slug(tag)}.xlsx")
+            extraer_hoja_a_xlsx(ruta_archivo, nombre_hoja, ruta_hoja_xlsx)
+
+            ruta_pdf_generado = anexos.convertir_xlsx_a_pdf(ruta_hoja_xlsx, tmp_hojas)
+            if not ruta_pdf_generado:
+                continue
+
+            ruta_pdf_final = os.path.join(dir_salida, f"PSAIM_{_slug(tag)}.pdf")
+            shutil.copyfile(ruta_pdf_generado, ruta_pdf_final)
+            rutas[tag] = ruta_pdf_final
 
     return rutas
