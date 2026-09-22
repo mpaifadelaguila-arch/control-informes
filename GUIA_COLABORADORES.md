@@ -200,7 +200,7 @@ opciones.
 
 ---
 
-## Hallazgos PENDIENTE — resolverlos con ayuda de un agente de IA
+## Hallazgos PENDIENTE — el agente los resuelve solo, automáticamente
 
 El motor de hallazgos/recomendaciones **no usa IA**: son reglas de palabras
 clave contra un catálogo cerrado y ya aprobado
@@ -209,42 +209,29 @@ que nunca se invente una recomendación técnica. Cuando un hallazgo real no
 calza con ninguna regla, queda marcado **PENDIENTE** en el checklist — no es
 un error, es el sistema negándose a adivinar.
 
-Para resolver esos PENDIENTE sin tener que redactarlos tú a mano, usa a
-Claude (el mismo agente del chat) como ayuda para **elegir** el caso correcto
-del catálogo — nunca para redactar texto nuevo:
+**No tienes que hacer nada manual para esto.** Con la instrucción del panel
+"Instrucciones" del Proyecto ya puesta (ver más abajo), cuando generas un
+informe y queda algo PENDIENTE, el propio agente del chat:
 
-1. Genera el informe normalmente. Si quedó algún hallazgo PENDIENTE, se
-   escribe automáticamente `pendientes.json` en la carpeta de salida, con el
-   texto real de cada uno (tag, fila, ítem, categoría, hallazgo).
-2. Pídele a Claude algo así:
-
-   > Lee `pendientes.json` y, para cada hallazgo, elige cuál caso de
-   > `Catalogo_Hallazgos_Recomendaciones.xlsx` (hoja "Casos", columna `id`)
-   > corresponde — apóyate en `ROL_Y_OBJETIVO_REV2.txt` (la matriz de
-   > decisión por severidad, bridas, válvulas, soportes, aislamiento, etc.)
-   > para decidir. Nunca redactes un hallazgo o recomendación nuevos: el
-   > texto final siempre sale exacto del catálogo. Si un hallazgo no calza
-   > razonablemente con ningún caso, déjalo fuera en vez de forzarlo.
-   > Arma el archivo `casos_manual.json` con el resultado.
-
-   **Agrega `ROL_Y_OBJETIVO_REV2.txt` al Contexto del Proyecto** (si no lo
-   tienes ya) — es la guía de decisión completa (matriz de severidad,
-   reglas de bridas/válvulas/soportes/aislamiento, normas aplicables) que
-   Claude debe usar para elegir bien.
-3. El formato de `casos_manual.json` es una lista:
-   ```json
-   [
-     {"tag": "4\"-P-02-619-0-D3", "fila": 18, "caso_id": "BRIDA_ESPARRAGOS_CORTOS"}
-   ]
-   ```
-   (`tag` y `fila` vienen tal cual de `pendientes.json`, no los cambies.)
-4. Vuelve a generar el informe agregando `--casos-manual casos_manual.json`
-   (o pídeselo a Claude directamente). Los hallazgos resueltos ya no quedan
-   PENDIENTE; el hallazgo y la recomendación siguen saliendo **exactos**
-   del catálogo, igual que los que sí calzaron por palabras clave. Los que
-   de verdad no correspondan a ningún caso del catálogo quedan PENDIENTE
-   para que el especialista los redacte a mano — eso sí sigue siendo
-   manual, a propósito.
+1. Lee `pendientes.json` (se escribe automáticamente en la carpeta de
+   salida: tag, fila, ítem, categoría, texto real del hallazgo).
+2. Para cada uno, decide qué caso de `Catalogo_Hallazgos_Recomendaciones.xlsx`
+   corresponde, apoyándose en `ROL_Y_OBJETIVO_REV2.txt` (agrégalo al
+   Contexto del Proyecto si no lo tienes ya). Nunca redacta texto nuevo: el
+   resultado sale siempre exacto del catálogo.
+3. Arma `casos_manual.json` internamente y vuelve a generar el informe con
+   `--casos-manual casos_manual.json` — todo dentro de la misma respuesta,
+   sin pedirte nada.
+4. **Si un hallazgo de verdad no corresponde a ningún caso del catálogo**
+   (no es un problema de palabras clave, sino que la situación es nueva),
+   el agente te lo pregunta a ti **antes de entregarte el informe final**:
+   te muestra el texto real del hallazgo y te propone un Hallazgo y una
+   Recomendación siguiendo el mismo formato y las mismas citas normativas
+   ya usadas en el catálogo (API/ASME/MSS/estándares Repsol aplicables),
+   para que lo confirmes o ajustes en un mensaje. Con tu confirmación,
+   agrega el caso nuevo al catálogo y entrega el informe completo en la
+   misma conversación — nunca te deja con un informe a medias esperando
+   que tú lo completes por tu cuenta.
 
 ---
 
