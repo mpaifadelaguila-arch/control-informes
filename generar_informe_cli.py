@@ -184,7 +184,14 @@ def generar(
 
     rutas_iso_por_tag = {}
     if rutas_isometricos:
-        rutas_iso_por_tag, sin_asignar = _asignar_isometricos(rutas_isometricos, lineas_preview)
+        # La convención ISO-UT-N/ISO-VT-N numera solo entre las líneas que
+        # SÍ llevan Anexo B en este informe -- las marcadas como "pendiente
+        # inspección / se entregará como informe anexo" nunca lo llevan
+        # (ver construir_anexos), así que tampoco deben contar para esta
+        # numeración o el índice se desalinea si esas líneas no están al
+        # final del Detalle de grupo.
+        lineas_para_iso = [ln for ln in lineas_preview if not ln.get("entrega_anexo")]
+        rutas_iso_por_tag, sin_asignar = _asignar_isometricos(rutas_isometricos, lineas_para_iso)
         for r in sin_asignar:
             print(f"Aviso: no se pudo asignar el isométrico «{r}» a ninguna línea por nombre de "
                   "archivo; se omite del Anexo A/B (nunca se asigna a ciegas).")
