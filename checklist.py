@@ -111,7 +111,15 @@ CORRECCIONES_TEXTO = {
     "identificacion": "identificación",
     "posicion": "posición",
     "apra": "para",
+    "insidencia": "incidencia", "barilla": "varilla", "barillas": "varillas",
+    "correspondioente": "correspondiente",
 }
+# Correcciones de frase (concordancia) -- también determinísticas.
+CORRECCIONES_FRASE = [
+    (re.compile(r"\buna de los\b", re.IGNORECASE), "uno de los"),
+    (re.compile(r"\bun de las\b", re.IGNORECASE), "una de las"),
+    (re.compile(r"\bse aprecia (aberturas|zonas|abolladuras)\b", re.IGNORECASE), r"se aprecian \1"),
+]
 _RE_PALABRA = re.compile(r"[A-Za-zÁÉÍÓÚáéíóúñÑ]+")
 
 
@@ -130,6 +138,8 @@ def _mejorar_texto(texto):
         return correcta[0].upper() + correcta[1:] if palabra[0].isupper() else correcta
 
     resultado = _RE_PALABRA.sub(_reemplazar, texto.strip())
+    for patron, reemplazo in CORRECCIONES_FRASE:
+        resultado = patron.sub(lambda m, r=reemplazo: m.expand(r) if m.group(0)[0].islower() else (lambda t: t[0].upper()+t[1:])(m.expand(r)), resultado)
     resultado = re.sub(r"\s{2,}", " ", resultado)
     if resultado:
         resultado = resultado[0].upper() + resultado[1:]

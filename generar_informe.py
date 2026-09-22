@@ -717,7 +717,9 @@ def ejecutar_proceso_grupo(
             lista_hallazgos = [info["hallazgo"] for info in items_chk if info["hallazgo"]] if items_chk else []
 
             if not prefijo_psaim and not lista_hallazgos:
-                texto_pendiente = fila.get("observacion") or "PENDIENTE (línea aún sin inspección de campo)"
+                texto_pendiente = fila.get("observacion") or (
+                    "Sin hallazgos relevantes registrados en el checklist VT." if ruta_checklist
+                    else "PENDIENTE (línea aún sin inspección de campo)")
                 tcs = tr.findall(docxlib.qn("w:tc"))
                 docxlib.set_cell_text(tcs[0], fila["item"])
                 docxlib.set_cell_text(tcs[1], fila["unidad"])
@@ -1001,7 +1003,9 @@ def ejecutar_proceso_grupo_complementario(
             items_chk = hallazgos_por_tag.get(fila["tag"])
             lista_hallazgos = [info["hallazgo"] for info in items_chk if info["hallazgo"]] if items_chk else []
             if not lista_hallazgos:
-                lista_hallazgos = [fila.get("observacion") or "PENDIENTE (línea aún sin inspección de campo)"]
+                lista_hallazgos = [fila.get("observacion") or (
+                    "Sin hallazgos relevantes registrados en el checklist VT." if ruta_checklist
+                    else "PENDIENTE (línea aún sin inspección de campo)")]
             docxlib.fill_row_multi(tr, [fila["item"], fila["unidad"], fila["tag"], lista_hallazgos])
 
     ruta_word_salida = os.path.join(dir_salida, f"Informe_Complementario_{grupo_buscado}.docx")
