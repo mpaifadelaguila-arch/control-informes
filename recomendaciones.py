@@ -94,6 +94,9 @@ _RE_OMITIR_LONGITUD_PARENTESIS = re.compile(
 _RE_OMITIR_LONGITUD_BARE = re.compile(
     r"\s*(?:de\s+)?longitud aprox\.\s+SIN DATO metros\b", re.IGNORECASE
 )
+_RE_OMITIR_APROXIMADAMENTE = re.compile(
+    r"\s*(?:de\s+)?aproximadamente\s+SIN DATO metros\b", re.IGNORECASE
+)
 _RE_OMITIR_MEDIDA = re.compile(
     r"\s*(?:de\s+)?(?:NPS|Sch|material|tipo)\s+SIN DATO\b", re.IGNORECASE
 )
@@ -101,6 +104,12 @@ _RE_OMITIR_MEDIDA = re.compile(
 # NPS..." -> "válvula de SIN DATO NPS..."): el conector "de" va pegado
 # directo a SIN DATO, sin otra etiqueta entre medio.
 _RE_OMITIR_DE_BARE = re.compile(r"\s*\bde\s+SIN DATO\b", re.IGNORECASE)
+# Caso "{tag} / NPS {nps}" (válvulas de control): si falta el TAG, la barra
+# queda pegada a SIN DATO por el lado izquierdo o derecho según qué dato
+# falte; se resuelve cada combinación por separado.
+_RE_OMITIR_SLASH_AMBOS = re.compile(r"\bSIN DATO\s*/\s*SIN DATO\b", re.IGNORECASE)
+_RE_OMITIR_SLASH_IZQ = re.compile(r"\bSIN DATO\s*/\s*", re.IGNORECASE)
+_RE_OMITIR_SLASH_DER = re.compile(r"\s*/\s*SIN DATO\b", re.IGNORECASE)
 
 
 def _omitir_datos_faltantes(texto):
@@ -113,12 +122,19 @@ def _omitir_datos_faltantes(texto):
         return texto
     t = _RE_OMITIR_LONGITUD_PARENTESIS.sub("", texto)
     t = _RE_OMITIR_LONGITUD_BARE.sub("", t)
+    t = _RE_OMITIR_APROXIMADAMENTE.sub("", t)
     t = _RE_OMITIR_MEDIDA.sub("", t)
     t = _RE_OMITIR_DE_BARE.sub("", t)
+    t = _RE_OMITIR_SLASH_AMBOS.sub("", t)
+    t = _RE_OMITIR_SLASH_IZQ.sub("", t)
+    t = _RE_OMITIR_SLASH_DER.sub("", t)
     t = re.sub(r"\s+([.,;:])", r"\1", t)  # sin espacio antes de puntuación
-    t = re.sub(r",\s*,", ",", t)  # comas dobles
+    t = re.sub(r"(?:,\s*){2,}", ", ", t)  # dos o más comas seguidas (p.ej. al
+    # perderse NPS, Sch y material a la vez) colapsadas en una sola
+    t = re.sub(r",\s*\.", ".", t)  # coma justo antes del punto final
     t = re.sub(r"\(\s*\)", "", t)  # paréntesis vacíos
     t = re.sub(r"\s{2,}", " ", t)  # espacios dobles
+    t = re.sub(r"^,\s*", "", t)  # coma colgando al inicio de la frase
     return t.strip()
 
 
@@ -437,6 +453,17 @@ RE_TIPO_VALVULA = re.compile(
 )
 RE_TIPO_SOPORTE = re.compile(r"\b(u-?bolt|spring hanger)\b", re.IGNORECASE)
 RE_TRAMO_UBICACION = re.compile(r"tramo\s+(vertical|horizontal)", re.IGNORECASE)
+# El inspector casi nunca escribe "tramo vertical/horizontal": lo habitual es
+# ubicar el hallazgo con una frase locativa libre ("cerca de la válvula
+# XV-101", "junto al soporte S-12", "a la altura del codo norte"...). Antes
+# esto quedaba sin capturar y la plantilla mostraba "SIN DATO" aun teniendo
+# el dato real presente en el comentario -- se agrega este patrón genérico
+# como respaldo de RE_TRAMO_UBICACION.
+RE_UBICACION_GENERICA = re.compile(
+    r"(?:cerca de|cercan[oa]s?\s+a|pr[oó]xim[oa]s?\s+a|junto a|a la altura de|"
+    r"en la zona de|en el [aá]rea de|a un costado de)(?:l)?\s+(.+?)(?:[.,;]|$)",
+    re.IGNORECASE,
+)
 
 # Vocabulario de elementos/componentes/accesorios que el inspector suele
 # nombrar en el comentario de campo. Se usa para que la Recomendación (y el
@@ -528,6 +555,10 @@ def _extraer_variables_de_texto(texto):
     m = RE_TRAMO_UBICACION.search(texto)
     if m:
         variables["ubicacion"] = f"el tramo {m.group(1).lower()}"
+    else:
+        m = RE_UBICACION_GENERICA.search(texto)
+        if m:
+            variables["ubicacion"] = m.group(1).strip()
     return variables
 
 
