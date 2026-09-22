@@ -43,7 +43,11 @@ identifique correctamente, sin importar el resto del nombre:
 - **Plantilla Word**: `plantilla_base.docx` / `plantilla_complementario.docx`.
 - **PSAIM**: cualquier archivo Excel cuyo nombre incluya la palabra
   **"PSAIM"** (p.ej. `Informe PSAIM ITEM 120 Comp. Temp.xlsx`) se asume
-  como el archivo PSAIM del informe.
+  como archivo PSAIM del informe. Puedes adjuntar **más de uno** — lo
+  normal es que solo la(s) línea(s) con medición de espesores traiga(n)
+  su propio archivo PSAIM por separado; cada archivo se asigna
+  automáticamente a su línea (por el TAG dentro del archivo o en su
+  nombre), sin que tengas que combinarlos tú a mano en un solo Excel.
 - **VT-CHECK LIST**: cualquier archivo Excel cuyo nombre incluya
   "CHECK LIST" o "CHECKLIST".
 - **Detalle de grupo / Detalle de líneas**: el Excel que trae las columnas
@@ -95,7 +99,8 @@ listos para descargar.
 con las secciones correspondientes marcadas "PENDIENTE"):
 
 3. VT-CHECK LIST (Excel) ya diligenciado en campo.
-4. Archivo PSAIM (Excel).
+4. Archivo(s) PSAIM (Excel) — uno solo, o varios (uno por línea con
+   medición de espesores, que es lo normal).
 5. P&ID del grupo (PDF).
 6. Isométricos por línea (PDF, uno por archivo — el **nombre del archivo**
    debe incluir el TAG de la línea, p.ej. `iso_4-22-71-11.pdf`, para que se
@@ -108,7 +113,8 @@ Code aquí, y pídele algo así:
 
 > Genera el informe del grupo usando generar_informe_cli.py. El detalle de
 > grupo es `Detalle_GT-023.xlsx`, las fotos están en la carpeta `fotos/`, el
-> checklist es `VT-CHECK_LIST_GT-023.xlsx` y el PSAIM es `PSAIM_GT-023.xlsx`.
+> checklist es `VT-CHECK_LIST_GT-023.xlsx` y el PSAIM es `PSAIM_GT-023.xlsx`
+> (si tienes más de un archivo PSAIM, uno por línea, menciónalos todos).
 > Guarda todo en la carpeta `salida/`.
 
 Claude va a correr el motor y entregarte:
@@ -125,7 +131,7 @@ python3 generar_informe_cli.py \
   --detalle "Detalle_GT-023.xlsx" \
   --fotos fotos/ \
   --checklist "VT-CHECK_LIST_GT-023.xlsx" \
-  --psaim "PSAIM_GT-023.xlsx" \
+  --psaim "PSAIM_linea1.xlsx" "PSAIM_linea2.xlsx" \
   --pid "PID_GT-023.pdf" \
   --isometricos iso_1.pdf iso_2.pdf \
   --salida salida/
