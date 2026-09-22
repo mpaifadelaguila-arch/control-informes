@@ -100,6 +100,9 @@ _RE_OMITIR_APROXIMADAMENTE = re.compile(
 _RE_OMITIR_MEDIDA = re.compile(
     r"\s*(?:de\s+)?(?:NPS|Sch|material|tipo)\s+SIN DATO\b", re.IGNORECASE
 )
+_RE_OMITIR_SEPARACION = re.compile(
+    r"\s*,?\s*con una separaci[oó]n de SIN DATO\.?", re.IGNORECASE
+)
 # Caso "de {tipo}" sin la palabra "tipo" delante (p.ej. "válvula de {tipo}
 # NPS..." -> "válvula de SIN DATO NPS..."): el conector "de" va pegado
 # directo a SIN DATO, sin otra etiqueta entre medio.
@@ -139,6 +142,7 @@ def _omitir_datos_faltantes(texto):
     t = _RE_OMITIR_LONGITUD_BARE.sub("", t)
     t = _RE_OMITIR_APROXIMADAMENTE.sub("", t)
     t = _RE_OMITIR_MEDIDA.sub("", t)
+    t = _RE_OMITIR_SEPARACION.sub("", t)
     t = _RE_OMITIR_DE_BARE.sub("", t)
     t = _RE_OMITIR_SLASH_AMBOS.sub("", t)
     t = _RE_OMITIR_SLASH_IZQ.sub("", t)
@@ -502,6 +506,15 @@ RE_LONGITUD = re.compile(
     r"([\d]+(?:\.[\d]+)?(?:\s*(?:,|y)\s*[\d]+(?:\.[\d]+)?)*)\s*metros",
     re.IGNORECASE,
 )
+# Desviación de paralelismo entre caras de brida: el inspector mide la
+# separación en milímetros, a veces como rango ("de 6 mm a 8 mm") y a veces
+# como valor único ("de 8 mm"). Se captura la frase completa tal cual la
+# escribió, para reflejarla igual en el hallazgo (nunca se pierde la
+# medición real).
+RE_SEPARACION_MM = re.compile(
+    r"separaci[oó]n\s+de\s+(\d+(?:\.\d+)?\s*mm(?:\s+a\s+\d+(?:\.\d+)?\s*mm)?)",
+    re.IGNORECASE,
+)
 RE_TIPO_VALVULA = re.compile(
     r"v[aá]lvula[s]?\s+(?:de\s+|tipo\s+)?(compuerta|bola|globo|retenci[oó]n|check|"
     r"mariposa|aguja|tap[oó]n|diafragma|control|seguridad)",
@@ -601,6 +614,9 @@ def _extraer_variables_de_texto(texto):
     m = RE_LONGITUD.search(texto)
     if m:
         variables["longitud"] = m.group(1)
+    m = RE_SEPARACION_MM.search(texto)
+    if m:
+        variables["separacion"] = m.group(1)
     m = RE_TIPO_VALVULA.search(texto)
     if m:
         variables["tipo"] = m.group(1).lower()
