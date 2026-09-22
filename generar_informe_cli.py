@@ -69,49 +69,58 @@ _RE_ISO_UT_VT = re.compile(r"\b(UT|VT)[\s_-]*0*(\d+)\b", re.IGNORECASE)
 
 
 def _asignar_isometricos(rutas_iso, lineas_preview):
-    """Empareja cada isométrico con su línea, en dos pasos:
+    """Empareja cada isométrico con su línea, en dos pasos. Una línea con
+    ALCANCE "LINEAS" (medición de espesores) lleva DOS isométricos propios
+    -- uno para el checklist visual y otro para el PSAIM -- así que VT y UT
+    se guardan en diccionarios SEPARADOS (nunca comparten una sola entrada
+    por TAG, o uno pisaría al otro).
 
     1. Igual que la interfaz web: el TAG (sin espacios ni símbolos) aparece
-       dentro del nombre del archivo -- la vía más confiable.
+       dentro del nombre del archivo -- la vía más confiable. Si el nombre
+       además trae "UT" o "VT" como palabra suelta, decide a cuál de los
+       dos diccionarios va; si no trae ninguna de las dos, se asume VT (el
+       isométrico del checklist, que toda línea activa tiene).
     2. Respaldo por convención de nombre "ISO-UT-N" / "ISO-VT-N" (confirmada
-       con el usuario): "UT-N" es el N-ésimo isométrico, EN EL ORDEN del
-       Detalle de grupo, entre las líneas con ALCANCE "LINEAS" (medición de
-       espesores); "VT-N" es el N-ésimo entre las demás líneas (VT-CIRCUITOS
-       / solo visual). Si el número no calza con ninguna posición (p.ej.
-       "VT-11" pero solo hay 10 líneas VT), se descarta -- nunca se asigna
-       "a ciegas"."""
-    tags_detectados = [ln["tag"] for ln in lineas_preview]
-    tags_norm = {_normaliza(t): t for t in tags_detectados}
+       con el usuario): el N es la posición de la línea dentro del Detalle
+       de grupo (entre las líneas activas de este informe) -- la MISMA
+       posición para UT y para VT, ya que ambos corresponden a la misma
+       línea (p.ej. la línea N°1 trae "ISO-VT-1" para el checklist y
+       "ISO-UT-1" para el PSAIM). Si el número no calza con ninguna
+       posición, se descarta -- nunca se asigna "a ciegas"."""
+    tags_activos = [ln["tag"] for ln in lineas_preview]
+    tags_norm = {_normaliza(t): t for t in tags_activos}
+    _RE_UT_SUELTO = re.compile(r"\bUT\b", re.IGNORECASE)
+    _RE_VT_SUELTO = re.compile(r"\bVT\b", re.IGNORECASE)
 
-    tags_ut = [
-        ln["tag"] for ln in lineas_preview
-        if str(ln.get("alcance") or "").strip().upper() == "LINEAS"
-    ]
-    tags_vt = [
-        ln["tag"] for ln in lineas_preview
-        if str(ln.get("alcance") or "").strip().upper() != "LINEAS"
-    ]
-
-    asignados = {}
+    asignados_vt = {}
+    asignados_ut = {}
     sin_asignar = []
     for ruta in rutas_iso:
         nombre = Path(ruta).name
         nombre_norm = _normaliza(nombre)
         sugerido = next((t for tn, t in tags_norm.items() if tn and tn in nombre_norm), None)
+        es_ut = None
 
-        if not sugerido:
+        if sugerido:
+            if _RE_UT_SUELTO.search(nombre):
+                es_ut = True
+            elif _RE_VT_SUELTO.search(nombre):
+                es_ut = False
+            else:
+                es_ut = False  # por defecto, el isométrico del checklist
+        else:
             m = _RE_ISO_UT_VT.search(nombre)
             if m:
                 grupo, num = m.group(1).upper(), int(m.group(2))
-                lista = tags_ut if grupo == "UT" else tags_vt
-                if 1 <= num <= len(lista):
-                    sugerido = lista[num - 1]
+                if 1 <= num <= len(tags_activos):
+                    sugerido = tags_activos[num - 1]
+                    es_ut = grupo == "UT"
 
         if sugerido:
-            asignados[sugerido] = str(ruta)
+            (asignados_ut if es_ut else asignados_vt)[sugerido] = str(ruta)
         else:
             sin_asignar.append(str(ruta))
-    return asignados, sin_asignar
+    return asignados_vt, asignados_ut, sin_asignar
 
 
 def _cargar_casos_manual(ruta):
@@ -182,12 +191,20 @@ def generar(
     lineas_preview = inventario.cargar_alcance(str(ruta_detalle))
     tags_detectados = [ln["tag"] for ln in lineas_preview]
 
-    rutas_iso_por_tag = {}
+    iso_vt_por_tag = {}
+    iso_ut_por_tag = {}
     if rutas_isometricos:
-        rutas_iso_por_tag, sin_asignar = _asignar_isometricos(rutas_isometricos, lineas_preview)
+        # La convención ISO-UT-N/ISO-VT-N numera solo entre las líneas que
+        # SÍ llevan Anexo B en este informe -- las marcadas como "pendiente
+        # inspección / se entregará como informe anexo" nunca lo llevan
+        # (ver construir_anexos), así que tampoco deben contar para esta
+        # numeración o el índice se desalinea si esas líneas no están al
+        # final del Detalle de grupo.
+        lineas_para_iso = [ln for ln in lineas_preview if not ln.get("entrega_anexo")]
+        iso_vt_por_tag, iso_ut_por_tag, sin_asignar = _asignar_isometricos(rutas_isometricos, lineas_para_iso)
         for r in sin_asignar:
             print(f"Aviso: no se pudo asignar el isométrico «{r}» a ninguna línea por nombre de "
-                  "archivo; se omite del Anexo A/B (nunca se asigna a ciegas).")
+                  "archivo; se omite del Anexo A/B/C (nunca se asigna a ciegas).")
 
     grupo_input = ruta_detalle.stem.replace("(", "").replace(")", "").strip()
 
@@ -227,7 +244,8 @@ def generar(
         "lineas": resultado["lineas_alcance"],
         "anexos": {
             "pid_pdf": str(ruta_pid) if ruta_pid else None,
-            "isometricos": rutas_iso_por_tag,
+            "isometricos": iso_vt_por_tag,
+            "isometricos_ut": iso_ut_por_tag,
             "checklists_vt_pdf": checklists_vt_pdf,
             "psaim_pdf": psaim_pdf_por_tag,
         },
