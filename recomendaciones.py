@@ -466,7 +466,7 @@ RE_NPS = re.compile(r'(\d+(?:\s+\d/\d)?"|\d/\d"?)')
 # aparece primero en el texto. Se prueba primero, explícitamente, el
 # número que viene inmediatamente después de la palabra "NPS" (o "Ø"),
 # y solo si no aparece se cae al patrón genérico de respaldo.
-RE_NPS_ETIQUETADO = re.compile(r'(?:NPS|Ø)\s*(\d+(?:\s+\d/\d)?"|\d/\d"?)', re.IGNORECASE)
+RE_NPS_ETIQUETADO = re.compile(r'(?:NPS|Ø)\s*(\d+\s+\d/\d"?|\d/\d"?|\d+"?)', re.IGNORECASE)
 # Dos formas reales de escribir la cantidad en el checklist: entre
 # paréntesis "(3)" (grupo 1), o un número suelto -- a veces con cero a la
 # izquierda, "01 unión bridada" -- justo antes de uno de los sustantivos
@@ -476,7 +476,8 @@ RE_NPS_ETIQUETADO = re.compile(r'(?:NPS|Ø)\s*(\d+(?:\s+\d/\d)?"|\d/\d"?)', re.I
 RE_CANTIDAD = re.compile(
     r"\((\d{1,3})\)"
     r"|\b0*(\d{1,3})\s+(?:uni[oó]n(?:es)?|v[aá]lvulas?|abrazaderas?|soportes?|"
-    r"juntas?|esp[aá]rragos?|zonas?|sectores?|bridas?|tramos?|aberturas?)\b",
+    r"juntas?|esp[aá]rragos?|zonas?|sectores?|bridas?|tramos?|aberturas?|"
+    r"conexi[oó]n(?:es)?)\b",
     re.IGNORECASE,
 )
 # Caso "N de M <sustantivo>" (p.ej. "01 de 8 espárrago"): el inspector da
