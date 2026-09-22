@@ -668,7 +668,7 @@ _PATRONES_MECANISMO = {
     "Corrosión por H2S": (r"\bh2s\b", r"[aá]cido sulfh[ií]drico"),
     "Corrosión Inducida por Microorganismos (Mic)": (r"microorganismos", r"\bmic\b"),
     "Corrosión por CO2": (r"\bco2\b", r"di[oó]xido de carbono"),
-    "Corrosión Bajo Aislamiento (CUI)": (r"bajo aislamiento", r"\bcui\b"),
+    "Corrosión Bajo Aislamiento (CUI)": (r"bajo aislamiento", r"\bcui\b", r"aislamiento t[eé]rmico"),
     "Corrosión Bajo Ignifugado (CUF)": (r"ignif[uú]g", r"\bcuf\b"),
     "Corrosión por Agua de Condensado de Caldera": (r"agua de condensado", r"condensado de caldera"),
     "Corrosión Caustica": (r"c[aá]ustic",),
@@ -683,16 +683,70 @@ _PATRONES_MECANISMO_COMPILADOS = {
     m: [re.compile(p, re.IGNORECASE) for p in pats] for m, pats in _PATRONES_MECANISMO.items()
 }
 
+# Reglas de respaldo confirmadas con el usuario: un hallazgo que menciona
+# "corrosión" en términos genéricos, sin calificarla con ninguna palabra
+# clave de las de arriba, se asume por defecto Corrosión Atmosférica.
+_RE_CORROSION_GENERICA = re.compile(r"corrosi[oó]n", re.IGNORECASE)
 
-def detectar_mecanismos_dano(textos_hallazgos):
-    """Cruza los hallazgos (texto libre, mejorado) del grupo contra el
-    catálogo fijo de 20 mecanismos de daño por palabras clave (sin IA) y
-    devuelve la lista de mecanismos que efectivamente aplican, en el orden
-    del catálogo."""
+# Asociación por el PRODUCTO/FLUIDO de la línea (columna "NOMBRE DEL FLUIDO"
+# de la base maestra), además de por el texto del hallazgo -- confirmado con
+# el usuario. Deliberadamente conservador: solo se mapean servicios con una
+# correlación de mecanismo bien establecida (API 571); los hidrocarburos
+# genéricos (gasolina, diésel, GLP, etc., sin más calificación) NO se
+# asocian a ningún mecanismo por el solo nombre del fluido.
+_PATRONES_MECANISMO_FLUIDO = {
+    "Corrosión por H2S": (r"h2s", r"[aá]cido sulfh[ií]drico", r"\bsour\b", r"\bagria\b"),
+    "SCC por Amina": (r"amina",),
+    "Corrosión Por Agua Amarga (Ácida)": (r"agua\s*[aá]cida", r"aguas?\s*[aá]cidas"),
+    "Corrosión Caustica": (r"c[aá]ustic", r"\bsosa\b"),
+    "SCC por Cloruro": (r"clorur",),
+    "Corrosión Por Ácido Clorhídrico (HCl)": (r"\bhcl\b", r"[aá]cido clorh[ií]drico"),
+    "Corrosión por CO2": (r"\bco2\b", r"di[oó]xido de carbono"),
+    "Corrosión por Agua de Condensado de Caldera": (r"condensado", r"agua.{0,15}caldera"),
+}
+_PATRONES_MECANISMO_FLUIDO_COMPILADOS = {
+    m: [re.compile(p, re.IGNORECASE) for p in pats]
+    for m, pats in _PATRONES_MECANISMO_FLUIDO.items()
+}
+
+
+def detectar_mecanismos_dano(textos_hallazgos, fluidos=None):
+    """Cruza los hallazgos (texto libre, mejorado) del grupo -- y, si se
+    provee, el nombre del fluido/producto de cada línea (columna "NOMBRE DEL
+    FLUIDO" de la base maestra) -- contra el catálogo fijo de 20 mecanismos
+    de daño por palabras clave (sin IA), y devuelve la lista de mecanismos
+    que efectivamente aplican, en el orden del catálogo.
+
+    Reglas de respaldo (confirmadas con el usuario):
+    - Un hallazgo que menciona "corrosión" sin calificarla con ninguna
+      palabra clave específica se asume Corrosión Atmosférica por defecto.
+    - El fluido/producto de la línea también puede asociar un mecanismo
+      (p.ej. servicio con amina -> SCC por Amina), independientemente de lo
+      que diga el texto del hallazgo."""
     texto_total = " ".join(t or "" for t in textos_hallazgos)
-    detectados = []
+    detectados = set()
     for mecanismo in CATALOGO_MECANISMOS_DANO:
         patrones = _PATRONES_MECANISMO_COMPILADOS.get(mecanismo, ())
         if any(p.search(texto_total) for p in patrones):
-            detectados.append(mecanismo)
-    return detectados
+            detectados.add(mecanismo)
+
+    for texto in textos_hallazgos:
+        texto = texto or ""
+        if not _RE_CORROSION_GENERICA.search(texto):
+            continue
+        calificada = any(
+            p.search(texto)
+            for patrones in _PATRONES_MECANISMO_COMPILADOS.values()
+            for p in patrones
+        )
+        if not calificada:
+            detectados.add("Corrosión Atmosférica")
+            break
+
+    for fluido in (fluidos or []):
+        fluido = fluido or ""
+        for mecanismo, patrones in _PATRONES_MECANISMO_FLUIDO_COMPILADOS.items():
+            if any(p.search(fluido) for p in patrones):
+                detectados.add(mecanismo)
+
+    return [m for m in CATALOGO_MECANISMOS_DANO if m in detectados]
