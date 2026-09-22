@@ -127,56 +127,91 @@ def _normalizar_tag_para_match(texto):
     return texto
 
 
-def _leer_psaim_por_linea(ruta_psaim, tags):
-    """Intenta asociar el Excel PSAIM subido a las líneas del grupo.
+def _leer_psaim_por_linea(rutas_psaim, tags):
+    """Intenta asociar el/los Excel(es) PSAIM subido(s) a las líneas del
+    grupo. En la práctica real, cada línea trae su propia medición de
+    espesores (PSAIM) en un archivo aparte -- por eso `rutas_psaim` puede
+    ser un solo path (string/Path) o una lista de paths, uno por línea.
 
-    Caso normal: el archivo trae una hoja por línea, nombrada igual (o muy
-    parecido) al TAG. Caso de respaldo: el archivo trae una sola hoja/línea
-    y el grupo tiene exactamente una línea -> se aplica directo."""
+    Para cada archivo, en orden de preferencia:
+    1. Caso normal: el archivo trae una hoja por línea, nombrada igual (o
+       muy parecido, tolerante a comillas/espacios) al TAG.
+    2. Caso de respaldo (archivo de una sola línea, típico export por
+       ítem del software PSAIM, donde la hoja no queda nombrada con el
+       TAG): se busca el TAG dentro del NOMBRE DEL ARCHIVO (misma
+       convención ya usada para los isométricos).
+    3. Último respaldo: si nada de lo anterior coincidió y el grupo tiene
+       exactamente una línea, se aplica ese archivo directo a esa línea."""
+    if isinstance(rutas_psaim, (str, os.PathLike)):
+        rutas_psaim = [rutas_psaim]
+
     avisos = []
     resultados = {}
-    try:
-        wb = openpyxl.load_workbook(ruta_psaim, data_only=True)
-    except Exception as e:
-        avisos.append(f"No se pudo abrir el archivo PSAIM: {e}")
-        return resultados, avisos
-
     tags_por_norm = {t.strip().upper(): t for t in tags}
 
-    for nombre_hoja in wb.sheetnames:
-        norm = nombre_hoja.strip().upper()
-        tag_real = tags_por_norm.get(norm)
-        if tag_real is None:
-            # Reintento tolerante a comillas tipográficas/espacios (p.ej.
-            # el nombre de la hoja quedó con ” en vez de ") antes de
-            # probar la coincidencia parcial, más arriesgada.
-            norm_tol = _normalizar_tag_para_match(nombre_hoja)
-            for tnorm, torig in tags_por_norm.items():
-                if _normalizar_tag_para_match(tnorm) == norm_tol:
-                    tag_real = torig
-                    break
-        if tag_real is None:
-            for tnorm, torig in tags_por_norm.items():
-                if tnorm and (tnorm in norm or norm in tnorm):
-                    tag_real = torig
-                    break
-        if tag_real is None:
+    for ruta in rutas_psaim:
+        nombre_archivo = os.path.basename(str(ruta))
+        try:
+            wb = openpyxl.load_workbook(ruta, data_only=True)
+        except Exception as e:
+            avisos.append(f"No se pudo abrir el archivo PSAIM «{nombre_archivo}»: {e}")
             continue
-        try:
-            resultados[tag_real] = psaim.leer_psaim_hoja(wb[nombre_hoja])
-        except psaim.PSAIMFaltaDetalle as e:
-            avisos.append(str(e))
 
-    if not resultados and len(tags) == 1:
-        try:
-            resultados[tags[0]] = psaim.leer_psaim(ruta_psaim)
-        except psaim.PSAIMFaltaDetalle as e:
-            avisos.append(str(e))
+        encontrado = False
+        for nombre_hoja in wb.sheetnames:
+            norm = nombre_hoja.strip().upper()
+            tag_real = tags_por_norm.get(norm)
+            if tag_real is None:
+                # Reintento tolerante a comillas tipográficas/espacios (p.ej.
+                # el nombre de la hoja quedó con ” en vez de ") antes de
+                # probar la coincidencia parcial, más arriesgada.
+                norm_tol = _normalizar_tag_para_match(nombre_hoja)
+                for tnorm, torig in tags_por_norm.items():
+                    if _normalizar_tag_para_match(tnorm) == norm_tol:
+                        tag_real = torig
+                        break
+            if tag_real is None:
+                for tnorm, torig in tags_por_norm.items():
+                    if tnorm and (tnorm in norm or norm in tnorm):
+                        tag_real = torig
+                        break
+            if tag_real is None:
+                continue
+            try:
+                resultados[tag_real] = psaim.leer_psaim_hoja(wb[nombre_hoja])
+                encontrado = True
+            except psaim.PSAIMFaltaDetalle as e:
+                avisos.append(str(e))
+
+        if encontrado:
+            continue
+
+        nombre_archivo_norm = _normalizar_tag_para_match(os.path.splitext(nombre_archivo)[0])
+        tag_por_nombre = next(
+            (torig for tnorm, torig in tags_por_norm.items()
+             if tnorm and _normalizar_tag_para_match(tnorm) in nombre_archivo_norm),
+            None,
+        )
+        if tag_por_nombre:
+            try:
+                resultados[tag_por_nombre] = psaim.leer_psaim(ruta)
+            except psaim.PSAIMFaltaDetalle as e:
+                avisos.append(str(e))
+        elif len(tags) == 1:
+            try:
+                resultados[tags[0]] = psaim.leer_psaim(ruta)
+            except psaim.PSAIMFaltaDetalle as e:
+                avisos.append(str(e))
+        else:
+            avisos.append(
+                f"No se pudo asociar el archivo PSAIM «{nombre_archivo}» a ninguna línea del "
+                "grupo (se espera que la hoja, o el nombre del archivo, incluya el TAG de la línea)."
+            )
 
     if not resultados:
         avisos.append(
-            "No se pudo asociar el archivo PSAIM a ninguna línea del grupo "
-            "(se espera una hoja por línea, nombrada igual al TAG)."
+            "No se pudo asociar ningún archivo PSAIM a las líneas del grupo "
+            "(se espera una hoja por línea, nombrada igual al TAG, o el TAG en el nombre del archivo)."
         )
     return resultados, avisos
 
@@ -449,11 +484,17 @@ def ejecutar_proceso_grupo(
         if not _es_retirada(f.get("observacion")) and not _es_pendiente_anexo(f)
     ]
 
-    # 3. PSAIM: rate de corrosión y vida útil por línea (si se subió el archivo)
+    # 3. PSAIM: rate de corrosión y vida útil por línea (si se subió algún
+    # archivo -- puede ser uno solo, o varios, uno por línea, que es lo más
+    # común en la práctica real)
     psaim_por_tag = {}
-    if ruta_psaim and os.path.exists(str(ruta_psaim)):
-        print("[*] Procesando reporte PSAIM...")
-        psaim_por_tag, avisos_psaim = _leer_psaim_por_linea(str(ruta_psaim), tags_ordenados)
+    rutas_psaim_lista = (
+        [ruta_psaim] if isinstance(ruta_psaim, (str, os.PathLike)) else list(ruta_psaim or [])
+    )
+    rutas_psaim_lista = [r for r in rutas_psaim_lista if r and os.path.exists(str(r))]
+    if rutas_psaim_lista:
+        print("[*] Procesando reporte(s) PSAIM...")
+        psaim_por_tag, avisos_psaim = _leer_psaim_por_linea(rutas_psaim_lista, tags_ordenados)
         avisos.extend(avisos_psaim)
 
     # 4. Checklist VT: parchar con el motor de reglas (recomendaciones.py)
