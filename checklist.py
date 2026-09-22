@@ -245,9 +245,12 @@ def _mapa_hoja_a_sheet_path(zf):
 # -- usado solo para estimar cuántas líneas de texto va a envolver Excel al
 # parchar una recomendación larga (varios casos combinados con "Asimismo,"/
 # "Así como..."), y así agrandar la fila para que no quede cortada
-# visualmente. Es una estimación (el ancho real de columna puede variar
-# levemente entre archivos), no un cálculo exacto de layout.
-_ANCHO_CARACTERES_COMENTARIO = 70
+# visualmente. Medido contra el ancho real de columna de un VT-CHECK LIST
+# real (K:R suma ~38 unidades de ancho de Excel): el valor anterior (70)
+# era casi el doble de optimista y la fila seguía quedando corta con
+# recomendaciones largas. Se deja algo de margen (35, no 38) para no
+# quedarse corto de nuevo si el ancho varía levemente entre archivos.
+_ANCHO_CARACTERES_COMENTARIO = 35
 _ALTO_POR_LINEA_PT = 15
 _ALTO_MINIMO_PT = 15
 
