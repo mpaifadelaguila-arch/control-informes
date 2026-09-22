@@ -16,6 +16,8 @@ from pypdf import PdfReader, PdfWriter
 PAGE_W, PAGE_H = 595.92, 841.92
 MARGIN = 0.85 * 28.3465  # ~0.85 cm en puntos
 
+DIR_FONTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+
 FONT_NAME = "CambriaLike"
 FONT_NAME_BOLD = "CambriaLike-Bold"
 # Fuentes base de reportlab (siempre disponibles, sin archivo externo) -- se
@@ -34,13 +36,21 @@ def _find_cambria():
 
     Caladea va primero porque es la fuente sustituta oficial de Cambria
     (metric-compatible, del proyecto Chrome OS Core Fonts): es la MISMA
-    que usa LibreOffice para sustituir Cambria al convertir el Informe
-    Word a PDF en el servidor (paquete 'fonts-crosextra-caladea' listado
-    en packages.txt), así que con ella las páginas generadas por
-    reportlab quedan visualmente iguales al resto del Word convertido --
-    Liberation Serif / DejaVu Serif solo quedan de respaldo si ni
-    siquiera Caladea está instalada."""
+    que se fuerza también en la conversión de Word a PDF vía LibreOffice
+    (ver _fonts_dir_para_libreoffice), así que con ella las páginas
+    generadas por reportlab quedan visualmente iguales al resto del Word
+    convertido. Se prueba primero la copia empaquetada en fonts/ (dentro
+    de este mismo repositorio, sección "packages.txt es solo para
+    Streamlit Cloud" -- el chat-agent u otro entorno que ejecute estos
+    scripts directamente NO instala paquetes del sistema, así que no se
+    puede depender de que 'fonts-crosextra-caladea' esté instalado ahí);
+    las rutas de sistema y Liberation Serif / DejaVu Serif solo quedan de
+    respaldo si por algún motivo la copia empaquetada no está presente."""
     candidatos = [
+        (
+            os.path.join(DIR_FONTS, "Caladea-Regular.ttf"),
+            os.path.join(DIR_FONTS, "Caladea-Bold.ttf"),
+        ),
         (r"C:\Windows\Fonts\cambria.ttc", None),
         (r"C:\Windows\Fonts\Cambria.ttf", r"C:\Windows\Fonts\Cambriab.ttf"),
         (
@@ -171,6 +181,31 @@ def nombre_archivo_seguro(texto):
     return texto
 
 
+def _preparar_home_con_fuentes_empaquetadas(base_dir):
+    """Crea un directorio ~/.fonts dentro de `base_dir` con las copias de
+    Caladea empaquetadas en fonts/ (sección "packages.txt es solo para
+    Streamlit Cloud"): el chat-agent u otro entorno que ejecute estos
+    scripts directamente nunca instala paquetes del sistema, así que no
+    se puede depender de 'fonts-crosextra-caladea' estar instalado ahí.
+    fontconfig (usado por LibreOffice en Linux) escanea ~/.fonts por
+    defecto, así que basta con apuntar la variable HOME del subproceso
+    a `base_dir` para que la conversión SIEMPRE tenga Caladea disponible,
+    sin necesitar permisos de administrador ni tocar el sistema real.
+    No falla si no hay fuentes empaquetadas (deja el HOME normal)."""
+    import shutil
+
+    if not os.path.isdir(DIR_FONTS):
+        return None
+    dir_home_fonts = os.path.join(base_dir, ".fonts")
+    os.makedirs(dir_home_fonts, exist_ok=True)
+    copiada_alguna = False
+    for nombre in os.listdir(DIR_FONTS):
+        if nombre.lower().endswith(".ttf"):
+            shutil.copy(os.path.join(DIR_FONTS, nombre), os.path.join(dir_home_fonts, nombre))
+            copiada_alguna = True
+    return base_dir if copiada_alguna else None
+
+
 def _convertir_a_pdf(ruta_archivo, dir_salida):
     """Convierte un .docx o .xlsx a .pdf usando LibreOffice en modo
     headless -- único motor de renderizado real disponible en el
@@ -180,7 +215,11 @@ def _convertir_a_pdf(ruta_archivo, dir_salida):
     temporal propio (nunca uno fijo compartido): con un perfil fijo se
     detectó contenido de una conversión anterior filtrándose en la
     siguiente cuando se llama repetidas veces seguidas (p.ej. una
-    conversión por línea del checklist VT). Devuelve la ruta del PDF
+    conversión por línea del checklist VT). También se fuerza un HOME
+    temporal con la copia empaquetada de Caladea (ver
+    _preparar_home_con_fuentes_empaquetadas) para que la sustitución de
+    Cambria sea SIEMPRE la misma, sin depender de qué fuentes tenga
+    instaladas el servidor donde corra esto. Devuelve la ruta del PDF
     generado, o None si LibreOffice no está disponible o falla la
     conversión -- nunca debe tumbar el resto del proceso."""
     import shutil
@@ -191,6 +230,10 @@ def _convertir_a_pdf(ruta_archivo, dir_salida):
     if not soffice:
         return None
     with tempfile.TemporaryDirectory(prefix="lo_profile_") as perfil_dir:
+        env = dict(os.environ)
+        home_con_fuentes = _preparar_home_con_fuentes_empaquetadas(perfil_dir)
+        if home_con_fuentes:
+            env["HOME"] = home_con_fuentes
         try:
             subprocess.run(
                 [
@@ -206,6 +249,7 @@ def _convertir_a_pdf(ruta_archivo, dir_salida):
                 ],
                 check=True,
                 timeout=120,
+                env=env,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
