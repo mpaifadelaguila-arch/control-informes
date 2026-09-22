@@ -127,6 +127,17 @@ def _normalizar_tag_para_match(texto):
     return texto
 
 
+def _normalizar_para_nombre_archivo(texto):
+    """Normaliza SOLO para comparar contra el NOMBRE DE ARCHIVO (nunca para
+    mostrar): a diferencia de _normalizar_tag_para_match, quita TODO
+    carácter que no sea letra o número -- un TAG como 4"-P-02-619-0-D3 NUNCA
+    puede aparecer literal en un nombre de archivo real, porque Windows no
+    permite el carácter " en nombres de archivo (quien nombra/exporta el
+    PSAIM lo omite, p.ej. "Informe PSAIM ITEM 120 - 4-P-02-619-0-D3.xlsx").
+    Misma normalización que ya usa el emparejamiento de isométricos."""
+    return "".join(c for c in str(texto or "").upper() if c.isalnum())
+
+
 def _leer_psaim_por_linea(rutas_psaim, tags, tags_con_psaim_esperado=None):
     """Intenta asociar el/los Excel(es) PSAIM subido(s) a las líneas del
     grupo. En la práctica real, cada línea trae su propia medición de
@@ -194,10 +205,10 @@ def _leer_psaim_por_linea(rutas_psaim, tags, tags_con_psaim_esperado=None):
         if encontrado:
             continue
 
-        nombre_archivo_norm = _normalizar_tag_para_match(os.path.splitext(nombre_archivo)[0])
+        nombre_archivo_norm = _normalizar_para_nombre_archivo(os.path.splitext(nombre_archivo)[0])
         tag_por_nombre = next(
             (torig for tnorm, torig in tags_por_norm.items()
-             if tnorm and _normalizar_tag_para_match(tnorm) in nombre_archivo_norm),
+             if tnorm and _normalizar_para_nombre_archivo(tnorm) in nombre_archivo_norm),
             None,
         )
         candidatos_alcance = [t for t in tags_con_psaim_esperado if t not in resultados]
