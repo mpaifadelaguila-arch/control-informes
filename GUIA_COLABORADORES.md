@@ -53,6 +53,15 @@ identifique correctamente, sin importar el resto del nombre:
 - **Detalle de grupo / Detalle de líneas**: el Excel que trae las columnas
   ITEM, SAP, LINEAS, ALCANCE DEL SERVICIO, etc. (identifícalo por su
   contenido si el nombre no es claro).
+- **P&ID**: cualquier PDF cuyo nombre incluya "P&ID" o "PID".
+- **Isométricos**: PDF(s) por línea. Se asignan automáticamente, en este
+  orden: (1) si el TAG de la línea aparece dentro del nombre del archivo;
+  (2) si no, por la convención "ISO-UT-N" / "ISO-VT-N" -- "UT-N" es el
+  N-ésimo isométrico, en el ORDEN del Detalle de grupo, entre las líneas
+  con ALCANCE "LINEAS" (medición de espesores); "VT-N" es el N-ésimo entre
+  las demás líneas (VT-CIRCUITOS). Si un número no calza con ninguna
+  posición, ese isométrico queda sin asignar (nunca se asigna a ciegas) y
+  se avisa en el resultado.
 
 > Adjunto `plantilla_base.docx` (la plantilla Word real), el detalle de
 > grupo `Detalle_GT-023.xlsx`, las fotos de la unidad y el VT-CHECK LIST
