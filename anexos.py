@@ -44,9 +44,14 @@ def _find_cambria():
     nunca la distribuye -- si el usuario coloca su propia copia (con
     licencia legítima vía su Windows/Office) en fonts/, junto a los
     Caladea-*.ttf que sí vienen versionados, se usa esa por sobre Caladea.
-    Se admite tanto un único "Cambria.ttc" (la colección que trae Windows,
-    cara 0 = regular, cara 1 = negrita) como "Cambria-Regular.ttf" /
-    "Cambria-Bold.ttf" sueltos.
+    Se admite un "Cambria.ttc" (la colección que trae Windows -- OJO: en
+    la práctica suele traer solo la cara 0 = Cambria Regular más
+    "Cambria Math" en la cara 1, NUNCA asumir que la cara 1 es negrita)
+    y, si además existe "Cambria-Bold.ttf" suelto al lado, se usa como
+    negrita real; si no está, la negrita cae de respaldo a la misma cara
+    regular (mismo comportamiento que cuando no hay negrita de ningún
+    tipo, más abajo) en vez de arriesgarse a cargar por error un glifo de
+    "Cambria Math" como si fuera negrita.
 
     PRIORIDAD 2 -- Caladea empaquetada en fonts/ (dentro de este mismo
     repositorio, sección "packages.txt es solo para Streamlit Cloud" --
@@ -58,7 +63,9 @@ def _find_cambria():
     respaldo si nada de lo anterior está presente."""
     for ttc in (os.path.join(DIR_FONTS, "Cambria.ttc"), r"C:\Windows\Fonts\cambria.ttc"):
         if os.path.exists(ttc):
-            return ttc, 0, ttc, 1
+            bold_companion = os.path.join(DIR_FONTS, "Cambria-Bold.ttf")
+            bold_path = bold_companion if os.path.exists(bold_companion) else None
+            return ttc, 0, bold_path, 0
 
     candidatos = [
         (
