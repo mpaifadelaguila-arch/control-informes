@@ -21,6 +21,7 @@ que en la interfaz web (página "Elaboración de Informe").
 """
 import argparse
 import os
+import re
 import sys
 import zipfile
 from pathlib import Path
@@ -62,18 +63,48 @@ def _recolectar_fotos(rutas):
     return fotos
 
 
-def _asignar_isometricos(rutas_iso, tags_detectados):
-    """Misma lógica de sugerencia automática que la interfaz web: empareja
-    cada isométrico con la línea cuyo TAG (sin espacios ni símbolos)
-    aparece dentro del nombre del archivo. El que no calza con ninguna
-    línea se descarta (igual que dejarlo en '-- Sin asignar --' en la
-    interfaz) -- nunca se asigna "a ciegas"."""
+_RE_ISO_UT_VT = re.compile(r"\b(UT|VT)[\s_-]*0*(\d+)\b", re.IGNORECASE)
+
+
+def _asignar_isometricos(rutas_iso, lineas_preview):
+    """Empareja cada isométrico con su línea, en dos pasos:
+
+    1. Igual que la interfaz web: el TAG (sin espacios ni símbolos) aparece
+       dentro del nombre del archivo -- la vía más confiable.
+    2. Respaldo por convención de nombre "ISO-UT-N" / "ISO-VT-N" (confirmada
+       con el usuario): "UT-N" es el N-ésimo isométrico, EN EL ORDEN del
+       Detalle de grupo, entre las líneas con ALCANCE "LINEAS" (medición de
+       espesores); "VT-N" es el N-ésimo entre las demás líneas (VT-CIRCUITOS
+       / solo visual). Si el número no calza con ninguna posición (p.ej.
+       "VT-11" pero solo hay 10 líneas VT), se descarta -- nunca se asigna
+       "a ciegas"."""
+    tags_detectados = [ln["tag"] for ln in lineas_preview]
     tags_norm = {_normaliza(t): t for t in tags_detectados}
+
+    tags_ut = [
+        ln["tag"] for ln in lineas_preview
+        if str(ln.get("alcance") or "").strip().upper() == "LINEAS"
+    ]
+    tags_vt = [
+        ln["tag"] for ln in lineas_preview
+        if str(ln.get("alcance") or "").strip().upper() != "LINEAS"
+    ]
+
     asignados = {}
     sin_asignar = []
     for ruta in rutas_iso:
-        nombre_norm = _normaliza(Path(ruta).name)
+        nombre = Path(ruta).name
+        nombre_norm = _normaliza(nombre)
         sugerido = next((t for tn, t in tags_norm.items() if tn and tn in nombre_norm), None)
+
+        if not sugerido:
+            m = _RE_ISO_UT_VT.search(nombre)
+            if m:
+                grupo, num = m.group(1).upper(), int(m.group(2))
+                lista = tags_ut if grupo == "UT" else tags_vt
+                if 1 <= num <= len(lista):
+                    sugerido = lista[num - 1]
+
         if sugerido:
             asignados[sugerido] = str(ruta)
         else:
@@ -111,7 +142,7 @@ def generar(
 
     rutas_iso_por_tag = {}
     if rutas_isometricos:
-        rutas_iso_por_tag, sin_asignar = _asignar_isometricos(rutas_isometricos, tags_detectados)
+        rutas_iso_por_tag, sin_asignar = _asignar_isometricos(rutas_isometricos, lineas_preview)
         for r in sin_asignar:
             print(f"Aviso: no se pudo asignar el isométrico «{r}» a ninguna línea por nombre de "
                   "archivo; se omite del Anexo A/B (nunca se asigna a ciegas).")

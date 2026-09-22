@@ -23,6 +23,7 @@ columna "N° ORIGINAL" para conservar la numeración del informe principal.
 """
 import argparse
 import os
+import re
 import sys
 import zipfile
 from pathlib import Path
@@ -61,13 +62,28 @@ def _recolectar_fotos(rutas):
     return fotos
 
 
+_RE_ISO_VT = re.compile(r"\bVT[\s_-]*0*(\d+)\b", re.IGNORECASE)
+
+
 def _asignar_isometricos(rutas_iso, tags_detectados):
+    """Igual que en generar_informe_cli.py: primero por TAG dentro del
+    nombre del archivo; si no calza, respaldo por convención "ISO-VT-N" =
+    la N-ésima línea del Detalle, en su mismo orden (un informe
+    complementario es siempre solo inspección visual, así que aquí no
+    aplica la distinción UT/VT del informe principal)."""
     tags_norm = {_normaliza(t): t for t in tags_detectados}
     asignados = {}
     sin_asignar = []
     for ruta in rutas_iso:
-        nombre_norm = _normaliza(Path(ruta).name)
+        nombre = Path(ruta).name
+        nombre_norm = _normaliza(nombre)
         sugerido = next((t for tn, t in tags_norm.items() if tn and tn in nombre_norm), None)
+        if not sugerido:
+            m = _RE_ISO_VT.search(nombre)
+            if m:
+                num = int(m.group(1))
+                if 1 <= num <= len(tags_detectados):
+                    sugerido = tags_detectados[num - 1]
         if sugerido:
             asignados[sugerido] = str(ruta)
         else:
