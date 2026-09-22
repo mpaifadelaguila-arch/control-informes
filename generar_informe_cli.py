@@ -11,7 +11,7 @@ Uso típico:
         --detalle "Detalle_GT-023.xlsx" \
         --fotos fotos/ \
         --checklist "VT-CHECK_LIST_GT-023.xlsx" \
-        --psaim "PSAIM_GT-023.xlsx" \
+        --psaim "PSAIM_linea1.xlsx" "PSAIM_linea2.xlsx" \
         --pid "PID_GT-023.pdf" \
         --isometricos iso_1.pdf iso_2.pdf \
         --salida salida/
@@ -86,7 +86,7 @@ def generar(
     rutas_fotos,
     dir_salida,
     ruta_checklist=None,
-    ruta_psaim=None,
+    rutas_psaim=None,
     ruta_pid=None,
     rutas_isometricos=None,
     ruta_base_maestra=RUTA_MAESTRA_DEFAULT,
@@ -126,7 +126,7 @@ def generar(
         dir_salida=str(dir_salida),
         ruta_foto=fotos[0],
         ruta_checklist=ruta_checklist,
-        ruta_psaim=ruta_psaim,
+        ruta_psaim=rutas_psaim,
     )
 
     out_word_path = Path(resultado["ruta_word"])
@@ -234,7 +234,10 @@ def main():
     ap.add_argument("--fotos", required=True, nargs="+",
                      help="Fotos de la unidad: uno o más archivos y/o carpetas (obligatorio)")
     ap.add_argument("--checklist", help="Excel VT-CHECK LIST (opcional)")
-    ap.add_argument("--psaim", help="Excel PSAIM (opcional)")
+    ap.add_argument("--psaim", nargs="*", default=[],
+                     help="Excel(es) PSAIM (opcional) -- en la práctica real suele ser uno por "
+                          "línea con medición de espesores, no todo el grupo; se puede pasar más "
+                          "de uno")
     ap.add_argument("--pid", help="PDF de P&ID del grupo (opcional)")
     ap.add_argument("--isometricos", nargs="*", default=[],
                      help="PDF(s) de isométricos por línea (opcional)")
@@ -249,7 +252,7 @@ def main():
         rutas_fotos=args.fotos,
         dir_salida=args.salida,
         ruta_checklist=args.checklist,
-        ruta_psaim=args.psaim,
+        rutas_psaim=args.psaim,
         ruta_pid=args.pid,
         rutas_isometricos=args.isometricos,
         ruta_base_maestra=args.base_maestra,

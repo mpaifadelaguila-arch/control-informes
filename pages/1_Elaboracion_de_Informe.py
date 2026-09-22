@@ -231,8 +231,11 @@ with col3:
     st.html('<div class="upload-label-row"><span class="upload-label-title">3. Fotos de la Unidad</span><span class="badge-oblig">Obligatorio</span></div><div class="upload-label-sub">JPG, PNG · múltiples</div>')
     f_fotos = st.file_uploader("3. Fotos de la Unidad", type=["jpg", "jpeg", "png"], accept_multiple_files=True, key="fotos", label_visibility="collapsed")
 with col4:
-    st.html('<div class="upload-label-row"><span class="upload-label-title">4. Archivo PSAIM</span><span class="badge-opt">Opcional</span></div><div class="upload-label-sub">Excel · una hoja por línea</div>')
-    f_psaim = st.file_uploader("4. Archivo PSAIM", type=["xlsx", "xls"], key="psaim", label_visibility="collapsed")
+    st.html('<div class="upload-label-row"><span class="upload-label-title">4. Archivo(s) PSAIM</span><span class="badge-opt">Opcional</span></div><div class="upload-label-sub">Excel · uno por línea o un solo Excel con varias hojas</div>')
+    f_psaim_lista = st.file_uploader(
+        "4. Archivo(s) PSAIM",
+        type=["xlsx", "xls"], accept_multiple_files=True, key="psaim", label_visibility="collapsed",
+    )
 
 col5, col6 = tarjeta_carga.columns(2)
 with col5:
@@ -310,10 +313,14 @@ if st.button("Ejecutar Generación de Informe Real", type="primary", use_contain
                         path_cons = tmp_path / f_cons.name
                         path_cons.write_bytes(f_cons.getbuffer())
 
-                    path_psaim = None
-                    if f_psaim is not None:
-                        path_psaim = tmp_path / f_psaim.name
-                        path_psaim.write_bytes(f_psaim.getbuffer())
+                    rutas_psaim = []
+                    if f_psaim_lista:
+                        dir_psaim = tmp_path / "psaim"
+                        dir_psaim.mkdir(exist_ok=True)
+                        for f_psaim in f_psaim_lista:
+                            p_psaim = dir_psaim / f_psaim.name
+                            p_psaim.write_bytes(f_psaim.getbuffer())
+                            rutas_psaim.append(str(p_psaim))
 
                     path_pid = None
                     if f_pid is not None:
@@ -349,7 +356,7 @@ if st.button("Ejecutar Generación de Informe Real", type="primary", use_contain
                         dir_salida=str(tmp_path),
                         ruta_foto=ruta_primera_foto,
                         ruta_checklist=path_cons,
-                        ruta_psaim=path_psaim,
+                        ruta_psaim=rutas_psaim,
                     )
 
                     out_word_path = Path(resultado["ruta_word"])
