@@ -456,11 +456,14 @@ _ELEMENTOS_TIPICOS = (
     "aislamiento térmico", "aislamiento termico",
     "base de concreto",
     "unión universal", "union universal",
+    "cinta de valizamiento", "cinta señalizadora",
+    "alambre de amarre",
     "brida", "válvula", "valvula", "abrazadera", "soporte",
-    "venteo", "drenaje", "dren",
+    "venteo", "drenaje", "dren", "codo",
     "niples", "niple", "cabezal",
     "espárragos", "esparragos", "espárrago", "esparrago",
     "manómetro", "manometro", "indicador",
+    "cinta", "alambre",
     "tubería", "tuberia",
 )
 RE_ELEMENTO = re.compile(
