@@ -308,7 +308,8 @@ div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
 .tabla-html td {{
     padding: 11px 14px; border-top: 1px solid {BORDE}; color: {TEXTO}; vertical-align: middle;
 }}
-.tabla-html tr:hover td {{ background: #172A3E; }}
+.tabla-html tr:hover td {{ background: #1F3A56; }}
+.tabla-html tr:hover td:first-child {{ box-shadow: inset 3px 0 0 {DORADO}; }}
 .tabla-html td.t-idx {{ color: {TEXTO_SUAVE}; width: 1%; }}
 .tabla-html td.t-codigo {{ font-weight: 600; white-space: nowrap; }}
 .tabla-html td.t-suave {{ color: {TEXTO_SUAVE}; white-space: nowrap; }}
