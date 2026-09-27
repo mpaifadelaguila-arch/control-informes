@@ -806,7 +806,11 @@ def procesar_agrupaciones_y_kpis(df_input):
         df_activos["ESTADO - ELABORACIÓN "]
         .apply(texto_normalizado)
         .str.contains("EN PROCESO")
-        & ~mask_pend_inspeccion
+        # Un informe con alguna línea pendiente de inspección espera al campo,
+        # no al gabinete: se cuenta en "Pend. inspección", no en "En proceso".
+        & ~df_activos["CLAVE_GLOBAL"].isin(
+            df_activos.loc[mask_pend_inspeccion, "CLAVE_GLOBAL"]
+        )
     ]
 
     unicos, psaim_unicos = set(), set()
