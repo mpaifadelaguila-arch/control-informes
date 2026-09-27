@@ -17,6 +17,8 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
+from tema import TONOS, aplicar_tema, tabla_html
+
 # ==============================================================================
 # CONFIGURACIÓN DE RUTAS DINÁMICAS (ACTUALIZADA)
 # ==============================================================================
@@ -177,170 +179,8 @@ def subir_archivo_a_drive(
     return False
 
 
-# Estilos CSS Corporativos (Cabecera visible restaurada)
-st.markdown(
-    """
-    <style>
-    footer {visibility: hidden;}
-
-    :root {
-        --primary-navy: #0E2A47;
-        --secondary-navy: #1A3E68;
-        --gold-accent: #D4AF37;
-        --bg-card: #FFFFFF;
-        --border-color: #E2E8F0;
-        --text-main: #1E293B;
-        --text-sub: #64748B;
-    }
-
-    .stApp { background-color: #EEF2F7; }
-    .block-container { padding-top: 1.6rem !important; }
-
-    /* HEADER BANNER */
-    .header-banner {
-        background: linear-gradient(120deg, #0B2038 0%, #1E4E7E 60%, #2C6494 100%);
-        padding: 22px 30px;
-        border-radius: 14px;
-        color: white;
-        margin-bottom: 20px;
-        box-shadow: 0 12px 28px rgba(11, 32, 56, 0.18);
-        position: relative;
-        overflow: hidden;
-    }
-    .header-banner::after {
-        content: "";
-        position: absolute; top: 0; right: 0; bottom: 0; width: 6px;
-        background: linear-gradient(180deg, #E7BE30, #C99A1E);
-    }
-    .header-title { font-size: 24px; font-weight: 800; letter-spacing: 0.3px; margin: 0; color: #FFFFFF; }
-    .header-subtitle { font-size: 13.5px; color: #C9DCEE; margin-top: 4px; font-weight: 500; }
-
-    /* CONTENEDORES PRINCIPALES */
-    .st-key-panel_control, .st-key-sistema_control {
-        background: #FFFFFF !important;
-        border: 1px solid #DBE5EF;
-        border-radius: 16px;
-        padding: 18px 20px 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 14px rgba(15, 42, 70, 0.05);
-    }
-    .section-title {
-        font-size: 1.02rem;
-        font-weight: 800;
-        color: #122F4C;
-        margin-bottom: 14px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #E7EDF3;
-    }
-
-    /* FILA HORIZONTAL DE BLOQUES KPI */
-    .kpi-row {
-        display: grid;
-        grid-template-columns: repeat(6, minmax(0, 1fr));
-        align-items: stretch;
-        gap: 12px;
-    }
-    @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 700px) { .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-
-    .kpi-block-card {
-        background: #F4F8FC;
-        border: 1px solid #E1E9F1;
-        border-radius: 14px;
-        padding: 12px 14px;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        box-sizing: border-box;
-    }
-    .kpi-block-title {
-        font-size: .68rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: .5px;
-        color: #5D7086;
-        margin-bottom: 10px;
-        white-space: nowrap;
-    }
-    .kpi-items { display: grid; gap: 8px; flex: 1; align-content: start; }
-    .kpi-item {
-        background: #FFFFFF;
-        border: 1px solid #E6EDF4;
-        border-left: 3.5px solid var(--tone);
-        border-radius: 0 9px 9px 0;
-        padding: 7px 11px;
-    }
-    .kpi-item-label {
-        font-size: .63rem;
-        font-weight: 750;
-        text-transform: uppercase;
-        color: #5D7086;
-        letter-spacing: .2px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .kpi-item-value { font-size: 1.35rem; font-weight: 800; color: #102E4C; line-height: 1.15; }
-
-    /* PESTAÑAS DISTRIBUIDAS PAREJAS */
-    .st-key-sistema_control .stTabs [data-baseweb="tab-list"],
-    .st-key-sistema_control .stTabs [role="tablist"] {
-        display: flex !important;
-        width: 100% !important;
-        gap: 5px !important;
-        flex-wrap: wrap;
-        background-color: #EEF3F9;
-        padding: 6px;
-        border-radius: 10px;
-    }
-    .st-key-sistema_control .stTabs [data-baseweb="tab"],
-    .st-key-sistema_control .stTabs button[role="tab"] {
-        flex: 1 1 auto !important;
-        min-width: 110px;
-        justify-content: center !important;
-        height: 38px;
-        border-radius: 7px;
-        font-size: 11.5px;
-        font-weight: 650;
-        color: #475569;
-        padding: 0 8px !important;
-        background: #FFFFFF;
-        border: 1px solid #DFE7EF;
-        text-align: center;
-        white-space: nowrap;
-    }
-    .st-key-sistema_control .stTabs [aria-selected="true"] {
-        background-color: #0E2A47 !important;
-        color: #FFFFFF !important;
-        border-color: #0E2A47 !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {
-        background-color: #FFFFFF !important;
-        border-radius: 10px;
-        border: 1px solid #E2E8F0;
-        padding: 4px;
-        margin-top: 10px !important;
-    }
-    div[data-testid="stExpander"] { background:#fff; border-color:#dbe5ef; border-radius:12px; }
-
-    div[data-testid="stDataFrame"] [role="row"]:hover,
-    div[data-testid="stDataEditor"] [role="row"]:hover,
-    div[data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"],
-    div[data-testid="stDataEditor"] [role="row"]:hover [role="gridcell"] {
-        background-color: #E8F5E9 !important;
-        transition: background-color 0.12s ease-in-out;
-    }
-
-    div[data-testid="stDataFrame"] [role="gridcell"],
-    div[data-testid="stDataEditor"] [role="gridcell"] {
-        background-color: inherit !important;
-    }
-    </style>
-""",
-    unsafe_allow_html=True,
-)
+# Estilos visuales (tema oscuro corporativo, ver tema.py)
+aplicar_tema()
 
 # Constantes y Archivos
 DB_FILE = "database_informes.json"
@@ -937,8 +777,8 @@ def procesar_agrupaciones_y_kpis(df_input):
 
 def item_kpi(titulo, valor, color):
     return (
-        f"<div class='kpi-item' style='--tone:{color}'>"
-        f"<div class='kpi-item-label'>{titulo}</div>"
+        f"<div class='kpi-item' style='--tone:{TONOS[color]}'>"
+        f"<div class='kpi-item-label'><span class='kpi-dot'></span>{titulo}</div>"
         f"<div class='kpi-item-value'>{valor}</div>"
         "</div>"
     )
@@ -948,71 +788,71 @@ def bloque_kpi(titulo_bloque, emoji, items):
     filas = "".join(item_kpi(*i) for i in items)
     return (
         "<div class='kpi-block-card'>"
-        f"<div class='kpi-block-title'>{emoji} {titulo_bloque}</div>"
+        f"<div class='kpi-block-title'>{titulo_bloque}</div>"
         f"<div class='kpi-items'>{filas}</div></div>"
     )
 
 
 panel_control = st.container(key="panel_control")
 panel_control.markdown(
-    "<div class='section-title'>📊 Panel de control de informes</div>",
+    "<div class='section-title'>Panel de control de informes</div>",
     unsafe_allow_html=True,
 )
 
 bloques_html = "".join([
     bloque_kpi(
-        "Bloque general",
+        "General",
         "📊",
         [
-            ("Informes totales", kpis["total_inf_unicos"], "#173F67"),
-            ("Informes finalizados", kpis["tot_finalizados"], "#159A68"),
-            ("Pendientes elaborar", kpis["tot_pendientes_elaborar"], "#E38921"),
+            ("Informes totales", kpis["total_inf_unicos"], "azul"),
+            ("Informes finalizados", kpis["tot_finalizados"], "verde"),
+            ("Pendientes elaborar", kpis["tot_pendientes_elaborar"], "naranja"),
         ],
     ),
     bloque_kpi(
-        "Bloque gabinete",
+        "Gabinete",
         "📁",
         [
-            ("En proceso", kpis["val_en_proceso"], "#7B61C9"),
-            ("Pend. asignar", kpis["val_para_asignar"], "#D54D9D"),
-            ("Correc. PSAIM", kpis["val_psaim"], "#C89716"),
+            ("En proceso", kpis["val_en_proceso"], "violeta"),
+            ("Pend. asignar", kpis["val_para_asignar"], "rosa"),
+            ("Correc. PSAIM", kpis["val_psaim"], "dorado"),
         ],
     ),
     bloque_kpi(
-        "Bloque especialista",
+        "Especialista",
         "👤",
         [
-            ("Revisados", kpis["revision_especialista"], "#168EAE"),
+            ("Revisados", kpis["revision_especialista"], "turquesa"),
             (
                 "Por revisar",
                 kpis["revision_especialista_pendiente"],
-                "#5564D8",
+                "indigo",
             ),
         ],
     ),
     bloque_kpi(
-        "Bloque campo",
+        "Campo",
         "📝",
         [
-            ("Pend. inspección", kpis["val_pend_inspeccion"], "#D8534F"),
+            ("Pend. inspección", kpis["val_pend_inspeccion"], "rojo"),
         ],
     ),
     bloque_kpi(
-        "Bloque cliente",
+        "Cliente",
         "🏢",
         [
-            ("Valorizados", kpis["tot_valorizados"], "#159A68"),
-            ("En revisión", kpis["revision_fiabilidad"], "#159D99"),
+            ("Valorizados", kpis["tot_valorizados"], "verde"),
+            ("En revisión", kpis["revision_fiabilidad"], "turquesa"),
         ],
     ),
     bloque_kpi(
-        "Bloque anexos",
+        "Anexos",
         "📎",
         [
-            ("Total anexos", kpis["anexos_total"], "#173F67"),
-            ("Pend. inspección", kpis["anexos_pend_inspeccion"], "#D8534F"),
-            ("Entregados", kpis["anexos_entregados"], "#159A68"),
-            ("Valorizados", kpis["anexos_valorizados"], "#159A68"),
+            ("Total anexos", kpis["anexos_total"], "azul"),
+            ("Pend. inspección", kpis["anexos_pend_inspeccion"], "rojo"),
+            ("Entregados", kpis["anexos_entregados"], "verde"),
+            ("Valorizados", kpis["anexos_valorizados"], "verde"),
         ],
     ),
 ])
@@ -1029,20 +869,20 @@ solicitudes_activas = [
 
 sistema_control = st.container(key="sistema_control")
 sistema_control.markdown(
-    "<div class='section-title'>🗂️ Sistema de control y resúmenes</div>",
+    "<div class='section-title'>Sistema de control y resúmenes</div>",
     unsafe_allow_html=True,
 )
 
 tabs = sistema_control.tabs([
-    f"🔔 Admin ({len(solicitudes_activas)})",
-    "📋 Tabla general",
-    "📇 Pend. asignar",
-    "🔄 En proceso",
-    "⏳ Pend. inspección",
-    "🔍 Rev. fiabilidad",
-    "👤 Revisión especialista",
-    "🛠️ Correc. PSAIM",
-    "📊 Resumen por mes",
+    f"Admin ({len(solicitudes_activas)})",
+    "Tabla general",
+    "Pend. asignar",
+    "En proceso",
+    "Pend. inspección",
+    "Rev. fiabilidad",
+    "Revisión especialista",
+    "Correc. PSAIM",
+    "Resumen por mes",
 ])
 
 # 1. ADMIN
@@ -1215,7 +1055,7 @@ with tabs[1]:
         }
 
         st.html("""
-            <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #102E4C; margin-bottom: 10px; display: inline-block;">
+            <div style="background-color: #162739; border: 1px solid #26405A; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: #C9D6E3; margin-bottom: 10px; display: inline-block;">
                 🟢 Valorizado (SI) &nbsp;&nbsp;|&nbsp;&nbsp; 🟡 Pendiente de inspección o falta carpeta &nbsp;&nbsp;|&nbsp;&nbsp; 🔵 Inspección complementaria &nbsp;&nbsp;|&nbsp;&nbsp; 🔴 Retirado
             </div>
         """)
@@ -1316,7 +1156,7 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     )
     tabla.index = range(1, len(tabla) + 1)
     boton_descarga_excel(tabla, nombre_archivo, "Descargar Excel")
-    st.dataframe(tabla, width="stretch", hide_index=False, height=600)
+    tabla_html(tabla)
     return tabla
 
 
@@ -1360,7 +1200,7 @@ def mostrar_resumen(df_resumen, nombre_archivo, es_metricas=False):
 
     df_mostrar.index = range(1, len(df_mostrar) + 1)
     boton_descarga_excel(df_mostrar, nombre_archivo, "Descargar Excel")
-    st.dataframe(df_mostrar, width="stretch", hide_index=False, height=600)
+    tabla_html(df_mostrar)
 
 
 # 3. PENDIENTE ASIGNAR
@@ -1485,12 +1325,12 @@ def tabla_pend_inspeccion_por_informe(df_origen, df_todas):
     tabla["LINEAS SIN INSPECCIONAR"] = tabla["LINEAS SIN INSPECCIONAR"].astype(int)
     tabla.index = range(1, len(tabla) + 1)
     principales = (tabla["TIPO"] == "Principal").sum()
-    st.caption(
-        f"{principales} informes principales y {len(tabla) - principales} anexos"
-        " pendientes de inspección."
-    )
     boton_descarga_excel(tabla, "Pendientes_inspeccion.xlsx", "Descargar Excel")
-    st.dataframe(tabla, width="stretch", hide_index=False, height=600)
+    tabla_html(
+        tabla,
+        nota=f"{principales} informes principales y {len(tabla) - principales}"
+        " anexos pendientes de inspección.",
+    )
 
 
 with tabs[4]:
