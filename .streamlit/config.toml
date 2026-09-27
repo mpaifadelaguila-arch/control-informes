@@ -4,7 +4,9 @@
 base = "dark"
 primaryColor = "#E0B04F"
 backgroundColor = "#0C1622"
-secondaryBackgroundColor = "#132131"
+# Dorado: Streamlit mezcla este color con el fondo para resaltar la fila
+# bajo el cursor en las tablas nativas (tabla general).
+secondaryBackgroundColor = "#8C6B2A"
 textColor = "#E6EDF5"
 linkColor = "#E0B04F"
 borderColor = "#26405A"
@@ -12,3 +14,8 @@ dataframeBorderColor = "#26405A"
 dataframeHeaderBackgroundColor = "#1A2D42"
 baseRadius = "10px"
 font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap, sans-serif"
+
+# La barra lateral conserva el azul oscuro del tema.
+[theme.sidebar]
+backgroundColor = "#132131"
+secondaryBackgroundColor = "#1B2E43"
