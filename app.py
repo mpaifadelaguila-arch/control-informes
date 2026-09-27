@@ -1639,8 +1639,8 @@ with tabs[8]:
 UMBRAL_SATURADO = 5  # informes en proceso a partir de los cuales se marca "Saturado"
 ETAPAS_CARGA = {
     "proc": ("En proceso", "violeta"),
-    "esp": ("Por revisar especialista", "indigo"),
-    "rev": ("Revisado especialista", "azul"),
+    "esp": ("Por revisar especialista", "naranja"),
+    "rev": ("Revisado especialista", "rosa"),
     "cli": ("En revisión cliente", "turquesa"),
     "insp": ("Pend. inspección", "rojo"),
     "otro": ("Otros", "dorado"),
@@ -1698,10 +1698,11 @@ def barras_carga(conteo, activos, orden_personas):
     maximo = max(1, int(conteo.sum(axis=1).max()))
     filas = []
     for persona in orden_personas:
+        # Cada tramo lleva su número dentro para leer la cantidad por etapa.
         segmentos = "".join(
             f"<span class='carga-seg' title='{ETAPAS_CARGA[e][0]}: {int(n)}'"
             f" style='width:{n / maximo * 100:.2f}%;background:"
-            f"{tinte(TONOS[ETAPAS_CARGA[e][1]], 0.5) if e == 'val' else TONOS[ETAPAS_CARGA[e][1]]}'></span>"
+            f"{TONOS[ETAPAS_CARGA[e][1]]}'>{int(n)}</span>"
             for e in ETAPAS_CARGA
             if e in conteo.columns and (n := conteo.at[persona, e]) > 0
         )
@@ -1761,7 +1762,7 @@ with tabs[9]:
         tarjetas = "".join([
             item_kpi("En proceso", int(etapas.get("proc", 0)), "violeta"),
             item_kpi(
-                "Esperando especialista", int(etapas.get("esp", 0)), "indigo", True
+                "Esperando especialista", int(etapas.get("esp", 0)), "naranja", True
             ),
             item_kpi(
                 "En revisión cliente",
