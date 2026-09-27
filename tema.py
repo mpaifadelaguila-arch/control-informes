@@ -36,6 +36,27 @@ TONOS = {
     "indigo": "#93A8F6",
 }
 
+# Iconos de línea (24x24, trazo con el color del bloque) para los bloques KPI
+_SVG = (
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{}</svg>'
+)
+ICONOS = {
+    "grafico": _SVG.format('<path d="M3 3v18h18"/><path d="M8 16v-5"/><path d="M13 16V8"/><path d="M18 16v-3"/>'),
+    "carpeta": _SVG.format('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
+    "especialista": _SVG.format('<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="m16 11 2 2 4-4"/>'),
+    "campo": _SVG.format('<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>'),
+    "cliente": _SVG.format('<rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/>'),
+    "anexo": _SVG.format('<path d="m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/>'),
+}
+
+
+def tinte(color_hex, alfa):
+    """Color hex con transparencia, para fondos y bordes teñidos."""
+    r, g, b = (int(color_hex[i:i + 2], 16) for i in (1, 3, 5))
+    return f"rgba({r}, {g}, {b}, {alfa})"
+
+
 CSS = f"""
 <style>
 footer {{visibility: hidden;}}
@@ -113,6 +134,13 @@ div[data-testid="stExpander"] details {{ border: none; }}
     height: 100%;
     box-sizing: border-box;
 }}
+.kpi-block-head {{ display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }}
+.kpi-block-icon {{
+    width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--tone); background: var(--tone-bg); border: 1px solid var(--tone-borde);
+}}
+.kpi-block-head .kpi-block-title {{ margin-bottom: 0; }}
 .kpi-block-title {{
     font-size: 12px;
     font-weight: 700;
@@ -139,7 +167,8 @@ div[data-testid="stExpander"] details {{ border: none; }}
     line-height: 1.3;
 }}
 .kpi-dot {{ width: 8px; height: 8px; border-radius: 4px; flex-shrink: 0; background: var(--tone); }}
-.kpi-item-value {{ font-size: 28px; font-weight: 700; color: {TEXTO}; line-height: 1.1; margin-top: 4px; }}
+.kpi-item-value {{ font-size: 28px; font-weight: 700; color: var(--tone); line-height: 1.1; margin-top: 4px; }}
+.kpi-item.alerta {{ background: var(--tone-bg); border-color: var(--tone-borde); }}
 
 /* PESTAÑAS */
 .stTabs [data-baseweb="tab-list"],
@@ -176,6 +205,28 @@ div[data-testid="stExpander"] details {{ border: none; }}
     border-color: {DORADO} !important;
 }}
 .stTabs [aria-selected="true"] p {{ color: {FONDO} !important; }}
+
+/* CAMPOS DE FILTRO Y BÚSQUEDA */
+[data-testid="stSelectbox"] [role="group"],
+[data-testid="stMultiSelect"] [role="group"],
+[data-testid="stTextInputRootElement"],
+[data-testid="stNumberInputContainer"],
+[data-testid="stDateInputField"],
+[data-testid="stTextArea"] textarea {{
+    background: {ITEM} !important;
+    border: 1px solid {BORDE} !important;
+    border-radius: 8px !important;
+}}
+[data-testid="stSelectbox"] [role="group"]:focus-within,
+[data-testid="stMultiSelect"] [role="group"]:focus-within,
+[data-testid="stTextInputRootElement"]:focus-within,
+[data-testid="stNumberInputContainer"]:focus-within,
+[data-testid="stDateInputField"]:focus-within,
+[data-testid="stTextArea"] textarea:focus {{
+    border-color: {DORADO} !important;
+}}
+[data-testid="stTextInputRootElement"] input,
+[data-testid="stNumberInputContainer"] input {{ background: transparent !important; }}
 
 /* TABLAS NATIVAS (tabla general editable) */
 div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{

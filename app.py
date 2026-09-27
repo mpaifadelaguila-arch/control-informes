@@ -17,7 +17,7 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
-from tema import TONOS, aplicar_tema, tabla_html
+from tema import ICONOS, TONOS, aplicar_tema, tabla_html, tinte
 
 # ==============================================================================
 # CONFIGURACIÓN DE RUTAS DINÁMICAS (ACTUALIZADA)
@@ -775,20 +775,32 @@ def procesar_agrupaciones_y_kpis(df_input):
 ) = procesar_agrupaciones_y_kpis(df)
 
 
-def item_kpi(titulo, valor, color):
+def estilo_tono(color):
+    tono = TONOS[color]
     return (
-        f"<div class='kpi-item' style='--tone:{TONOS[color]}'>"
+        f"--tone:{tono};--tone-bg:{tinte(tono, 0.12)};"
+        f"--tone-borde:{tinte(tono, 0.45)}"
+    )
+
+
+def item_kpi(titulo, valor, color, alerta=False):
+    # Los pendientes con valor mayor que cero se resaltan con fondo teñido.
+    clase = "kpi-item alerta" if alerta and valor else "kpi-item"
+    return (
+        f"<div class='{clase}' style='{estilo_tono(color)}'>"
         f"<div class='kpi-item-label'><span class='kpi-dot'></span>{titulo}</div>"
         f"<div class='kpi-item-value'>{valor}</div>"
         "</div>"
     )
 
 
-def bloque_kpi(titulo_bloque, emoji, items):
+def bloque_kpi(titulo_bloque, icono, color, items):
     filas = "".join(item_kpi(*i) for i in items)
     return (
         "<div class='kpi-block-card'>"
-        f"<div class='kpi-block-title'>{titulo_bloque}</div>"
+        f"<div class='kpi-block-head' style='{estilo_tono(color)}'>"
+        f"<div class='kpi-block-icon'>{ICONOS[icono]}</div>"
+        f"<div class='kpi-block-title'>{titulo_bloque}</div></div>"
         f"<div class='kpi-items'>{filas}</div></div>"
     )
 
@@ -802,16 +814,16 @@ panel_control.markdown(
 bloques_html = "".join([
     bloque_kpi(
         "General",
-        "📊",
+        "grafico", "azul",
         [
             ("Informes totales", kpis["total_inf_unicos"], "azul"),
             ("Informes finalizados", kpis["tot_finalizados"], "verde"),
-            ("Pendientes elaborar", kpis["tot_pendientes_elaborar"], "naranja"),
+            ("Pendientes elaborar", kpis["tot_pendientes_elaborar"], "naranja", True),
         ],
     ),
     bloque_kpi(
         "Gabinete",
-        "📁",
+        "carpeta", "violeta",
         [
             ("En proceso", kpis["val_en_proceso"], "violeta"),
             ("Pend. asignar", kpis["val_para_asignar"], "rosa"),
@@ -820,26 +832,27 @@ bloques_html = "".join([
     ),
     bloque_kpi(
         "Especialista",
-        "👤",
+        "especialista", "turquesa",
         [
             ("Revisados", kpis["revision_especialista"], "turquesa"),
             (
                 "Por revisar",
                 kpis["revision_especialista_pendiente"],
                 "indigo",
+                True,
             ),
         ],
     ),
     bloque_kpi(
         "Campo",
-        "📝",
+        "campo", "rojo",
         [
-            ("Pend. inspección", kpis["val_pend_inspeccion"], "rojo"),
+            ("Pend. inspección", kpis["val_pend_inspeccion"], "rojo", True),
         ],
     ),
     bloque_kpi(
         "Cliente",
-        "🏢",
+        "cliente", "verde",
         [
             ("Valorizados", kpis["tot_valorizados"], "verde"),
             ("En revisión", kpis["revision_fiabilidad"], "turquesa"),
@@ -847,10 +860,10 @@ bloques_html = "".join([
     ),
     bloque_kpi(
         "Anexos",
-        "📎",
+        "anexo", "dorado",
         [
             ("Total anexos", kpis["anexos_total"], "azul"),
-            ("Pend. inspección", kpis["anexos_pend_inspeccion"], "rojo"),
+            ("Pend. inspección", kpis["anexos_pend_inspeccion"], "rojo", True),
             ("Entregados", kpis["anexos_entregados"], "verde"),
             ("Valorizados", kpis["anexos_valorizados"], "verde"),
         ],
