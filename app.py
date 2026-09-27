@@ -6,6 +6,7 @@ import re
 import sys
 import time
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 import pandas as pd
@@ -520,24 +521,105 @@ def senal_visual(fila):
     return "⚪ Sin alerta"
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def fecha_actualizacion_base():
+    # Fecha en que se guardó por última vez la base en Drive (hora de Lima);
+    # si Drive no responde, la del archivo local.
+    fecha = None
+    if drive_service:
+        try:
+            res = (
+                drive_service.files()
+                .list(
+                    q=f"'{FOLDER_ID}' in parents and name = '{DB_FILE}' and trashed = false",
+                    fields="files(modifiedTime)",
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True,
+                )
+                .execute()
+            )
+            archivos = res.get("files", [])
+            if archivos:
+                fecha = datetime.fromisoformat(
+                    archivos[0]["modifiedTime"].replace("Z", "+00:00")
+                )
+        except Exception:
+            fecha = None
+    if fecha is None and os.path.exists(DB_FILE):
+        fecha = datetime.fromtimestamp(os.path.getmtime(DB_FILE), ZoneInfo("UTC"))
+    if fecha is None:
+        return "Sin datos"
+    return fecha.astimezone(ZoneInfo("America/Lima")).strftime("%d/%m/%Y · %H:%M")
+
+
+ICONO_INFORME = (
+    '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2'
+    ' 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>'
+)
+ICONO_BASE_DATOS = (
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3'
+    ' 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>'
+)
+
+
+def html_cabecera(finalizados=None, total=None, mes_en_curso=None):
+    chips = ""
+    if total:
+        avance = finalizados / total * 100
+        chips += (
+            "<div class='header-chip header-chip-avance'>"
+            "<div class='chip-titulo'><span>Avance general</span>"
+            f"<span class='chip-porcentaje'>{avance:.1f}%</span></div>"
+            f"<div class='chip-barra'><div style='width:{avance:.1f}%'></div></div>"
+            f"<div class='chip-detalle'>{finalizados} de {total} finalizados</div></div>"
+        )
+    if mes_en_curso:
+        chips += (
+            "<div class='header-chip'><div class='chip-titulo'>Mes en curso</div>"
+            f"<div class='chip-valor chip-dorado'>{mes_en_curso.capitalize()}</div></div>"
+        )
+    chips += (
+        "<div class='header-chip'><div class='chip-titulo'>Última actualización</div>"
+        f"<div class='chip-valor'>{fecha_actualizacion_base()}</div></div>"
+    )
+    return (
+        "<div class='header-banner header-indicadores'>"
+        f"<div class='header-marca'><div class='header-icono'>{ICONO_INFORME}</div>"
+        "<div><div class='header-title'>CONTROL INTERNO DE INFORMES — ADEMINSAC</div>"
+        "<div class='header-subtitle'>Monitoreo de inspecciones técnicas y"
+        " valorización · Refinería La Pampilla</div></div></div>"
+        f"<div class='header-chips'>{chips}</div></div>"
+    )
+
+
 if "df_data" not in st.session_state:
     st.session_state.df_data = cargar_datos()
 
 df = normalizar_base(st.session_state.df_data)
 
-st.html("""
-    <div class="header-banner">
-        <div class="header-title">CONTROL INTERNO DE INFORMES - ADEMINSAC</div>
-        <div class="header-subtitle">Sistema de Monitoreo de Inspección Técnicas y Valorización | Refinería La Pampilla</div>
-    </div>
-""")
+# La cabecera se completa con el avance cuando los KPIs están calculados.
+cabecera = st.empty()
+cabecera.markdown(html_cabecera(), unsafe_allow_html=True)
 
-with st.expander(
-    "⚙️ Gestión de datos: cargar, restaurar y descargar respaldo", expanded=False
-):
-    carga, respaldo = st.columns([1.15, 0.85], vertical_alignment="bottom")
-    with carga:
-        st.subheader("Cargar base de datos")
+barra_datos = st.container(key="barra_datos")
+with barra_datos:
+    texto_datos, carga, respaldo = st.columns(
+        [3, 1, 1], vertical_alignment="center"
+    )
+    texto_datos.markdown(
+        f"<div class='barra-datos-texto'>{ICONO_BASE_DATOS}"
+        "<span class='barra-datos-titulo'>Gestión de datos</span>"
+        f"<span>· base en Google Drive, {len(df)} líneas</span></div>",
+        unsafe_allow_html=True,
+    )
+    with carga.popover(
+        "Cargar Excel", icon=":material/upload:", use_container_width=True
+    ):
+        st.markdown("**Cargar base de datos**")
         archivo_excel = st.file_uploader(
             "Selecciona un archivo Excel", type=["xlsx", "xlsm"]
         )
@@ -576,19 +658,16 @@ with st.expander(
             except Exception as error:
                 st.error(f"No se pudo cargar el Excel: {error}")
     with respaldo:
-        st.subheader("Descargar respaldo actual")
         if not df.empty:
             boton_descarga_excel(
                 df,
                 "Respaldo_Control_Informes.xlsx",
-                "Descargar copia en Excel",
+                "Descargar respaldo",
             )
-        else:
-            st.caption("Carga una base de datos para generar el respaldo.")
 
 if df.empty:
     st.info(
-        "Carga un archivo Excel desde Gestión de datos para iniciar el control.",
+        "Carga un archivo Excel con el botón «Cargar Excel» para iniciar el control.",
         icon=":material/info:",
     )
     st.stop()
@@ -774,6 +853,16 @@ def procesar_agrupaciones_y_kpis(df_input):
     kpis,
     detalle_pendientes,
 ) = procesar_agrupaciones_y_kpis(df)
+
+meses_con_datos = {texto_normalizado(m) for m in df_activos["MES"]}
+cabecera.markdown(
+    html_cabecera(
+        kpis["tot_finalizados"],
+        kpis["total_inf_unicos"],
+        next((m for m in reversed(ORDEN_MESES) if m in meses_con_datos), None),
+    ),
+    unsafe_allow_html=True,
+)
 
 
 def estilo_tono(color):
