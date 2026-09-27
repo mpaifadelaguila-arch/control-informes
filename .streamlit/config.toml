@@ -4,9 +4,9 @@
 base = "dark"
 primaryColor = "#E0B04F"
 backgroundColor = "#0C1622"
-# Más claro que las tarjetas: Streamlit mezcla este color con el fondo para
-# resaltar la fila bajo el cursor en las tablas nativas (tabla general).
-secondaryBackgroundColor = "#2F557D"
+# Dorado: Streamlit mezcla este color con el fondo para resaltar la fila
+# bajo el cursor en las tablas nativas (tabla general).
+secondaryBackgroundColor = "#8C6B2A"
 textColor = "#E6EDF5"
 linkColor = "#E0B04F"
 borderColor = "#26405A"
