@@ -1119,8 +1119,18 @@ with tabs[1]:
             df_vista, "Tabla_general_informes.xlsx", "Descargar tabla general"
         )
 
+        # Texto rojo en la señal de las filas retiradas (Streamlit solo aplica
+        # estilos a columnas no editables, y "SEÑAL" es la única).
+        df_estilo = df_vista.style.map(
+            lambda v: (
+                f"color: {TONOS['rojo']}; font-weight: 600"
+                if "RETIRADO" in texto_normalizado(v)
+                else ""
+            ),
+            subset=["SEÑAL"],
+        )
         editado = st.data_editor(
-            df_vista,
+            df_estilo,
             column_config=encabezados,
             hide_index=True,
             width="stretch",
