@@ -5,8 +5,7 @@ import os
 import re
 import sys
 import time
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -521,6 +520,11 @@ def senal_visual(fila):
     return "⚪ Sin alerta"
 
 
+# Perú no tiene horario de verano: UTC-5 fijo, sin depender de la base de
+# zonas horarias del servidor.
+HORA_LIMA = timezone(timedelta(hours=-5), "Lima")
+
+
 @st.cache_data(ttl=60, show_spinner=False)
 def fecha_actualizacion_base():
     # Fecha en que se guardó por última vez la base en Drive (hora de Lima);
@@ -546,10 +550,10 @@ def fecha_actualizacion_base():
         except Exception:
             fecha = None
     if fecha is None and os.path.exists(DB_FILE):
-        fecha = datetime.fromtimestamp(os.path.getmtime(DB_FILE), ZoneInfo("UTC"))
+        fecha = datetime.fromtimestamp(os.path.getmtime(DB_FILE), timezone.utc)
     if fecha is None:
         return "Sin datos"
-    return fecha.astimezone(ZoneInfo("America/Lima")).strftime("%d/%m/%Y · %H:%M")
+    return fecha.astimezone(HORA_LIMA).strftime("%d/%m/%Y · %H:%M")
 
 
 ICONO_INFORME = (
