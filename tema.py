@@ -88,57 +88,6 @@ footer {{visibility: hidden;}}
 }}
 .header-subtitle {{ font-size: 14px; color: {CABECERA_SUB} !important; margin-top: 6px; font-weight: 400; }}
 
-/* CABECERA CON INDICADORES (página principal) */
-.header-banner.header-indicadores {{
-    display: flex; justify-content: space-between; align-items: center; gap: 24px;
-    flex-wrap: wrap; padding: 22px 28px;
-}}
-.header-banner.header-indicadores::after {{ display: none; }}
-.header-indicadores .header-title {{ padding-right: 0; }}
-.header-marca {{ display: flex; align-items: center; gap: 18px; min-width: 0; }}
-.header-icono {{
-    width: 52px; height: 52px; border-radius: 12px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: {tinte(DORADO, 0.14)}; border: 1px solid {tinte(DORADO, 0.45)}; color: {DORADO};
-}}
-.header-chips {{ display: flex; gap: 10px; flex-wrap: wrap; }}
-.header-chip {{
-    display: flex; flex-direction: column; justify-content: center; gap: 4px;
-    padding: 10px 14px; border-radius: 10px; background: {SUPERFICIE}; border: 1px solid {BORDE};
-}}
-.header-chip-avance {{ width: 190px; gap: 6px; }}
-.chip-titulo {{
-    display: flex; justify-content: space-between; gap: 10px;
-    font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: {TEXTO_SUAVE};
-}}
-.chip-porcentaje {{ color: {TONOS["verde"]}; }}
-.chip-barra {{ height: 6px; border-radius: 3px; background: #0F1C2A; overflow: hidden; }}
-.chip-barra div {{ height: 100%; background: {TONOS["verde"]}; }}
-.chip-detalle {{ font-size: 12px; color: #C9D6E3; }}
-.chip-valor {{ font-size: 15px; font-weight: 600; color: {TEXTO}; }}
-.chip-dorado {{ font-size: 17px; font-weight: 700; color: {DORADO}; }}
-
-/* BARRA DE GESTIÓN DE DATOS */
-.st-key-barra_datos {{
-    background: {SUPERFICIE}; border: 1px solid {BORDE}; border-radius: 10px;
-    padding: 6px 16px; margin-bottom: 20px;
-}}
-.barra-datos-texto {{
-    display: flex; align-items: center; gap: 10px; font-size: 14px; color: {TEXTO_SUAVE};
-}}
-.barra-datos-texto svg {{ color: {TEXTO_SUAVE}; flex-shrink: 0; }}
-.barra-datos-titulo {{ font-weight: 600; color: #C9D6E3; }}
-[data-testid="stPopover"] button {{
-    background: {ITEM} !important; border: 1px solid {BORDE} !important;
-    color: {TEXTO} !important; font-weight: 600 !important; border-radius: 8px !important;
-}}
-[data-testid="stPopover"] button:hover {{ border-color: {DORADO} !important; color: {DORADO} !important; }}
-.st-key-barra_datos [data-testid="stElementContainer"]:has([data-testid="stDownloadButton"]),
-.st-key-barra_datos [data-testid="stDownloadButton"],
-.st-key-barra_datos [data-testid="stDownloadButton"] button {{ width: 100% !important; }}
-.st-key-barra_datos [data-testid="stMarkdownContainer"] {{ margin-bottom: 0 !important; }}
-.st-key-barra_datos [data-testid="stMarkdownContainer"] > div {{ margin: 0 !important; }}
-
 /* TARJETAS / CONTENEDORES */
 .st-key-panel_control, .st-key-sistema_control,
 .st-key-tarjeta_estado, .st-key-tarjeta_carga, .st-key-tarjeta_iso,
