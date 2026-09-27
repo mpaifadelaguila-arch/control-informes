@@ -747,6 +747,9 @@ def procesar_agrupaciones_y_kpis(df_input):
 
     unicos, psaim_unicos = set(), set()
     unicos_finalizados = set()
+    # Claves de informe por KPI, para contar las líneas que representan.
+    claves_valorizados, claves_fiabilidad = set(), set()
+    claves_esp_pendiente, claves_esp_revisado = set(), set()
 
     por_mes = {
         "valorizados": {},
@@ -787,13 +790,16 @@ def procesar_agrupaciones_y_kpis(df_input):
             por_mes[clave_mes].setdefault(mes, 0)
         if texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
             por_mes["valorizados"][mes] += 1
+            claves_valorizados.add(clave)
             continue
         por_mes["pendientes"][mes] += 1
         observacion_norm = texto_normalizado(observacion)
         if es_revision_fiabilidad(observacion):
             revision_fiabilidad += 1
+            claves_fiabilidad.add(clave)
         if "PENDIENTE REVISION POR EL ESPECIALISTA" in observacion_norm:
             revision_especialista_pendiente += 1
+            claves_esp_pendiente.add(clave)
 
         if (
             "REV. POR EL ESPECIALISTA" in observacion_norm
@@ -801,6 +807,7 @@ def procesar_agrupaciones_y_kpis(df_input):
             or "REVISADO POR ESPECIALISTA" in observacion_norm
         ) and "PENDIENTE" not in observacion_norm:
             revision_especialista += 1
+            claves_esp_revisado.add(clave)
 
         if "ADEMINSAC" in observacion_norm:
             por_mes["ademinsac"][mes] += 1
@@ -834,6 +841,13 @@ def procesar_agrupaciones_y_kpis(df_input):
     val_pend_inspeccion = claves_principales(df_pend_inspeccion)
     val_psaim = sum(por_mes["psaim"].values())
 
+    def lineas_de(claves):
+        # Líneas activas de los informes principales con esas claves.
+        return int(df_principales["CLAVE_GLOBAL"].isin(claves).sum())
+
+    def claves_de(df_origen):
+        return set(df_origen[df_origen["TIPO"] == "Principal"]["CLAVE_GLOBAL"])
+
     kpis = {
         "total_inf_unicos": total_inf_unicos,
         "tot_finalizados": tot_finalizados,
@@ -855,6 +869,19 @@ def procesar_agrupaciones_y_kpis(df_input):
         "lineas_pendientes": len(df_activos) - lineas_finalizadas,
         "lineas_anexos": len(df_anexos),
         "lineas_retiradas": int(mascara_retirado.sum()),
+        "lineas_en_proceso": lineas_de(claves_de(df_en_proceso)),
+        "lineas_para_asignar": lineas_de(claves_de(df_pend_asignacion)),
+        "lineas_psaim": lineas_de(psaim_unicos),
+        "lineas_revisados": lineas_de(claves_esp_revisado),
+        "lineas_por_revisar": lineas_de(claves_esp_pendiente),
+        "lineas_pend_inspeccion": lineas_de(claves_de(df_pend_inspeccion)),
+        "lineas_valorizados": lineas_de(claves_valorizados),
+        "lineas_en_revision": lineas_de(claves_fiabilidad),
+        "lineas_anexos_pend_inspeccion": lineas_anexos_pendientes,
+        "lineas_anexos_entregados": len(df_anexos) - lineas_anexos_pendientes,
+        "lineas_anexos_valorizados": int(
+            (df_anexos["VALORIZACIÓN"].apply(texto_normalizado) == "SI").sum()
+        ),
     }
 
     return (
@@ -972,21 +999,46 @@ bloques_html = "".join([
         "Gabinete",
         "carpeta", "violeta",
         [
-            ("En proceso", kpis["val_en_proceso"], "violeta"),
-            ("Pend. asignar", kpis["val_para_asignar"], "rosa"),
-            ("Correc. PSAIM", kpis["val_psaim"], "dorado"),
+            (
+                "En proceso",
+                kpis["val_en_proceso"],
+                "violeta",
+                False,
+                kpis["lineas_en_proceso"],
+            ),
+            (
+                "Pend. asignar",
+                kpis["val_para_asignar"],
+                "rosa",
+                False,
+                kpis["lineas_para_asignar"],
+            ),
+            (
+                "Correc. PSAIM",
+                kpis["val_psaim"],
+                "dorado",
+                False,
+                kpis["lineas_psaim"],
+            ),
         ],
     ),
     bloque_kpi(
         "Especialista",
         "especialista", "turquesa",
         [
-            ("Revisados", kpis["revision_especialista"], "turquesa"),
+            (
+                "Revisados",
+                kpis["revision_especialista"],
+                "turquesa",
+                False,
+                kpis["lineas_revisados"],
+            ),
             (
                 "Por revisar",
                 kpis["revision_especialista_pendiente"],
                 "indigo",
                 True,
+                kpis["lineas_por_revisar"],
             ),
         ],
     ),
@@ -994,15 +1046,33 @@ bloques_html = "".join([
         "Campo",
         "campo", "rojo",
         [
-            ("Pend. inspección", kpis["val_pend_inspeccion"], "rojo", True),
+            (
+                "Pend. inspección",
+                kpis["val_pend_inspeccion"],
+                "rojo",
+                True,
+                kpis["lineas_pend_inspeccion"],
+            ),
         ],
     ),
     bloque_kpi(
         "Cliente",
         "cliente", "verde",
         [
-            ("Valorizados", kpis["tot_valorizados"], "verde"),
-            ("En revisión", kpis["revision_fiabilidad"], "turquesa"),
+            (
+                "Valorizados",
+                kpis["tot_valorizados"],
+                "verde",
+                False,
+                kpis["lineas_valorizados"],
+            ),
+            (
+                "En revisión",
+                kpis["revision_fiabilidad"],
+                "turquesa",
+                False,
+                kpis["lineas_en_revision"],
+            ),
         ],
     ),
     bloque_kpi(
@@ -1016,9 +1086,27 @@ bloques_html = "".join([
                 False,
                 kpis["lineas_anexos"],
             ),
-            ("Pend. inspección", kpis["anexos_pend_inspeccion"], "rojo", True),
-            ("Entregados", kpis["anexos_entregados"], "verde"),
-            ("Valorizados", kpis["anexos_valorizados"], "verde"),
+            (
+                "Pend. inspección",
+                kpis["anexos_pend_inspeccion"],
+                "rojo",
+                True,
+                kpis["lineas_anexos_pend_inspeccion"],
+            ),
+            (
+                "Entregados",
+                kpis["anexos_entregados"],
+                "verde",
+                False,
+                kpis["lineas_anexos_entregados"],
+            ),
+            (
+                "Valorizados",
+                kpis["anexos_valorizados"],
+                "verde",
+                False,
+                kpis["lineas_anexos_valorizados"],
+            ),
         ],
     ),
 ])
