@@ -621,6 +621,7 @@ with barra_datos:
     texto_datos, carga, respaldo = st.columns(
         [3, 1, 1], vertical_alignment="center"
     )
+    texto_datos = texto_datos.empty()
     texto_datos.markdown(
         f"<div class='barra-datos-texto'>{ICONO_BASE_DATOS}"
         "<span class='barra-datos-titulo'>Gestión de datos</span>"
@@ -814,6 +815,11 @@ def procesar_agrupaciones_y_kpis(df_input):
     tot_finalizados = len(unicos_finalizados)
     tot_pendientes_elaborar = max(0, total_inf_unicos - tot_finalizados)
 
+    # Líneas activas (sin retiradas) que representan los informes.
+    lineas_finalizadas = int(
+        df_principales["CLAVE_GLOBAL"].isin(unicos_finalizados).sum()
+    )
+
     tot_valorizados = sum(por_mes["valorizados"].values())
 
     def claves_principales(df_origen):
@@ -840,6 +846,11 @@ def procesar_agrupaciones_y_kpis(df_input):
         "anexos_pend_inspeccion": anexos_pend_inspeccion,
         "anexos_entregados": anexos_total - anexos_pend_inspeccion,
         "anexos_valorizados": anexos_valorizados,
+        "lineas_totales": len(df_principales),
+        "lineas_finalizadas": lineas_finalizadas,
+        "lineas_pendientes": len(df_principales) - lineas_finalizadas,
+        "lineas_anexos": len(df_anexos),
+        "lineas_retiradas": int(mascara_retirado.sum()),
     }
 
     return (
@@ -865,6 +876,14 @@ def procesar_agrupaciones_y_kpis(df_input):
     detalle_pendientes,
 ) = procesar_agrupaciones_y_kpis(df)
 
+texto_datos.markdown(
+    f"<div class='barra-datos-texto'>{ICONO_BASE_DATOS}"
+    "<span class='barra-datos-titulo'>Gestión de datos</span>"
+    f"<span>· base en Google Drive, {len(df)} líneas"
+    f" ({len(df) - kpis['lineas_retiradas']} activas,"
+    f" {kpis['lineas_retiradas']} retiradas)</span></div>",
+    unsafe_allow_html=True,
+)
 meses_con_datos = {texto_normalizado(m) for m in df_activos["MES"]}
 cabecera.markdown(
     html_cabecera(
@@ -884,13 +903,18 @@ def estilo_tono(color):
     )
 
 
-def item_kpi(titulo, valor, color, alerta=False):
+def item_kpi(titulo, valor, color, alerta=False, lineas=None):
     # Los pendientes con valor mayor que cero se resaltan con fondo teñido.
     clase = "kpi-item alerta" if alerta and valor else "kpi-item"
+    detalle = (
+        f"<span class='kpi-item-lineas'>{lineas} líneas</span>"
+        if lineas is not None
+        else ""
+    )
     return (
         f"<div class='{clase}' style='{estilo_tono(color)}'>"
         f"<div class='kpi-item-label'><span class='kpi-dot'></span>{titulo}</div>"
-        f"<div class='kpi-item-value'>{valor}</div>"
+        f"<div class='kpi-item-value'>{valor}{detalle}</div>"
         "</div>"
     )
 
@@ -917,9 +941,27 @@ bloques_html = "".join([
         "General",
         "grafico", "azul",
         [
-            ("Informes totales", kpis["total_inf_unicos"], "azul"),
-            ("Informes finalizados", kpis["tot_finalizados"], "verde"),
-            ("Pendientes elaborar", kpis["tot_pendientes_elaborar"], "naranja", True),
+            (
+                "Informes totales",
+                kpis["total_inf_unicos"],
+                "azul",
+                False,
+                kpis["lineas_totales"],
+            ),
+            (
+                "Informes finalizados",
+                kpis["tot_finalizados"],
+                "verde",
+                False,
+                kpis["lineas_finalizadas"],
+            ),
+            (
+                "Pendientes elaborar",
+                kpis["tot_pendientes_elaborar"],
+                "naranja",
+                True,
+                kpis["lineas_pendientes"],
+            ),
         ],
     ),
     bloque_kpi(
@@ -963,7 +1005,13 @@ bloques_html = "".join([
         "Anexos",
         "anexo", "dorado",
         [
-            ("Total anexos", kpis["anexos_total"], "azul"),
+            (
+                "Total anexos",
+                kpis["anexos_total"],
+                "azul",
+                False,
+                kpis["lineas_anexos"],
+            ),
             ("Pend. inspección", kpis["anexos_pend_inspeccion"], "rojo", True),
             ("Entregados", kpis["anexos_entregados"], "verde"),
             ("Valorizados", kpis["anexos_valorizados"], "verde"),

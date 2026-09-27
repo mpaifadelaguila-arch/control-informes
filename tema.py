@@ -220,6 +220,9 @@ div[data-testid="stExpander"] details {{ border: none; }}
 .kpi-dot {{ width: 8px; height: 8px; border-radius: 4px; flex-shrink: 0; background: var(--tone); }}
 .kpi-item-value {{ font-size: 28px; font-weight: 700; color: var(--tone); line-height: 1.1; margin-top: 4px; }}
 .kpi-item.alerta {{ background: var(--tone-bg); border-color: var(--tone-borde); }}
+.kpi-item-lineas {{
+    margin-left: 8px; font-size: 13px; font-weight: 500; color: {TEXTO_SUAVE}; letter-spacing: 0;
+}}
 
 /* PESTAÑAS */
 .stTabs [data-baseweb="tab-list"],
