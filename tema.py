@@ -321,6 +321,38 @@ div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
     background: #1F3650; color: #BFD3E8;
 }}
 .chip-anexo {{ background: #3A2F14; color: #F0CD7C; }}
+/* CARGA POR RESPONSABLE */
+.carga-tarjetas {{
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 6px 0 14px;
+}}
+@media (max-width: 900px) {{ .carga-tarjetas {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }} }}
+.carga-panel {{
+    background: {BLOQUE}; border: 1px solid {BORDE}; border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 14px;
+}}
+.carga-titulo {{ font-size: 16px; font-weight: 700; color: {TEXTO}; margin-bottom: 8px; }}
+.carga-leyenda {{ display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 10px; }}
+.carga-leyenda-item {{ display: flex; align-items: center; gap: 6px; font-size: 12px; color: #C9D6E3; }}
+.carga-lista {{ display: flex; flex-direction: column; gap: 6px; }}
+.carga-fila {{
+    display: flex; align-items: center; gap: 14px; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid transparent;
+}}
+.carga-fila:hover {{ background: rgba(224, 176, 79, 0.10); border-color: {DORADO}; }}
+.carga-fila.sin-asignar {{ background: {tinte(TONOS["rojo"], 0.08)}; border-color: {tinte(TONOS["rojo"], 0.45)}; }}
+.carga-fila.sin-asignar .carga-nombre {{ color: {TONOS["rojo"]}; }}
+.carga-nombre {{ width: 150px; flex-shrink: 0; font-size: 14px; font-weight: 600; color: {TEXTO}; }}
+.carga-barra {{ flex-grow: 1; display: flex; height: 22px; border-radius: 6px; background: #0F1C2A; overflow: hidden; }}
+.carga-seg {{ display: block; height: 100%; }}
+.carga-total {{
+    width: 190px; flex-shrink: 0; display: flex; justify-content: flex-end; align-items: center;
+    gap: 8px; font-size: 13px; color: #C9D6E3;
+}}
+.carga-total b {{ color: {TEXTO}; }}
+.chip-saturado {{
+    padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+    background: {tinte(TONOS["naranja"], 0.18)}; color: {TONOS["naranja"]};
+}}
 .tabla-nota {{ font-size: 14px; color: {TEXTO_SUAVE}; margin: 4px 0 6px; }}
 </style>
 """
