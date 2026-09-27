@@ -943,18 +943,24 @@ def estilo_tono(color):
     )
 
 
-def item_kpi(titulo, valor, color, alerta=False, lineas=None):
+def cantidad(n, singular):
+    plural = {"informe": "informes", "línea": "líneas", "anexo": "anexos"}
+    return f"{n} {singular if n == 1 else plural[singular]}"
+
+
+def item_kpi(titulo, valor, color, alerta=False, lineas=None, unidad="informe"):
     # Los pendientes con valor mayor que cero se resaltan con fondo teñido.
+    # Junto al número se indica la unidad (informes, anexos o líneas) y, si
+    # aplica, las líneas que representan.
     clase = "kpi-item alerta" if alerta and valor else "kpi-item"
-    detalle = (
-        f"<span class='kpi-item-lineas'>{lineas} líneas</span>"
-        if lineas is not None
-        else ""
-    )
+    detalle = cantidad(valor, unidad).split(" ", 1)[1]
+    if lineas is not None:
+        detalle += f" · {cantidad(lineas, 'línea')}"
     return (
         f"<div class='{clase}' style='{estilo_tono(color)}'>"
         f"<div class='kpi-item-label'><span class='kpi-dot'></span>{titulo}</div>"
-        f"<div class='kpi-item-value'>{valor}{detalle}</div>"
+        f"<div class='kpi-item-value'>{valor}"
+        f"<span class='kpi-item-lineas'>{detalle}</span></div>"
         "</div>"
     )
 
@@ -1067,11 +1073,16 @@ bloques_html = "".join([
                 kpis["lineas_por_inspeccionar"],
                 "rojo",
                 True,
+                None,
+                "línea",
             ),
             (
                 "Líneas inspeccionadas",
                 kpis["lineas_pend_inspeccion"] - kpis["lineas_por_inspeccionar"],
                 "verde",
+                False,
+                None,
+                "línea",
             ),
         ],
     ),
@@ -1105,6 +1116,7 @@ bloques_html = "".join([
                 "azul",
                 False,
                 kpis["lineas_anexos"],
+                "anexo",
             ),
             (
                 "Pend. inspección",
@@ -1112,6 +1124,7 @@ bloques_html = "".join([
                 "rojo",
                 True,
                 kpis["lineas_anexos_pend_inspeccion"],
+                "anexo",
             ),
             (
                 "Entregados",
@@ -1119,6 +1132,7 @@ bloques_html = "".join([
                 "verde",
                 False,
                 kpis["lineas_anexos_entregados"],
+                "anexo",
             ),
             (
                 "Valorizados",
@@ -1126,6 +1140,7 @@ bloques_html = "".join([
                 "verde",
                 False,
                 kpis["lineas_anexos_valorizados"],
+                "anexo",
             ),
         ],
     ),
