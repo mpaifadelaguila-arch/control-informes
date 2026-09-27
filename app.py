@@ -1,3 +1,4 @@
+import html
 import io
 import json
 import os
@@ -896,6 +897,7 @@ tabs = sistema_control.tabs([
     "Revisión especialista",
     "Correc. PSAIM",
     "Resumen por mes",
+    "Carga por responsable",
 ])
 
 # 1. ADMIN
@@ -1631,3 +1633,175 @@ with tabs[8]:
             )
 
     vista_sub_resumen()
+
+
+# 10. CARGA POR RESPONSABLE
+UMBRAL_SATURADO = 5  # informes en proceso a partir de los cuales se marca "Saturado"
+ETAPAS_CARGA = {
+    "proc": ("En proceso", "violeta"),
+    "esp": ("Por revisar especialista", "indigo"),
+    "rev": ("Revisado especialista", "azul"),
+    "cli": ("En revisión cliente", "turquesa"),
+    "insp": ("Pend. inspección", "rojo"),
+    "otro": ("Otros", "dorado"),
+    "val": ("Valorizado", "verde"),
+}
+
+
+@st.cache_data(show_spinner=False)
+def informes_por_responsable(df_activos_input):
+    # Un registro por informe principal (como los KPIs), con la etapa en la
+    # que está y su responsable (quien lo elabora).
+    principales = df_activos_input[df_activos_input["TIPO"] == "Principal"]
+    if principales.empty:
+        return pd.DataFrame(
+            columns=["RESPONSABLE", "MES", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS", "ETAPA"]
+        )
+    claves_inspeccion = set(
+        principales.loc[
+            principales.apply(es_pendiente_inspeccion, axis=1), "CLAVE_GLOBAL"
+        ]
+    )
+    filas = []
+    for clave, grupo in principales.groupby("CLAVE_GLOBAL", sort=False):
+        fila = grupo.iloc[0]
+        estado = texto_normalizado(fila["ESTADO - ELABORACIÓN "])
+        observacion = texto_normalizado(fila["OBSERVACIÓN"])
+        if clave in claves_inspeccion:
+            etapa = "insp"
+        elif "EN PROCESO" in estado:
+            etapa = "proc"
+        elif texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
+            etapa = "val"
+        elif "PENDIENTE REVISION POR EL ESPECIALISTA" in observacion:
+            etapa = "esp"
+        elif es_revision_fiabilidad(observacion):
+            etapa = "cli"
+        elif "REVISADO POR ESPECIALISTA" in observacion:
+            etapa = "rev"
+        else:
+            etapa = "otro"
+        codigo = texto_limpio(fila["CODIGO DE INFORME"])
+        filas.append({
+            "RESPONSABLE": texto_limpio(fila["RESPONSABLE"]) or "Sin asignar",
+            "MES": texto_limpio(fila["MES"]).upper(),
+            "CODIGO DE INFORME": (
+                "Pendiente Asignar Código" if es_codigo_provisional(codigo) else codigo
+            ),
+            "GRUPO DE TUBERÍAS": texto_limpio(fila["GRUPO DE TUBERÍAS"]),
+            "ETAPA": etapa,
+        })
+    return pd.DataFrame(filas)
+
+
+def barras_carga(conteo, activos, orden_personas):
+    maximo = max(1, int(conteo.sum(axis=1).max()))
+    filas = []
+    for persona in orden_personas:
+        segmentos = "".join(
+            f"<span class='carga-seg' title='{ETAPAS_CARGA[e][0]}: {int(n)}'"
+            f" style='width:{n / maximo * 100:.2f}%;background:"
+            f"{tinte(TONOS[ETAPAS_CARGA[e][1]], 0.5) if e == 'val' else TONOS[ETAPAS_CARGA[e][1]]}'></span>"
+            for e in ETAPAS_CARGA
+            if e in conteo.columns and (n := conteo.at[persona, e]) > 0
+        )
+        en_proceso = int(conteo.at[persona, "proc"]) if "proc" in conteo.columns else 0
+        saturado = (
+            "<span class='chip-saturado'>Saturado</span>"
+            if en_proceso >= UMBRAL_SATURADO
+            else ""
+        )
+        clase = "carga-fila sin-asignar" if persona == "Sin asignar" else "carga-fila"
+        filas.append(
+            f"<div class='{clase}'>"
+            f"<span class='carga-nombre'>{html.escape(persona)}</span>"
+            f"<span class='carga-barra'>{segmentos}</span>"
+            f"<span class='carga-total'>{saturado}<b>{int(activos.get(persona, 0))}</b>"
+            f" activos · {int(conteo.loc[persona].sum())}</span></div>"
+        )
+    leyenda = "".join(
+        f"<span class='carga-leyenda-item'><span class='kpi-dot' style='--tone:"
+        f"{TONOS[color]}'></span>{nombre}</span>"
+        for clave, (nombre, color) in ETAPAS_CARGA.items()
+        if clave in conteo.columns
+    )
+    return (
+        f"<div class='carga-leyenda'>{leyenda}</div>"
+        f"<div class='carga-lista'>{''.join(filas)}</div>"
+    )
+
+
+with tabs[9]:
+
+    @st.fragment
+    def vista_carga_responsable():
+        df_carga = informes_por_responsable(df_activos)
+        if df_carga.empty:
+            st.info("No hay registros para mostrar.", icon=":material/info:")
+            return
+
+        filtros = st.columns([1, 1, 2], vertical_alignment="bottom")
+        meses = ["Todos"] + sorted(
+            set(df_carga["MES"]) - {""},
+            key=lambda m: ORDEN_MESES.index(m) if m in ORDEN_MESES else 99,
+        )
+        mes = filtros[0].selectbox("Filtrar mes", meses, key="carga_mes")
+        con_valorizados = filtros[1].toggle(
+            "Incluir valorizados", value=True, key="carga_valorizados"
+        )
+
+        datos = df_carga if mes == "Todos" else df_carga[df_carga["MES"] == mes]
+        if datos.empty:
+            st.info("No hay informes en este mes.", icon=":material/info:")
+            return
+        visibles = datos if con_valorizados else datos[datos["ETAPA"] != "val"]
+
+        etapas = datos["ETAPA"].value_counts()
+        sin_asignar = int((datos["RESPONSABLE"] == "Sin asignar").sum())
+        tarjetas = "".join([
+            item_kpi("En proceso", int(etapas.get("proc", 0)), "violeta"),
+            item_kpi(
+                "Esperando especialista", int(etapas.get("esp", 0)), "indigo", True
+            ),
+            item_kpi(
+                "En revisión cliente",
+                int(etapas.get("cli", 0) + etapas.get("rev", 0)),
+                "turquesa",
+            ),
+            item_kpi("Sin asignar", sin_asignar, "rojo", True),
+        ])
+        st.html(f"<div class='carga-tarjetas'>{tarjetas}</div>")
+
+        if visibles.empty:
+            st.info("Todos los informes de este filtro están valorizados.")
+            return
+        conteo = pd.crosstab(visibles["RESPONSABLE"], visibles["ETAPA"])
+        activos = datos[datos["ETAPA"] != "val"].groupby("RESPONSABLE").size()
+        orden_personas = sorted(
+            conteo.index,
+            key=lambda p: (
+                p == "Sin asignar",
+                -int(activos.get(p, 0)),
+                -int(conteo.loc[p].sum()),
+            ),
+        )
+        st.html(
+            "<div class='carga-panel'><div class='carga-titulo'>Informes por"
+            f" persona</div>{barras_carga(conteo, activos, orden_personas)}</div>"
+        )
+
+        persona = st.selectbox(
+            "Ver informes de", orden_personas, key="carga_persona"
+        )
+        detalle = visibles[visibles["RESPONSABLE"] == persona].copy()
+        detalle["ETAPA"] = detalle["ETAPA"].map(lambda e: ETAPAS_CARGA[e][0])
+        detalle = ordenar_por_mes(
+            detalle[["MES", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS", "ETAPA"]]
+        )
+        detalle.index = range(1, len(detalle) + 1)
+        boton_descarga_excel(
+            detalle, f"Carga_{persona.replace(' ', '_')}.xlsx", "Descargar Excel"
+        )
+        tabla_html(detalle, nota=f"{len(detalle)} informes de {persona}.")
+
+    vista_carga_responsable()
