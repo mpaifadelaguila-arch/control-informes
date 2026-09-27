@@ -1156,6 +1156,29 @@ with tabs[1]:
 
 
 # AUXILIARES PARA AGRUPACIÓN DE TABLAS
+def ordenar_por_mes(tabla):
+    # Tablas de resumen en orden cronológico (enero a diciembre); dentro de
+    # cada mes, primero los informes principales y después los anexos.
+    if "MES" not in tabla.columns:
+        return tabla
+    claves = {
+        "_MES": tabla["MES"].apply(
+            lambda v: (
+                ORDEN_MESES.index(texto_normalizado(v))
+                if texto_normalizado(v) in ORDEN_MESES
+                else 99
+            )
+        )
+    }
+    if "TIPO" in tabla.columns:
+        claves["_ANEXO"] = tabla["TIPO"] == "Anexo"
+    return (
+        tabla.assign(**claves)
+        .sort_values(list(claves), kind="stable")
+        .drop(columns=list(claves))
+    )
+
+
 def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     if df_origen.empty:
         st.info("No hay registros para mostrar.", icon=":material/info:")
@@ -1167,6 +1190,7 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
         .agg(LINEAS=("LINEAS", "count"))
         .fillna("")
     )
+    tabla = ordenar_por_mes(tabla)
     tabla.index = range(1, len(tabla) + 1)
     boton_descarga_excel(tabla, nombre_archivo, "Descargar Excel")
     tabla_html(tabla)
@@ -1324,17 +1348,7 @@ def tabla_pend_inspeccion_por_informe(df_origen, df_todas):
         df_todas.groupby("CLAVE_GLOBAL")["LINEAS"].count().reindex(tabla.index),
     )
     tabla = tabla.reset_index(drop=True)
-    orden_mes = tabla["MES"].apply(
-        lambda v: (
-            ORDEN_MESES.index(texto_normalizado(v))
-            if texto_normalizado(v) in ORDEN_MESES
-            else 99
-        )
-    )
-    tabla = tabla.assign(_ANEXO=tabla["TIPO"] == "Anexo", _MES=orden_mes)
-    tabla = tabla.sort_values(["_ANEXO", "_MES"], kind="stable").drop(
-        columns=["_ANEXO", "_MES"]
-    )
+    tabla = ordenar_por_mes(tabla)
     tabla["LINEAS SIN INSPECCIONAR"] = tabla["LINEAS SIN INSPECCIONAR"].astype(int)
     tabla.index = range(1, len(tabla) + 1)
     principales = (tabla["TIPO"] == "Principal").sum()
