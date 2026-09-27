@@ -1433,19 +1433,64 @@ with tabs[3]:
     vista_en_proceso()
 
 # 5. PENDIENTE INSPECCIÓN
-with tabs[4]:
-    tabla_agrupada(
-        df_pend_inspeccion,
-        [
-            "MES",
-            "ESTADO - ELABORACIÓN ",
-            "RESPONSABLE",
-            "GRUPO DE TUBERÍAS",
-            "CODIGO DE INFORME",
-        ],
-        "Pendientes_inspeccion.xlsx",
-        "PEND_INSPECCION",
+def tabla_pend_inspeccion_por_informe(df_origen, df_todas):
+    # Una fila por informe (igual que el KPI "Pend. inspección"): un informe
+    # avanzado de forma parcial tiene líneas en distintos estados.
+    if df_origen.empty:
+        st.info("No hay registros para mostrar.", icon=":material/info:")
+        return
+
+    def unir(valores):
+        return " / ".join(dict.fromkeys(v for v in map(texto_limpio, valores) if v))
+
+    tabla = (
+        df_origen.assign(
+            PEND=df_origen["ESTADO - ELABORACIÓN "]
+            .apply(texto_normalizado)
+            .str.contains("PENDIENTE INSPECCION")
+        )
+        .groupby("CLAVE_GLOBAL", sort=False)
+        .agg(**{
+            "TIPO": ("TIPO", "first"),
+            "MES": ("MES", "first"),
+            "CODIGO DE INFORME": ("CODIGO DE INFORME", "first"),
+            "GRUPO DE TUBERÍAS": ("GRUPO DE TUBERÍAS", unir),
+            "ESTADO - ELABORACIÓN ": ("ESTADO - ELABORACIÓN ", unir),
+            "RESPONSABLE": ("RESPONSABLE", unir),
+            "LINEAS SIN INSPECCIONAR": ("PEND", "sum"),
+        })
     )
+    # Total de líneas del informe, incluidas las que ya no están pendientes.
+    tabla.insert(
+        len(tabla.columns) - 1,
+        "LINEAS",
+        df_todas.groupby("CLAVE_GLOBAL")["LINEAS"].count().reindex(tabla.index),
+    )
+    tabla = tabla.reset_index(drop=True)
+    orden_mes = tabla["MES"].apply(
+        lambda v: (
+            ORDEN_MESES.index(texto_normalizado(v))
+            if texto_normalizado(v) in ORDEN_MESES
+            else 99
+        )
+    )
+    tabla = tabla.assign(_ANEXO=tabla["TIPO"] == "Anexo", _MES=orden_mes)
+    tabla = tabla.sort_values(["_ANEXO", "_MES"], kind="stable").drop(
+        columns=["_ANEXO", "_MES"]
+    )
+    tabla["LINEAS SIN INSPECCIONAR"] = tabla["LINEAS SIN INSPECCIONAR"].astype(int)
+    tabla.index = range(1, len(tabla) + 1)
+    principales = (tabla["TIPO"] == "Principal").sum()
+    st.caption(
+        f"{principales} informes principales y {len(tabla) - principales} anexos"
+        " pendientes de inspección."
+    )
+    boton_descarga_excel(tabla, "Pendientes_inspeccion.xlsx", "Descargar Excel")
+    st.dataframe(tabla, width="stretch", hide_index=False, height=600)
+
+
+with tabs[4]:
+    tabla_pend_inspeccion_por_informe(df_pend_inspeccion, df_activos)
 
 # 6. REV. FIABILIDAD
 with tabs[5]:
