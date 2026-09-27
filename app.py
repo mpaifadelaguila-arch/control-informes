@@ -236,7 +236,7 @@ st.markdown(
     /* FILA HORIZONTAL DE BLOQUES KPI */
     .kpi-row {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         align-items: stretch;
         gap: 12px;
     }
@@ -455,6 +455,21 @@ def separar_alcance_y_notas(alcance, notas=""):
     return alcance_base, notas_limpias
 
 
+def normalizar_codigo_informe(codigo):
+    # La escritura correcta es "FIAB"; en la base hay códigos con "FlAB" (l minúscula).
+    return re.sub(r"(?i)(?<=-)FLAB(?=-)", "FIAB", texto_limpio(codigo))
+
+
+# Anexo: líneas de un informe entregado que quedaron pendientes de inspección
+# y se emiten después con un número entre el correlativo y el año,
+# ej. "ADEMINSAC-FIAB-RLP-275-1-2026" es anexo de "ADEMINSAC-FIAB-RLP-275-2026".
+PATRON_ANEXO = re.compile(r"^(.*-RLP-\d+)-\d+-(\d{4})$", flags=re.IGNORECASE)
+
+
+def es_anexo(codigo):
+    return bool(PATRON_ANEXO.match(texto_limpio(codigo)))
+
+
 def normalizar_base(df_entrada):
     df = df_entrada.copy()
     for columna in COLUMNAS_EXCEL:
@@ -479,6 +494,9 @@ def normalizar_base(df_entrada):
         )
         df.at[indice, "ALCANCE DEL SERVICIO"] = alcance
         df.at[indice, "NOTAS"] = notas
+        df.at[indice, "CODIGO DE INFORME"] = normalizar_codigo_informe(
+            fila["CODIGO DE INFORME"]
+        )
         for columna in ["ITEM POR MES", "IT2", "SAP"]:
             df.at[indice, columna] = texto_limpio(fila[columna])
     return df
@@ -564,7 +582,8 @@ def guardar_solicitudes(solicitudes):
 def registrar_solicitud(tipo, codigo, grupo, solicitante):
     solicitudes = cargar_solicitudes()
     repetida = any(
-        solicitud["codigo"] == codigo
+        normalizar_codigo_informe(solicitud["codigo"])
+        == normalizar_codigo_informe(codigo)
         and solicitud["grupo"] == grupo
         and solicitud["tipo"] == tipo
         and solicitud["estado"] == "PENDIENTE"
@@ -755,6 +774,22 @@ def procesar_agrupaciones_y_kpis(df_input):
         ),
         axis=1,
     )
+    df_activos["TIPO"] = df_activos["CODIGO DE INFORME"].apply(
+        lambda codigo: "Anexo" if es_anexo(codigo) else "Principal"
+    )
+
+    # Los anexos se contabilizan en su propio bloque; el resto de KPIs
+    # cuenta solo informes principales.
+    df_anexos = df_activos[df_activos["TIPO"] == "Anexo"]
+    mask_anexo_pend_inspeccion = df_anexos.apply(es_pendiente_inspeccion, axis=1)
+    anexos_total = df_anexos["CLAVE_GLOBAL"].nunique()
+    anexos_pend_inspeccion = df_anexos[mask_anexo_pend_inspeccion][
+        "CLAVE_GLOBAL"
+    ].nunique()
+    anexos_valorizados = df_anexos[
+        df_anexos["VALORIZACIÓN"].apply(texto_normalizado) == "SI"
+    ]["CLAVE_GLOBAL"].nunique()
+    df_principales = df_activos[df_activos["TIPO"] == "Principal"]
 
     mask_psaim = df_activos["OBSERVACIÓN"].apply(es_correccion_psaim)
     mask_pend_inspeccion = df_activos.apply(es_pendiente_inspeccion, axis=1)
@@ -789,7 +824,7 @@ def procesar_agrupaciones_y_kpis(df_input):
         revision_especialista_pendiente
     ) = revision_especialista = 0
 
-    for _, fila in df_activos.iterrows():
+    for _, fila in df_principales.iterrows():
         mes = texto_limpio(fila["MES"])
         codigo = texto_limpio(fila["CODIGO DE INFORME"])
         grupo = texto_limpio(fila["GRUPO DE TUBERÍAS"])
@@ -845,9 +880,13 @@ def procesar_agrupaciones_y_kpis(df_input):
     tot_pendientes_elaborar = max(0, total_inf_unicos - tot_finalizados)
 
     tot_valorizados = sum(por_mes["valorizados"].values())
-    val_para_asignar = df_pend_asignacion["CLAVE_GLOBAL"].nunique()
-    val_en_proceso = df_en_proceso["CLAVE_GLOBAL"].nunique()
-    val_pend_inspeccion = df_pend_inspeccion["CLAVE_GLOBAL"].nunique()
+
+    def claves_principales(df_origen):
+        return df_origen[df_origen["TIPO"] == "Principal"]["CLAVE_GLOBAL"].nunique()
+
+    val_para_asignar = claves_principales(df_pend_asignacion)
+    val_en_proceso = claves_principales(df_en_proceso)
+    val_pend_inspeccion = claves_principales(df_pend_inspeccion)
     val_psaim = sum(por_mes["psaim"].values())
 
     kpis = {
@@ -862,6 +901,10 @@ def procesar_agrupaciones_y_kpis(df_input):
         "revision_especialista": revision_especialista,
         "revision_especialista_pendiente": revision_especialista_pendiente,
         "revision_fiabilidad": revision_fiabilidad,
+        "anexos_total": anexos_total,
+        "anexos_pend_inspeccion": anexos_pend_inspeccion,
+        "anexos_entregados": anexos_total - anexos_pend_inspeccion,
+        "anexos_valorizados": anexos_valorizados,
     }
 
     return (
@@ -958,6 +1001,16 @@ bloques_html = "".join([
             ("En revisión", kpis["revision_fiabilidad"], "#159D99"),
         ],
     ),
+    bloque_kpi(
+        "Bloque anexos",
+        "📎",
+        [
+            ("Total anexos", kpis["anexos_total"], "#173F67"),
+            ("Pend. inspección", kpis["anexos_pend_inspeccion"], "#D8534F"),
+            ("Entregados", kpis["anexos_entregados"], "#159A68"),
+            ("Valorizados", kpis["anexos_valorizados"], "#159A68"),
+        ],
+    ),
 ])
 
 panel_control.markdown(
@@ -1015,7 +1068,8 @@ with tabs[0]:
                     icon=":material/check:",
                 ):
                     mascara_base = (
-                        df["CODIGO DE INFORME"] == solicitud["codigo"]
+                        df["CODIGO DE INFORME"]
+                        == normalizar_codigo_informe(solicitud["codigo"])
                     ) & (df["GRUPO DE TUBERÍAS"] == solicitud["grupo"])
 
                     if solicitud["tipo"] == "INFORME COMPLETADO (GABINETE)":
@@ -1249,6 +1303,8 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     if df_origen.empty:
         st.info("No hay registros para mostrar.", icon=":material/info:")
         return pd.DataFrame()
+    if "TIPO" in df_origen.columns and "TIPO" not in columnas:
+        columnas = ["TIPO"] + list(columnas)
     tabla = (
         df_origen.groupby(columnas, as_index=False, dropna=False)
         .agg(LINEAS=("LINEAS", "count"))
@@ -1564,11 +1620,14 @@ def generar_resumenes_mes(df_activos_input, detalle_pendientes_input):
         ),
     )
 
+    df_principales_input = df_activos_input[
+        df_activos_input["TIPO"] == "Principal"
+    ]
     for mes in meses_unicos:
         if not mes:
             continue
-        df_mes = df_activos_input[
-            df_activos_input["MES"].apply(lambda v: texto_limpio(v) == mes)
+        df_mes = df_principales_input[
+            df_principales_input["MES"].apply(lambda v: texto_limpio(v) == mes)
         ]
         df_mes_unicos = df_mes.drop_duplicates(subset=["CLAVE_GLOBAL"])
         total_informes = len(df_mes_unicos)
