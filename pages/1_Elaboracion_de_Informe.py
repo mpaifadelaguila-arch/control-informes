@@ -173,6 +173,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Tema oscuro corporativo común a toda la app (ver tema.py).
+from tema import aplicar_tema  # noqa: E402
+
+aplicar_tema()
+
 st.html("""
     <div class="header-banner">
         <div class="header-title">MÓDULO DE ELABORACIÓN DE INFORMES</div>

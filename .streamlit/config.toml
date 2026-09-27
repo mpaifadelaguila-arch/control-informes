@@ -1,6 +1,14 @@
+# Tema oscuro "Corporativo" (propuesta A): azul marino y dorado.
+# Los colores del panel, pestañas y tablas propias están en tema.py.
 [theme]
-primaryColor = "#1F4E79"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#BBDEFB"
-textColor = "#111111"
-font = "sans serif"
+base = "dark"
+primaryColor = "#E0B04F"
+backgroundColor = "#0C1622"
+secondaryBackgroundColor = "#132131"
+textColor = "#E6EDF5"
+linkColor = "#E0B04F"
+borderColor = "#26405A"
+dataframeBorderColor = "#26405A"
+dataframeHeaderBackgroundColor = "#1A2D42"
+baseRadius = "10px"
+font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap, sans-serif"
