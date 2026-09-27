@@ -455,6 +455,11 @@ def separar_alcance_y_notas(alcance, notas=""):
     return alcance_base, notas_limpias
 
 
+def normalizar_codigo_informe(codigo):
+    # La escritura correcta es "FIAB"; en la base hay códigos con "FlAB" (l minúscula).
+    return re.sub(r"(?i)(?<=-)FLAB(?=-)", "FIAB", texto_limpio(codigo))
+
+
 def normalizar_base(df_entrada):
     df = df_entrada.copy()
     for columna in COLUMNAS_EXCEL:
@@ -479,6 +484,9 @@ def normalizar_base(df_entrada):
         )
         df.at[indice, "ALCANCE DEL SERVICIO"] = alcance
         df.at[indice, "NOTAS"] = notas
+        df.at[indice, "CODIGO DE INFORME"] = normalizar_codigo_informe(
+            fila["CODIGO DE INFORME"]
+        )
         for columna in ["ITEM POR MES", "IT2", "SAP"]:
             df.at[indice, columna] = texto_limpio(fila[columna])
     return df
@@ -564,7 +572,8 @@ def guardar_solicitudes(solicitudes):
 def registrar_solicitud(tipo, codigo, grupo, solicitante):
     solicitudes = cargar_solicitudes()
     repetida = any(
-        solicitud["codigo"] == codigo
+        normalizar_codigo_informe(solicitud["codigo"])
+        == normalizar_codigo_informe(codigo)
         and solicitud["grupo"] == grupo
         and solicitud["tipo"] == tipo
         and solicitud["estado"] == "PENDIENTE"
@@ -1015,7 +1024,8 @@ with tabs[0]:
                     icon=":material/check:",
                 ):
                     mascara_base = (
-                        df["CODIGO DE INFORME"] == solicitud["codigo"]
+                        df["CODIGO DE INFORME"]
+                        == normalizar_codigo_informe(solicitud["codigo"])
                     ) & (df["GRUPO DE TUBERÍAS"] == solicitud["grupo"])
 
                     if solicitud["tipo"] == "INFORME COMPLETADO (GABINETE)":
