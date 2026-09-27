@@ -875,6 +875,15 @@ def procesar_agrupaciones_y_kpis(df_input):
         "lineas_revisados": lineas_de(claves_esp_revisado),
         "lineas_por_revisar": lineas_de(claves_esp_pendiente),
         "lineas_pend_inspeccion": lineas_de(claves_de(df_pend_inspeccion)),
+        # Mismo criterio que "LINEAS SIN INSPECCIONAR" en la pestaña.
+        "lineas_por_inspeccionar": int(
+            (
+                df_principales["CLAVE_GLOBAL"].isin(claves_de(df_pend_inspeccion))
+                & df_principales["ESTADO - ELABORACIÓN "]
+                .apply(texto_normalizado)
+                .str.contains("PENDIENTE INSPECCION")
+            ).sum()
+        ),
         "lineas_valorizados": lineas_de(claves_valorizados),
         "lineas_en_revision": lineas_de(claves_fiabilidad),
         "lineas_anexos_pend_inspeccion": lineas_anexos_pendientes,
@@ -1052,6 +1061,17 @@ bloques_html = "".join([
                 "rojo",
                 True,
                 kpis["lineas_pend_inspeccion"],
+            ),
+            (
+                "Líneas por inspeccionar",
+                kpis["lineas_por_inspeccionar"],
+                "rojo",
+                True,
+            ),
+            (
+                "Líneas inspeccionadas",
+                kpis["lineas_pend_inspeccion"] - kpis["lineas_por_inspeccionar"],
+                "verde",
             ),
         ],
     ),
