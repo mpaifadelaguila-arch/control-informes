@@ -342,8 +342,15 @@ div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
 .carga-fila.sin-asignar {{ background: {tinte(TONOS["rojo"], 0.08)}; border-color: {tinte(TONOS["rojo"], 0.45)}; }}
 .carga-fila.sin-asignar .carga-nombre {{ color: {TONOS["rojo"]}; }}
 .carga-nombre {{ width: 150px; flex-shrink: 0; font-size: 14px; font-weight: 600; color: {TEXTO}; }}
-.carga-barra {{ flex-grow: 1; display: flex; height: 22px; border-radius: 6px; background: #0F1C2A; overflow: hidden; }}
-.carga-seg {{ display: block; height: 100%; }}
+.carga-barra {{
+    flex-grow: 1; min-width: 0; display: flex; gap: 2px; height: 26px;
+    border-radius: 6px; background: #0F1C2A; overflow: hidden;
+}}
+.carga-seg {{
+    display: flex; align-items: center; justify-content: center; height: 100%;
+    min-width: 24px; flex-shrink: 1; box-sizing: border-box;
+    font-size: 12px; font-weight: 700; color: {FONDO};
+}}
 .carga-total {{
     width: 190px; flex-shrink: 0; display: flex; justify-content: flex-end; align-items: center;
     gap: 8px; font-size: 13px; color: #C9D6E3;
