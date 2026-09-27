@@ -815,10 +815,14 @@ def procesar_agrupaciones_y_kpis(df_input):
     tot_finalizados = len(unicos_finalizados)
     tot_pendientes_elaborar = max(0, total_inf_unicos - tot_finalizados)
 
-    # Líneas activas (sin retiradas) que representan los informes.
+    # Líneas activas (sin retiradas) que representan los informes. Los
+    # anexos son parte de su informe principal: sus líneas suman como
+    # finalizadas si el anexo ya se entregó, o como pendientes si espera
+    # inspección.
+    lineas_anexos_pendientes = int(mask_anexo_pend_inspeccion.sum())
     lineas_finalizadas = int(
         df_principales["CLAVE_GLOBAL"].isin(unicos_finalizados).sum()
-    )
+    ) + (len(df_anexos) - lineas_anexos_pendientes)
 
     tot_valorizados = sum(por_mes["valorizados"].values())
 
@@ -846,9 +850,9 @@ def procesar_agrupaciones_y_kpis(df_input):
         "anexos_pend_inspeccion": anexos_pend_inspeccion,
         "anexos_entregados": anexos_total - anexos_pend_inspeccion,
         "anexos_valorizados": anexos_valorizados,
-        "lineas_totales": len(df_principales),
+        "lineas_totales": len(df_activos),
         "lineas_finalizadas": lineas_finalizadas,
-        "lineas_pendientes": len(df_principales) - lineas_finalizadas,
+        "lineas_pendientes": len(df_activos) - lineas_finalizadas,
         "lineas_anexos": len(df_anexos),
         "lineas_retiradas": int(mascara_retirado.sum()),
     }
