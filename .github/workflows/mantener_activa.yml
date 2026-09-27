@@ -1,0 +1,25 @@
+name: Mantener la app activa
+
+# Streamlit Community Cloud duerme la app tras unas horas sin visitas.
+# Esta tarea la visita cada 6 horas para que no entre en reposo.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  visitar:
+    # La dirección de la app se guarda en la variable de repositorio APP_URL
+    # (Settings > Secrets and variables > Actions > Variables).
+    if: ${{ vars.APP_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - run: python .github/scripts/mantener_activa.py
+        env:
+          APP_URL: ${{ vars.APP_URL }}
