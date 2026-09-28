@@ -1443,6 +1443,31 @@ with tabs[1]:
 
 
 # AUXILIARES PARA AGRUPACIÓN DE TABLAS
+COLUMNAS_LINEAS = [
+    "LINEAS",
+    "SAP",
+    "ALCANCE DEL SERVICIO",
+    "ESTADO - ELABORACIÓN ",
+    "RESPONSABLE",
+    "OBSERVACIÓN",
+    "NOTAS",
+    "VALORIZACIÓN",
+]
+
+
+def lineas_de_informe(df_lineas, clave=None):
+    # Líneas de un informe para el desplegable de las tablas de resumen; las
+    # pendientes de inspección se marcan para mostrarlas en rojo.
+    lineas = df_lineas if clave is None else df_lineas[df_lineas["CLAVE_GLOBAL"] == clave]
+    detalle = lineas[COLUMNAS_LINEAS].copy()
+    detalle["_PEND"] = (
+        lineas["ESTADO - ELABORACIÓN "]
+        .apply(texto_normalizado)
+        .str.contains("PENDIENTE INSPECCION")
+    )
+    return detalle
+
+
 def ordenar_por_mes(tabla):
     # Tablas de resumen en orden cronológico (enero a diciembre); dentro de
     # cada mes, primero los informes principales y después los anexos.
@@ -1480,7 +1505,15 @@ def tabla_agrupada(df_origen, columnas, nombre_archivo, nombre_hoja):
     tabla = ordenar_por_mes(tabla)
     tabla.index = range(1, len(tabla) + 1)
     boton_descarga_excel(tabla, nombre_archivo, "Descargar Excel")
-    tabla_html(tabla)
+    # Cada fila se despliega con las líneas que agrupa.
+    origen = df_origen.fillna("")
+    detalles = [
+        lineas_de_informe(
+            origen[(origen[columnas] == fila[columnas].values).all(axis=1)]
+        )
+        for _, fila in tabla.iterrows()
+    ]
+    tabla_html(tabla, nota="Pulsa una fila para ver sus líneas.", detalles=detalles)
     return tabla
 
 
@@ -1634,8 +1667,9 @@ def tabla_pend_inspeccion_por_informe(df_origen, df_todas):
         "LINEAS",
         df_todas.groupby("CLAVE_GLOBAL")["LINEAS"].count().reindex(tabla.index),
     )
-    tabla = tabla.reset_index(drop=True)
+    tabla = tabla.reset_index()
     tabla = ordenar_por_mes(tabla)
+    claves = tabla.pop("CLAVE_GLOBAL")
     tabla["LINEAS SIN INSPECCIONAR"] = tabla["LINEAS SIN INSPECCIONAR"].astype(int)
     tabla.index = range(1, len(tabla) + 1)
     principales = (tabla["TIPO"] == "Principal").sum()
@@ -1643,7 +1677,8 @@ def tabla_pend_inspeccion_por_informe(df_origen, df_todas):
     tabla_html(
         tabla,
         nota=f"{principales} informes principales y {len(tabla) - principales}"
-        " anexos pendientes de inspección.",
+        " anexos pendientes de inspección. Pulsa una fila para ver sus líneas.",
+        detalles=[lineas_de_informe(df_todas, clave) for clave in claves],
     )
 
 
