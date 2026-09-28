@@ -362,8 +362,10 @@ div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
 .tabla-html td {{
     padding: 11px 14px; border-top: 1px solid {BORDE}; color: {TEXTO}; vertical-align: middle;
 }}
-.tabla-html tr:hover td {{ background: rgba(224, 176, 79, 0.16); }}
-.tabla-html tr:hover td:first-child {{ box-shadow: inset 3px 0 0 {DORADO}; }}
+/* Fila bajo el cursor: fondo dorado suave y borde dorado, como en
+   "Carga por responsable". */
+.tabla-html tbody tr:hover td {{ background: rgba(224, 176, 79, 0.10); }}
+.tabla-html tbody tr:hover {{ outline: 1px solid {DORADO}; outline-offset: -1px; }}
 .tabla-html td.t-idx {{ color: {TEXTO_SUAVE}; width: 1%; }}
 .tabla-html td.t-codigo {{ font-weight: 600; white-space: nowrap; }}
 .tabla-html td.t-suave {{ color: {TEXTO_SUAVE}; white-space: nowrap; }}
@@ -430,7 +432,10 @@ div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
     list-style: none; cursor: pointer; border-top: 1px solid {BORDE}; color: {TEXTO};
 }}
 .tg-fila > summary::-webkit-details-marker {{ display: none; }}
-.tg-fila > summary:hover {{ background: rgba(224, 176, 79, 0.16); box-shadow: inset 3px 0 0 {DORADO}; }}
+.tg-fila > summary {{ border-radius: 10px; }}
+.tg-fila > summary:hover {{
+    background: rgba(224, 176, 79, 0.10); outline: 1px solid {DORADO}; outline-offset: -1px;
+}}
 .tg-fila[open] > summary {{ background: rgba(224, 176, 79, 0.10); box-shadow: inset 3px 0 0 {DORADO}; }}
 .tg-flecha {{ color: {DORADO}; font-size: 18px; line-height: 1; transition: transform 0.15s ease; display: inline-block; }}
 .tg-fila[open] .tg-flecha {{ transform: rotate(90deg); }}
