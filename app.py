@@ -386,6 +386,24 @@ def es_pendiente_inspeccion(fila):
     )
 
 
+def linea_por_inspeccionar(fila):
+    # Una línea de informe principal falta por inspeccionar solo si sus notas
+    # dicen "PENDIENTE INSPECCIÓN"; sin esa nota ya está inspeccionada al 100%.
+    # En los anexos las notas explican el motivo ("NO SE UBICA EN P&ID"...),
+    # así que se usa el estado de la línea.
+    if es_anexo(fila.get("CODIGO DE INFORME", "")):
+        texto = fila.get("ESTADO - ELABORACIÓN ", "")
+    else:
+        texto = fila.get("NOTAS", "")
+    return "PENDIENTE INSPECCION" in texto_normalizado(texto)
+
+
+def lineas_por_inspeccionar(df_lineas):
+    if df_lineas.empty:
+        return pd.Series(False, index=df_lineas.index)
+    return df_lineas.apply(linea_por_inspeccionar, axis=1).astype(bool)
+
+
 @st.cache_data(ttl=5, show_spinner=False)
 def cargar_datos():
     descargar_archivo_de_drive(DB_FILE, DB_FILE)
@@ -879,9 +897,7 @@ def procesar_agrupaciones_y_kpis(df_input):
         "lineas_por_inspeccionar": int(
             (
                 df_principales["CLAVE_GLOBAL"].isin(claves_de(df_pend_inspeccion))
-                & df_principales["ESTADO - ELABORACIÓN "]
-                .apply(texto_normalizado)
-                .str.contains("PENDIENTE INSPECCION")
+                & lineas_por_inspeccionar(df_principales)
             ).sum()
         ),
         "lineas_valorizados": lineas_de(claves_valorizados),
@@ -1460,11 +1476,7 @@ def lineas_de_informe(df_lineas, clave=None):
     # pendientes de inspección se marcan para mostrarlas en rojo.
     lineas = df_lineas if clave is None else df_lineas[df_lineas["CLAVE_GLOBAL"] == clave]
     detalle = lineas[COLUMNAS_LINEAS].copy()
-    detalle["_PEND"] = (
-        lineas["ESTADO - ELABORACIÓN "]
-        .apply(texto_normalizado)
-        .str.contains("PENDIENTE INSPECCION")
-    )
+    detalle["_PEND"] = lineas_por_inspeccionar(lineas)
     return detalle
 
 
@@ -1646,9 +1658,7 @@ def tabla_pend_inspeccion_por_informe(df_origen, df_todas):
 
     tabla = (
         df_origen.assign(
-            PEND=df_origen["ESTADO - ELABORACIÓN "]
-            .apply(texto_normalizado)
-            .str.contains("PENDIENTE INSPECCION")
+            PEND=lineas_por_inspeccionar(df_origen)
         )
         .groupby("CLAVE_GLOBAL", sort=False)
         .agg(**{
