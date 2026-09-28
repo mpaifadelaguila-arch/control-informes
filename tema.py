@@ -414,6 +414,35 @@ div[data-testid="stDataFrame"], div[data-testid="stDataEditor"] {{
     padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
     background: {tinte(TONOS["naranja"], 0.18)}; color: {TONOS["naranja"]};
 }}
+/* TABLAS DESPLEGABLES (fila -> líneas del informe) */
+.tg {{ min-width: max-content; font-size: 14px; }}
+.tg-head, .tg-fila > summary {{
+    display: grid; grid-template-columns: var(--cols); align-items: center;
+}}
+.tg-head {{
+    position: sticky; top: 0; z-index: 1; background: {CABECERA_TABLA};
+    color: {TEXTO_SUAVE}; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.04em; text-transform: uppercase;
+}}
+.tg-head > span, .tg-fila > summary > span {{ padding: 11px 14px; }}
+.tg-head > span {{ white-space: nowrap; }}
+.tg-fila > summary {{
+    list-style: none; cursor: pointer; border-top: 1px solid {BORDE}; color: {TEXTO};
+}}
+.tg-fila > summary::-webkit-details-marker {{ display: none; }}
+.tg-fila > summary:hover {{ background: rgba(224, 176, 79, 0.16); box-shadow: inset 3px 0 0 {DORADO}; }}
+.tg-fila[open] > summary {{ background: rgba(224, 176, 79, 0.10); box-shadow: inset 3px 0 0 {DORADO}; }}
+.tg-flecha {{ color: {DORADO}; font-size: 18px; line-height: 1; transition: transform 0.15s ease; display: inline-block; }}
+.tg-fila[open] .tg-flecha {{ transform: rotate(90deg); }}
+.tg-fila .t-idx {{ color: {TEXTO_SUAVE}; }}
+.tg-fila .t-codigo {{ font-weight: 600; white-space: nowrap; }}
+.tg-fila .t-suave {{ color: {TEXTO_SUAVE}; white-space: nowrap; }}
+.tg-fila .t-alerta {{ font-weight: 700; color: {TONOS["rojo"]}; }}
+.tg-detalle {{ padding: 10px 16px 16px 72px; background: #0F1C2A; border-top: 1px solid {BORDE}; }}
+.tabla-lineas {{ font-size: 13px; border: 1px solid {BORDE}; border-radius: 8px; overflow: hidden; }}
+.tabla-lineas th {{ position: static; font-size: 11px; padding: 8px 12px; }}
+.tabla-lineas td {{ padding: 8px 12px; }}
+.tabla-lineas tr.t-pend td {{ color: {TONOS["rojo"]}; font-weight: 600; }}
 .tabla-nota {{ font-size: 14px; color: {TEXTO_SUAVE}; margin: 4px 0 6px; }}
 </style>
 """
@@ -423,26 +452,92 @@ def aplicar_tema():
     st.markdown(CSS, unsafe_allow_html=True)
 
 
-def _celda(columna, valor):
+def _contenido(columna, valor):
+    """Clase CSS y contenido HTML de una celda según su columna."""
     texto = "" if valor is None or (isinstance(valor, float) and pd.isna(valor)) else str(valor)
     contenido = html.escape(texto)
     nombre = str(columna).strip().upper()
     if nombre == "TIPO" and texto:
         clase = "chip chip-anexo" if texto.upper() == "ANEXO" else "chip"
-        return f'<td><span class="{clase}">{contenido}</span></td>'
+        return "", f'<span class="{clase}">{contenido}</span>'
     if nombre == "CODIGO DE INFORME":
-        return f'<td class="t-codigo">{contenido}</td>'
+        return "t-codigo", contenido
     if nombre == "GRUPO DE TUBERÍAS":
-        return f'<td class="t-suave">{contenido}</td>'
+        return "t-suave", contenido
     if nombre == "LINEAS SIN INSPECCIONAR" and texto not in ("", "0"):
-        return f'<td class="t-alerta">{contenido}</td>'
-    return f"<td>{contenido}</td>"
+        return "t-alerta", contenido
+    return "", contenido
 
 
-def tabla_html(df, nota=None):
-    """Tabla de solo lectura con el estilo del tema (etiquetas de tipo, alertas)."""
+def _celda(columna, valor):
+    clase, contenido = _contenido(columna, valor)
+    return f'<td class="{clase}">{contenido}</td>' if clase else f"<td>{contenido}</td>"
+
+
+def _ancho_columna(columna, valores):
+    largo = max([len(str(columna).strip())] + [len(str(v)) for v in valores])
+    return min(360, max(70, largo * 8 + 30))
+
+
+def _tabla_lineas(df_lineas):
+    """Tabla interna con las líneas de un informe; las pendientes van en rojo."""
+    columnas = [c for c in df_lineas.columns if c != "_PEND"]
+    encabezado = "".join(f"<th>{html.escape(str(c).strip())}</th>" for c in columnas)
+    filas = []
+    for _, fila in df_lineas.iterrows():
+        clase = ' class="t-pend"' if fila.get("_PEND", False) else ""
+        celdas = "".join(
+            f"<td>{html.escape(str(fila[c]))}</td>" for c in columnas
+        )
+        filas.append(f"<tr{clase}>{celdas}</tr>")
+    return (
+        '<table class="tabla-html tabla-lineas">'
+        f"<thead><tr>{encabezado}</tr></thead><tbody>{''.join(filas)}</tbody></table>"
+    )
+
+
+def _tabla_desplegable(df, detalles):
+    # Cada fila es un <details>: al pulsarla se despliegan sus líneas, sin
+    # recargar la página. Encabezado y filas comparten las mismas columnas.
+    anchos = [_ancho_columna(c, df[c]) for c in df.columns]
+    columnas = "28px 44px " + " ".join(f"{a}px" for a in anchos)
+    encabezado = "<span></span><span></span>" + "".join(
+        f"<span>{html.escape(str(c).strip())}</span>" for c in df.columns
+    )
+    filas = []
+    for (indice, fila), lineas in zip(df.iterrows(), detalles):
+        celdas = ""
+        for c, v in zip(df.columns, fila):
+            clase, contenido = _contenido(c, v)
+            celdas += f'<span class="{clase}">{contenido}</span>'
+        cuerpo = (
+            _tabla_lineas(lineas)
+            if lineas is not None and not lineas.empty
+            else '<div class="tabla-nota">Sin líneas para mostrar.</div>'
+        )
+        filas.append(
+            '<details class="tg-fila"><summary>'
+            '<span class="tg-flecha">▸</span>'
+            f'<span class="t-idx">{html.escape(str(indice))}</span>{celdas}'
+            f'</summary><div class="tg-detalle">{cuerpo}</div></details>'
+        )
+    return (
+        f'<div class="tabla-wrap"><div class="tg" style="--cols: {columnas}">'
+        f'<div class="tg-head">{encabezado}</div>{"".join(filas)}</div></div>'
+    )
+
+
+def tabla_html(df, nota=None, detalles=None):
+    """Tabla de solo lectura con el estilo del tema (etiquetas de tipo, alertas).
+
+    Si se pasan ``detalles`` (un DataFrame de líneas por fila), cada fila se
+    puede desplegar para ver sus líneas.
+    """
     if nota:
         st.html(f'<div class="tabla-nota">{html.escape(nota)}</div>')
+    if detalles is not None:
+        st.html(_tabla_desplegable(df, detalles))
+        return
     encabezado = "<th></th>" + "".join(
         f"<th>{html.escape(str(c).strip())}</th>" for c in df.columns
     )
