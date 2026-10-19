@@ -103,7 +103,7 @@ def estilo_tono(color):
 
 def item_kpi(titulo, valor, color, alerta=False, puntos=None, unidad="informe"):
     clase = "kpi-item alerta" if alerta and valor else "kpi-item"
-    detalle = unidad + ("" if valor == 1 else "s")
+    detalle = "del total" if isinstance(valor, str) else unidad + ("" if valor == 1 else "s")
     if puntos is not None:
         detalle += f" · {puntos} punto{'' if puntos == 1 else 's'}"
     return (
@@ -206,22 +206,25 @@ bloques = [
         ("Pendientes de elaborar", t["pend_elaborar"], "naranja", True,
          t["puntos_pend_elaborar"]),
         ("Retirados", t["retirados"], "violeta", False, None, "punto"),
-        ("Valorizados", t["valorizados"], "dorado", False, t["puntos_valorizados"]),
     ]),
     bloque_de_plan("Puntos de inyección", "campo", "turquesa",
                    kpis["PUNTOS DE INYECCIÓN"]),
     bloque_de_plan("Dead legs", "carpeta", "indigo", kpis["DEAD LEG"]),
     bloque_de_plan("Sulfidación", "cliente", "rosa", kpis["SULFIDACIÓN"]),
-    bloque_kpi("Campo", "campo", "naranja", [
-        ("Pend. inspección", t["pend_inspeccion"], "naranja", True,
-         t["puntos_pend_inspeccion"]),
-        ("Inspeccionados", t["informes"] - t["pend_inspeccion"], "verde", False),
-    ]),
-    bloque_kpi("Cliente", "especialista", "dorado", [
-        ("En revisión de fiabilidad", t["en_revision"], "dorado", True,
-         t["puntos_en_revision"]),
+    bloque_kpi("Especialista", "especialista", "turquesa", [
+        ("Por enviar a revisión", t["sin_enviar"], "naranja", True,
+         t["puntos_sin_enviar"]),
         ("Pend. revisión especialista", t["por_revisar"], "naranja", True,
          t["puntos_por_revisar"]),
+        ("Revisados", t["revisados"], "verde", False, t["puntos_revisados"]),
+        ("En revisión de fiabilidad", t["en_revision"], "dorado", True,
+         t["puntos_en_revision"]),
+    ]),
+    bloque_kpi("Valorización", "carpeta", "dorado", [
+        ("Valorizados", t["valorizados"], "verde", False, t["puntos_valorizados"]),
+        ("Pend. valorizar", t["pend_valorizar"], "naranja", True,
+         t["puntos_pend_valorizar"]),
+        ("% valorizado", f"{t['avance_valorizacion']:.1f}%", "dorado", False),
     ]),
 ]
 panel.markdown(
@@ -230,7 +233,7 @@ panel.markdown(
 
 # ------------------------------------------------------------------ Tablas
 COLS_TABLA = ["PLAN", "MES", "UNIDAD", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS",
-              "PUNTOS", "ESTADO", "RESPONSABLE", "OBSERVACIÓN"]
+              "PUNTOS", "ESTADO", "ETAPA", "RESPONSABLE", "OBSERVACIÓN", "VALORIZACIÓN"]
 
 
 def detalle_de(clave):
@@ -240,6 +243,45 @@ def detalle_de(clave):
         lambda e: "PENDIENTE" in planes.texto_normalizado(e)
     )
     return d.reset_index(drop=True)
+
+
+ESPECIALISTAS = [
+    "Jesús Rehkoff Díaz", "M. Paifa", "Julio Ponce", "Omar", "Christopher",
+    "Timana", "Ingrid",
+]
+
+
+def etiqueta(fila):
+    codigo = fila["CODIGO DE INFORME"]
+    base = fila["GRUPO DE TUBERÍAS"] if planes.es_codigo_provisional(codigo) else codigo
+    return f"{fila['PLAN']} · {fila['MES']} · {base}"
+
+
+def barra_accion(sub, llave, boton, accion, mensaje, con_especialista=False,
+                 tipo="primary", icono=":material/send:"):
+    """Selector de informes y botón que aplica ``accion`` a los elegidos."""
+    if sub.empty:
+        return
+    opciones = {etiqueta(f): f["CLAVE"] for _, f in sub.iterrows()}
+    c_sel, c_esp, c_btn = st.columns([4, 2, 1.2], vertical_alignment="bottom")
+    elegidos = c_sel.multiselect(
+        "Informes", list(opciones), key=f"sel_{llave}",
+        placeholder="Elige uno o varios informes",
+    )
+    especialista = ""
+    if con_especialista:
+        especialista = c_esp.selectbox(
+            "Especialista", ESPECIALISTAS, key=f"esp_{llave}"
+        )
+    if c_btn.button(boton, key=f"btn_{llave}", icon=icono, type=tipo,
+                    disabled=not elegidos):
+        nuevo = st.session_state.df_planes
+        for nombre in elegidos:
+            nuevo = planes.aplicar_accion(nuevo, opciones[nombre], accion, especialista)
+        st.session_state.df_planes = nuevo
+        guardar_planes(nuevo)
+        st.toast(f"{mensaje}: {len(elegidos)} informe(s).", icon="✅")
+        st.rerun()
 
 
 def mostrar_informes(sub, archivo):
@@ -326,7 +368,8 @@ with sistema:
 
     tabs = st.tabs([
         "Tabla general", "Pend. inspección", "Pend. elaboración",
-        "Finalizados", "Retirados", "Resumen",
+        "Revisión especialista", "Valorización", "Finalizados", "Retirados",
+        "Resumen",
     ])
     with tabs[0]:
         mostrar_informes(informes, "Planes_Especiales_General.xlsx")
@@ -341,11 +384,53 @@ with sistema:
             "Planes_Pend_Elaboracion.xlsx",
         )
     with tabs[3]:
+        vista = st.radio(
+            "Vista",
+            ["Por enviar", "Pendientes de revisión", "Revisados por el especialista"],
+            horizontal=True, key="radio_esp",
+        )
+        if vista == "Por enviar":
+            sub = informes[informes["ETAPA"].isin(
+                [planes.ETAPA_SIN_ENVIAR, planes.ETAPA_FIABILIDAD])]
+            barra_accion(sub, "enviar", "Enviar a revisión", "enviar_revision",
+                         "Enviados a revisión", con_especialista=True)
+            mostrar_informes(sub, "Planes_Por_Enviar_Revision.xlsx")
+        elif vista == "Pendientes de revisión":
+            sub = informes[informes["ETAPA"] == planes.ETAPA_PEND_ESP]
+            barra_accion(sub, "revisar", "Marcar revisado", "revisado",
+                         "Marcados como revisados", con_especialista=True,
+                         icono=":material/check:")
+            mostrar_informes(sub, "Planes_Pend_Revision_Especialista.xlsx")
+        else:
+            sub = informes[informes["ETAPA"] == planes.ETAPA_REVISADO]
+            mostrar_informes(sub, "Planes_Revisados_Especialista.xlsx")
+    with tabs[4]:
+        vista = st.radio(
+            "Vista", ["Pendientes de valorizar", "Valorizados"],
+            horizontal=True, key="radio_val",
+        )
+        if vista == "Pendientes de valorizar":
+            sub = informes[(informes["ESTADO"] == planes.FINALIZADO)
+                           & (informes["ETAPA"] != planes.ETAPA_VALORIZADO)]
+            st.caption(
+                "Lo habitual es valorizar informes ya revisados por el especialista"
+                " (etapa «Revisado por especialista»)."
+            )
+            barra_accion(sub, "valorizar", "Valorizar", "valorizar",
+                         "Valorizados", icono=":material/paid:")
+            mostrar_informes(sub, "Planes_Pend_Valorizar.xlsx")
+        else:
+            sub = informes[informes["ETAPA"] == planes.ETAPA_VALORIZADO]
+            barra_accion(sub, "desval", "Quitar valorización", "quitar_valorizacion",
+                         "Valorización quitada", tipo="secondary",
+                         icono=":material/undo:")
+            mostrar_informes(sub, "Planes_Valorizados.xlsx")
+    with tabs[5]:
         mostrar_informes(
             informes[informes["ESTADO"] == planes.FINALIZADO],
             "Planes_Finalizados.xlsx",
         )
-    with tabs[4]:
+    with tabs[6]:
         if retiradas.empty:
             st.info("No hay puntos retirados.", icon=":material/info:")
         else:
@@ -353,7 +438,7 @@ with sistema:
                                "CODIGO DE INFORME", "SAP", "NOTAS"]].copy()
             vista.index = range(1, len(vista) + 1)
             tabla_html(vista)
-    with tabs[5]:
+    with tabs[7]:
         st.markdown("**Resumen por plan**")
         tabla_html(planes.resumen_por_plan(kpis))
         st.markdown("**Informes por mes**")
