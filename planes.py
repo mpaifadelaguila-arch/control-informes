@@ -153,6 +153,57 @@ def es_revisado_especialista(observacion):
     ) and "PENDIENTE" not in o
 
 
+ETAPA_SIN_ENVIAR = "Por enviar a revisión"
+ETAPA_PEND_ESP = "Pend. revisión especialista"
+ETAPA_REVISADO = "Revisado por especialista"
+ETAPA_FIABILIDAD = "En revisión fiabilidad"
+ETAPA_VALORIZADO = "Valorizado"
+OBS_PEND_ESP = "Pendiente revisión por el especialista - Ademinsac"
+OBS_REVISADO = "INFORME REVISADO POR ESPECIALISTA"
+
+
+def etapa_de_informe(estado, observacion, valorizacion):
+    """Etapa de control del informe: elaboración, revisión del especialista, valorización."""
+    if estado != FINALIZADO:
+        return estado
+    if texto_normalizado(valorizacion) == "SI":
+        return ETAPA_VALORIZADO
+    if es_revisado_especialista(observacion):
+        return ETAPA_REVISADO
+    if es_pendiente_especialista(observacion):
+        return ETAPA_PEND_ESP
+    if es_revision_fiabilidad(observacion):
+        return ETAPA_FIABILIDAD
+    return ETAPA_SIN_ENVIAR
+
+
+def aplicar_accion(df, clave, accion, especialista=""):
+    """Actualiza las filas activas de un informe y devuelve la matriz nueva.
+
+    accion: "enviar_revision" | "revisado" | "valorizar" | "quitar_valorizacion".
+    """
+    df = normalizar_planes(df)
+    mascara = df.apply(
+        lambda f: not es_retirada(f) and clave_informe(f) == clave, axis=1
+    )
+    sufijo = f" (Especialista: {especialista})" if especialista else ""
+    if accion == "enviar_revision":
+        df.loc[mascara, "OBSERVACIÓN"] = OBS_PEND_ESP + sufijo
+        df.loc[mascara, "VALORIZACIÓN"] = "Pendiente"
+    elif accion == "revisado":
+        df.loc[mascara, "OBSERVACIÓN"] = OBS_REVISADO + sufijo
+    elif accion == "valorizar":
+        df.loc[mascara, "VALORIZACIÓN"] = "SI"
+        df.loc[mascara, "OBSERVACIÓN"] = ""
+    elif accion == "quitar_valorizacion":
+        # Solo se valoriza un informe ya revisado: vuelve a ese estado.
+        df.loc[mascara, "VALORIZACIÓN"] = "Pendiente"
+        df.loc[mascara, "OBSERVACIÓN"] = OBS_REVISADO
+    else:
+        raise ValueError(accion)
+    return df
+
+
 def procesar_planes(df_planes):
     """Devuelve activos, retiradas, informes (una fila por informe) y KPIs."""
     df = normalizar_planes(df_planes)
@@ -176,11 +227,13 @@ def procesar_planes(df_planes):
             "OBSERVACIÓN": _primero_no_vacio(g["OBSERVACIÓN"]),
             "VALORIZACIÓN": _valorizacion(g["VALORIZACIÓN"]),
         })
+    for f in filas:
+        f["ETAPA"] = etapa_de_informe(f["ESTADO"], f["OBSERVACIÓN"], f["VALORIZACIÓN"])
     informes = pd.DataFrame(
         filas,
         columns=["CLAVE", "PLAN", "MES", "UNIDAD", "CODIGO DE INFORME",
                  "GRUPO DE TUBERÍAS", "PUNTOS", "ESTADO", "RESPONSABLE",
-                 "OBSERVACIÓN", "VALORIZACIÓN"],
+                 "OBSERVACIÓN", "VALORIZACIÓN", "ETAPA"],
     )
     if not informes.empty:
         informes["_m"] = informes["MES"].map(
@@ -204,22 +257,24 @@ def procesar_planes(df_planes):
 
 
 def _kpis_de(informes, retiradas):
-    valorizado = informes["VALORIZACIÓN"].map(lambda v: texto_normalizado(v) == "SI")
-    # Como en la matriz general, la revisión solo cuenta informes sin valorizar.
-    sin_valorizar = informes[~valorizado]
-
     def n(df):
         return int(len(df))
 
     def pts(df):
         return int(df["PUNTOS"].sum())
 
+    def etapa(*nombres):
+        return informes[informes["ETAPA"].isin(nombres)]
+
     fin = informes[informes["ESTADO"] == FINALIZADO]
     p_ins = informes[informes["ESTADO"] == PEND_INSPECCION]
     p_ela = informes[informes["ESTADO"] == PEND_ELABORACION]
-    fiab = sin_valorizar[sin_valorizar["OBSERVACIÓN"].map(es_revision_fiabilidad)]
-    esp_pend = sin_valorizar[sin_valorizar["OBSERVACIÓN"].map(es_pendiente_especialista)]
-    esp_rev = sin_valorizar[sin_valorizar["OBSERVACIÓN"].map(es_revisado_especialista)]
+    val = etapa(ETAPA_VALORIZADO)
+    sin_val = fin[fin["ETAPA"] != ETAPA_VALORIZADO]
+    sin_enviar = etapa(ETAPA_SIN_ENVIAR)
+    pend_esp = etapa(ETAPA_PEND_ESP)
+    revisados = etapa(ETAPA_REVISADO)
+    fiab = etapa(ETAPA_FIABILIDAD)
     total = n(informes)
     return {
         "informes": total,
@@ -233,14 +288,21 @@ def _kpis_de(informes, retiradas):
         "pend_elaboracion": n(p_ela),
         "puntos_pend_elaboracion": pts(p_ela),
         "retirados": int(len(retiradas)),
-        "valorizados": n(informes[valorizado]),
-        "puntos_valorizados": pts(informes[valorizado]),
+        "valorizados": n(val),
+        "puntos_valorizados": pts(val),
+        "pend_valorizar": n(sin_val),
+        "puntos_pend_valorizar": pts(sin_val),
+        "sin_enviar": n(sin_enviar),
+        "puntos_sin_enviar": pts(sin_enviar),
+        "por_revisar": n(pend_esp),
+        "puntos_por_revisar": pts(pend_esp),
+        # Los valorizados ya pasaron por la revisión del especialista.
+        "revisados": n(revisados),
+        "puntos_revisados": pts(revisados),
         "en_revision": n(fiab),
         "puntos_en_revision": pts(fiab),
-        "por_revisar": n(esp_pend),
-        "puntos_por_revisar": pts(esp_pend),
-        "revisados": n(esp_rev),
         "avance": (n(fin) / total * 100) if total else 0.0,
+        "avance_valorizacion": (n(val) / total * 100) if total else 0.0,
     }
 
 
@@ -273,6 +335,8 @@ def resumen_por_plan(kpis):
             "PEND. INSPECCIÓN": k["pend_inspeccion"],
             "PEND. ELABORACIÓN": k["pend_elaboracion"],
             "RETIRADOS": k["retirados"],
+            "REVISADOS": k["revisados"],
+            "VALORIZADOS": k["valorizados"],
             "% AVANCE": f"{k['avance']:.1f}%",
         })
     t = kpis["TOTAL"]
@@ -284,6 +348,8 @@ def resumen_por_plan(kpis):
         "PEND. INSPECCIÓN": t["pend_inspeccion"],
         "PEND. ELABORACIÓN": t["pend_elaboracion"],
         "RETIRADOS": t["retirados"],
+        "REVISADOS": t["revisados"],
+        "VALORIZADOS": t["valorizados"],
         "% AVANCE": f"{t['avance']:.1f}%",
     })
     tabla = pd.DataFrame(filas)
