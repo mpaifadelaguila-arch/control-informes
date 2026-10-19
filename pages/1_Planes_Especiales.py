@@ -45,8 +45,13 @@ def cargar_planes():
 
 def guardar_planes(df):
     planes.guardar_json(df, DB_PLANES)
-    drive.subir(NOMBRE_DRIVE, DB_PLANES)
+    ok = drive.subir(NOMBRE_DRIVE, DB_PLANES)
     st.cache_data.clear()
+    if not ok:
+        # Se avisa en la siguiente carga (la página se reinicia tras guardar).
+        st.session_state["aviso_drive"] = st.session_state.get(
+            "error_drive", "No se pudo escribir en Google Drive."
+        )
 
 
 def fecha_actualizacion():
@@ -149,6 +154,15 @@ def bloque_de_plan(titulo, icono, color, k):
 if "df_planes" not in st.session_state:
     st.session_state.df_planes = cargar_planes()
 df = planes.normalizar_planes(st.session_state.df_planes)
+
+if "aviso_drive" in st.session_state:
+    st.error(
+        "Los cambios NO se guardaron en Google Drive y se perderán al reiniciar la"
+        f" app. Detalle: {st.session_state.pop('aviso_drive')}. Si el archivo"
+        " database_planes.json no existe en la carpeta de Drive, súbelo ahí"
+        " manualmente (el sistema solo puede actualizar archivos ya creados).",
+        icon=":material/error:",
+    )
 
 cabecera = st.empty()
 cabecera.markdown(html_cabecera(), unsafe_allow_html=True)
