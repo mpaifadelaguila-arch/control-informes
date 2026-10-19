@@ -337,6 +337,93 @@ def filtrar(sub_informes, sub_retiradas, buscar, planes_sel, meses_sel, unidades
     return inf, ret
 
 
+ESTADOS = ["Finalizado", "En proceso", "Pendiente inspección",
+           "Pendiente elaboración", "Retirado"]
+
+
+def senal(fila):
+    if planes.es_retirada(fila):
+        return "🔴 Retirado"
+    if planes.texto_normalizado(fila["VALORIZACIÓN"]) == "SI":
+        return "🟢 Valorizado (SI)"
+    estado = planes.texto_normalizado(fila[planes.COL_ESTADO])
+    if "PENDIENTE INSPECCION" in estado:
+        return "🟡 Pend. inspección"
+    if "PENDIENTE ELABORACION" in estado:
+        return "🟠 Pend. elaboración"
+    if planes.es_pendiente_especialista(fila["OBSERVACIÓN"]):
+        return "🔵 Pend. especialista"
+    return "⚪ Sin alerta"
+
+
+def vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel):
+    """Matriz editable como en el panel principal: se llena y se guarda en Drive."""
+    vista = df
+    if planes_sel:
+        vista = vista[vista["ALCANCE DEL SERVICIO"].isin(planes_sel)]
+    if meses_sel:
+        vista = vista[vista["MES"].isin(meses_sel)]
+    if unidades_sel:
+        vista = vista[vista["UNIDAD"].isin(unidades_sel)]
+    if buscar.strip():
+        vista = vista[vista.apply(
+            lambda f: contiene(" ".join(f.astype(str)), buscar), axis=1)]
+    st.caption(
+        "Llena estado, responsable, observación y valorización directamente en la"
+        " tabla y pulsa «Guardar cambios». Respeta los filtros de arriba."
+    )
+    vista = vista.copy()
+    vista["VALORIZACIÓN"] = vista["VALORIZACIÓN"].map(
+        lambda v: "SI" if planes.texto_normalizado(v) == "SI"
+        else ("Retirado" if planes.texto_normalizado(v) == "RETIRADO" else "Pendiente")
+    )
+    vista.insert(0, "SEÑAL", vista.apply(senal, axis=1))
+    config = {
+        "SEÑAL": st.column_config.TextColumn("Señal", width=170, disabled=True, pinned=True),
+        "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
+        "IT2": st.column_config.TextColumn("IT2", width=55),
+        "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
+        "MES": st.column_config.TextColumn("Mes", width=90),
+        "LINEAS": st.column_config.TextColumn("Líneas", width=190),
+        "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=210),
+        "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=220),
+        "SAP": st.column_config.TextColumn("SAP", width=85),
+        "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Plan", width=170),
+        "NOTAS": st.column_config.TextColumn("Notas", width=200),
+        planes.COL_ESTADO: st.column_config.SelectboxColumn(
+            "Estado de elaboración",
+            options=ESTADOS + sorted(set(df[planes.COL_ESTADO]) - set(ESTADOS) - {""}),
+            width=190),
+        "RESPONSABLE": st.column_config.TextColumn("Responsable", width=135),
+        "OBSERVACIÓN": st.column_config.TextColumn("Observación", width=280),
+        "VALORIZACIÓN": st.column_config.SelectboxColumn(
+            "Valorización", options=["Pendiente", "SI", "Retirado"],
+            required=True, width=145),
+    }
+    editado = st.data_editor(
+        vista, column_config=config, hide_index=True, width="stretch",
+        height=600, disabled=["SEÑAL"], key="editor_planes",
+    )
+    if st.button("Guardar cambios", key="guardar_matriz_planes",
+                 icon=":material/save:", type="primary"):
+        cambios = editado.drop(columns=["SEÑAL"], errors="ignore").fillna("")
+        cambios = cambios.replace(["None", "none", "NONE"], "")
+        # SI = valorizado: se limpia la observación, como en el panel principal.
+        cambios.loc[cambios["VALORIZACIÓN"].map(
+            lambda v: planes.texto_normalizado(v) == "SI"), "OBSERVACIÓN"] = ""
+        # Retirado: el resto de columnas de control quedan como retiradas.
+        ret = cambios[planes.COL_ESTADO].map(
+            lambda v: planes.texto_normalizado(v) == "RETIRADO")
+        for col in ("RESPONSABLE", "OBSERVACIÓN", "VALORIZACIÓN"):
+            cambios.loc[ret, col] = "Retirado"
+        nuevo = planes.normalizar_planes(st.session_state.df_planes)
+        nuevo.update(cambios)
+        st.session_state.df_planes = nuevo
+        guardar_planes(nuevo)
+        st.toast("¡Cambios guardados con éxito!", icon="💾")
+        st.rerun()
+
+
 sistema = st.container(key="sistema_control")
 with sistema:
     c_buscar, c_plan, c_mes, c_unidad = st.columns([2.2, 1.6, 1.2, 1.2])
@@ -367,23 +454,25 @@ with sistema:
         )
 
     tabs = st.tabs([
-        "Tabla general", "Pend. inspección", "Pend. elaboración",
+        "Tabla general", "Matriz (llenar)", "Pend. inspección", "Pend. elaboración",
         "Revisión especialista", "Valorización", "Finalizados", "Retirados",
         "Resumen",
     ])
     with tabs[0]:
         mostrar_informes(informes, "Planes_Especiales_General.xlsx")
     with tabs[1]:
+        vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel)
+    with tabs[2]:
         mostrar_informes(
             informes[informes["ESTADO"] == planes.PEND_INSPECCION],
             "Planes_Pend_Inspeccion.xlsx",
         )
-    with tabs[2]:
+    with tabs[3]:
         mostrar_informes(
             informes[informes["ESTADO"] == planes.PEND_ELABORACION],
             "Planes_Pend_Elaboracion.xlsx",
         )
-    with tabs[3]:
+    with tabs[4]:
         vista = st.radio(
             "Vista",
             ["Por enviar", "Pendientes de revisión", "Revisados por el especialista"],
@@ -404,7 +493,7 @@ with sistema:
         else:
             sub = informes[informes["ETAPA"] == planes.ETAPA_REVISADO]
             mostrar_informes(sub, "Planes_Revisados_Especialista.xlsx")
-    with tabs[4]:
+    with tabs[5]:
         vista = st.radio(
             "Vista", ["Pendientes de valorizar", "Valorizados"],
             horizontal=True, key="radio_val",
@@ -425,12 +514,12 @@ with sistema:
                          "Valorización quitada", tipo="secondary",
                          icono=":material/undo:")
             mostrar_informes(sub, "Planes_Valorizados.xlsx")
-    with tabs[5]:
+    with tabs[6]:
         mostrar_informes(
             informes[informes["ESTADO"] == planes.FINALIZADO],
             "Planes_Finalizados.xlsx",
         )
-    with tabs[6]:
+    with tabs[7]:
         if retiradas.empty:
             st.info("No hay puntos retirados.", icon=":material/info:")
         else:
@@ -438,7 +527,7 @@ with sistema:
                                "CODIGO DE INFORME", "SAP", "NOTAS"]].copy()
             vista.index = range(1, len(vista) + 1)
             tabla_html(vista)
-    with tabs[7]:
+    with tabs[8]:
         st.markdown("**Resumen por plan**")
         tabla_html(planes.resumen_por_plan(kpis))
         st.markdown("**Informes por mes**")
