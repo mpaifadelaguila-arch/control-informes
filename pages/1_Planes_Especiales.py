@@ -101,11 +101,11 @@ def estilo_tono(color):
     )
 
 
-def item_kpi(titulo, valor, color, alerta=False, puntos=None, unidad="informe"):
+def item_kpi(titulo, valor, color, alerta=False, puntos=None, unidad="informe"):  # «puntos» = filas de la matriz (líneas)
     clase = "kpi-item alerta" if alerta and valor else "kpi-item"
     detalle = "del total" if isinstance(valor, str) else unidad + ("" if valor == 1 else "s")
     if puntos is not None:
-        detalle += f" · {puntos} punto{'' if puntos == 1 else 's'}"
+        detalle += f" · {puntos} línea{'' if puntos == 1 else 's'}"
     return (
         f"<div class='{clase}' style='{estilo_tono(color)}'>"
         f"<div class='kpi-item-label'><span class='kpi-dot'></span>{titulo}</div>"
@@ -133,7 +133,7 @@ def bloque_de_plan(titulo, icono, color, k):
          k["puntos_pend_inspeccion"]),
         ("Pend. elaboración", k["pend_elaboracion"], "rojo", True,
          k["puntos_pend_elaboracion"]),
-        ("Retirados", k["retirados"], "violeta", False, None, "punto"),
+        ("Retirados", k["retirados"], "violeta", False, None, "línea"),
     ])
 
 
@@ -205,7 +205,7 @@ bloques = [
          t["puntos_finalizados"]),
         ("Pendientes de elaborar", t["pend_elaborar"], "naranja", True,
          t["puntos_pend_elaborar"]),
-        ("Retirados", t["retirados"], "violeta", False, None, "punto"),
+        ("Retirados", t["retirados"], "violeta", False, None, "línea"),
     ]),
     bloque_de_plan("Puntos de inyección", "campo", "turquesa",
                    kpis["PUNTOS DE INYECCIÓN"]),
@@ -233,7 +233,7 @@ panel.markdown(
 
 # ------------------------------------------------------------------ Tablas
 COLS_TABLA = ["PLAN", "MES", "UNIDAD", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS",
-              "PUNTOS", "ESTADO", "ETAPA", "RESPONSABLE", "OBSERVACIÓN", "VALORIZACIÓN"]
+              "N° LÍNEAS", "ESTADO", "ETAPA", "RESPONSABLE", "OBSERVACIÓN", "VALORIZACIÓN"]
 
 
 def detalle_de(clave):
