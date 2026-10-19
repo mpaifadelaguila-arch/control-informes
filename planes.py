@@ -162,52 +162,55 @@ def es_revisado_especialista(observacion):
     ) and "PENDIENTE" not in o
 
 
-ETAPA_SIN_ENVIAR = "Por enviar a revisión"
 ETAPA_PEND_ESP = "Pend. revisión especialista"
 ETAPA_REVISADO = "Revisado por especialista"
-ETAPA_FIABILIDAD = "En revisión fiabilidad"
+ETAPA_CLIENTE = "En revisión del cliente"
 ETAPA_VALORIZADO = "Valorizado"
 OBS_PEND_ESP = "Pendiente revisión por el especialista - Ademinsac"
 OBS_REVISADO = "INFORME REVISADO POR ESPECIALISTA"
+OBS_CLIENTE = "Revisión de fiabilidad (cliente) - Ademinsac"
 
 
 def etapa_de_informe(estado, observacion, valorizacion):
-    """Etapa de control del informe: elaboración, revisión del especialista, valorización."""
+    """Etapa de control: gabinete → especialista → cliente → valorizado.
+
+    Todo informe finalizado entra a la revisión del especialista, igual que en
+    el panel principal; de ahí pasa a la revisión del cliente y se valoriza.
+    """
     if estado != FINALIZADO:
         return estado
     if texto_normalizado(valorizacion) == "SI":
         return ETAPA_VALORIZADO
+    if es_revision_fiabilidad(observacion):
+        return ETAPA_CLIENTE
     if es_revisado_especialista(observacion):
         return ETAPA_REVISADO
-    if es_pendiente_especialista(observacion):
-        return ETAPA_PEND_ESP
-    if es_revision_fiabilidad(observacion):
-        return ETAPA_FIABILIDAD
-    return ETAPA_SIN_ENVIAR
+    return ETAPA_PEND_ESP
 
 
 def aplicar_accion(df, clave, accion, especialista=""):
     """Actualiza las filas activas de un informe y devuelve la matriz nueva.
 
-    accion: "enviar_revision" | "revisado" | "valorizar" | "quitar_valorizacion".
+    accion: "revisado" | "enviar_cliente" | "valorizar" | "quitar_valorizacion".
     """
     df = normalizar_planes(df)
     mascara = df.apply(
         lambda f: not es_retirada(f) and clave_informe(f) == clave, axis=1
     )
     sufijo = f" (Especialista: {especialista})" if especialista else ""
-    if accion == "enviar_revision":
-        df.loc[mascara, "OBSERVACIÓN"] = OBS_PEND_ESP + sufijo
-        df.loc[mascara, "VALORIZACIÓN"] = "Pendiente"
-    elif accion == "revisado":
+    if accion == "revisado":
         df.loc[mascara, "OBSERVACIÓN"] = OBS_REVISADO + sufijo
+        df.loc[mascara, "VALORIZACIÓN"] = "Pendiente"
+    elif accion == "enviar_cliente":
+        df.loc[mascara, "OBSERVACIÓN"] = OBS_CLIENTE
+        df.loc[mascara, "VALORIZACIÓN"] = "Pendiente"
     elif accion == "valorizar":
         df.loc[mascara, "VALORIZACIÓN"] = "SI"
         df.loc[mascara, "OBSERVACIÓN"] = ""
     elif accion == "quitar_valorizacion":
-        # Solo se valoriza un informe ya revisado: vuelve a ese estado.
+        # Vuelve a la revisión del cliente.
         df.loc[mascara, "VALORIZACIÓN"] = "Pendiente"
-        df.loc[mascara, "OBSERVACIÓN"] = OBS_REVISADO
+        df.loc[mascara, "OBSERVACIÓN"] = OBS_CLIENTE
     else:
         raise ValueError(accion)
     return df
@@ -281,10 +284,9 @@ def _kpis_de(informes, retiradas):
     en_proc = informes[informes["ESTADO"] == OTRO]
     val = etapa(ETAPA_VALORIZADO)
     sin_val = fin[fin["ETAPA"] != ETAPA_VALORIZADO]
-    sin_enviar = etapa(ETAPA_SIN_ENVIAR)
     pend_esp = etapa(ETAPA_PEND_ESP)
     revisados = etapa(ETAPA_REVISADO)
-    fiab = etapa(ETAPA_FIABILIDAD)
+    fiab = etapa(ETAPA_CLIENTE)
     total = n(informes)
     return {
         "informes": total,
@@ -304,8 +306,6 @@ def _kpis_de(informes, retiradas):
         "puntos_valorizados": pts(val),
         "pend_valorizar": n(sin_val),
         "puntos_pend_valorizar": pts(sin_val),
-        "sin_enviar": n(sin_enviar),
-        "puntos_sin_enviar": pts(sin_enviar),
         "por_revisar": n(pend_esp),
         "puntos_por_revisar": pts(pend_esp),
         # Los valorizados ya pasaron por la revisión del especialista.

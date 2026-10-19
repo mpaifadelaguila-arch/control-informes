@@ -225,32 +225,38 @@ bloques = [
         ("Informes totales", t["informes"], "azul", False, t["puntos"]),
         ("Informes finalizados", t["finalizados"], "verde", False,
          t["puntos_finalizados"]),
-        ("En proceso de elaboración", t["en_proceso"], "indigo", False,
-         t["puntos_en_proceso"]),
         ("Retirados", t["retirados"], "violeta", False, None, "línea"),
     ]),
+    bloque_kpi("Campo", "campo", "naranja", [
+        ("Pend. inspección", t["pend_inspeccion"], "naranja", True,
+         t["puntos_pend_inspeccion"]),
+    ]),
+    bloque_kpi("Gabinete", "carpeta", "violeta", [
+        ("Por elaborar", t["pend_elaboracion"], "rojo", True,
+         t["puntos_pend_elaboracion"]),
+        ("En elaboración", t["en_proceso"], "indigo", False,
+         t["puntos_en_proceso"]),
+    ]),
+    bloque_kpi("Especialista", "especialista", "turquesa", [
+        ("Revisados", t["revisados"], "verde", False, t["puntos_revisados"]),
+        ("Por revisar", t["por_revisar"], "naranja", True, t["puntos_por_revisar"]),
+    ]),
+    bloque_kpi("Cliente", "cliente", "verde", [
+        ("Valorizados", t["valorizados"], "verde", False, t["puntos_valorizados"]),
+        ("En revisión", t["en_revision"], "dorado", True, t["puntos_en_revision"]),
+    ]),
+]
+bloques_plan = [
     bloque_de_plan("Puntos de inyección", "campo", "turquesa",
                    kpis["PUNTOS DE INYECCIÓN"]),
     bloque_de_plan("Dead legs", "carpeta", "indigo", kpis["DEAD LEG"]),
     bloque_de_plan("Sulfidación", "cliente", "rosa", kpis["SULFIDACIÓN"]),
-    bloque_kpi("Especialista", "especialista", "turquesa", [
-        ("Por enviar a revisión", t["sin_enviar"], "naranja", True,
-         t["puntos_sin_enviar"]),
-        ("Pend. revisión especialista", t["por_revisar"], "naranja", True,
-         t["puntos_por_revisar"]),
-        ("Revisados", t["revisados"], "verde", False, t["puntos_revisados"]),
-        ("En revisión de fiabilidad", t["en_revision"], "dorado", True,
-         t["puntos_en_revision"]),
-    ]),
-    bloque_kpi("Valorización", "carpeta", "dorado", [
-        ("Valorizados", t["valorizados"], "verde", False, t["puntos_valorizados"]),
-        ("Pend. valorizar", t["pend_valorizar"], "naranja", True,
-         t["puntos_pend_valorizar"]),
-        ("% valorizado", f"{t['avance_valorizacion']:.1f}%", "dorado", False),
-    ]),
 ]
 panel.markdown(
-    f"<div class='kpi-row'>{''.join(bloques)}</div>", unsafe_allow_html=True
+    f"<div class='kpi-row'>{''.join(bloques)}</div>"
+    "<div class='section-title' style='margin-top:18px'>Por alcance del servicio</div>"
+    f"<div class='kpi-row'>{''.join(bloques_plan)}</div>",
+    unsafe_allow_html=True,
 )
 
 # ------------------------------------------------------------------ Tablas
@@ -310,13 +316,14 @@ def mostrar_informes(sub, archivo):
     if sub.empty:
         st.info("No hay informes en esta vista.", icon=":material/info:")
         return
-    vista = sub[COLS_TABLA].copy().rename(
-        columns={planes.COL_GRUPO: planes.ENCABEZADO_GRUPO})
+    vista = sub[COLS_TABLA].copy().rename(columns={
+        planes.COL_GRUPO: planes.ENCABEZADO_GRUPO, "PLAN": "ALCANCE DEL SERVICIO"})
     vista.index = range(1, len(vista) + 1)
     tabla_html(vista, detalles=[detalle_de(c) for c in sub["CLAVE"]])
     st.download_button(
         "Descargar Excel",
-        data=planes.excel_con_formato(sub[COLS_TABLA]),
+        data=planes.excel_con_formato(
+            sub[COLS_TABLA].rename(columns={"PLAN": "ALCANCE DEL SERVICIO"})),
         file_name=archivo,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         icon=":material/download:",
@@ -412,7 +419,8 @@ def vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel):
         "LINEAS": st.column_config.TextColumn("Líneas", width=190),
         "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=210),
         "SAP": st.column_config.TextColumn("SAP", width=85),
-        "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Plan", width=170),
+        "ALCANCE DEL SERVICIO": st.column_config.TextColumn(
+            "Alcance del servicio", width=190),
         "NOTAS": st.column_config.TextColumn("Notas", width=200),
         planes.COL_ESTADO: st.column_config.SelectboxColumn(
             "Estado de elaboración",
@@ -456,8 +464,8 @@ with sistema:
         icon=":material/search:",
     )
     planes_sel = c_plan.multiselect(
-        "Plan", sorted(set(informes["PLAN"]) | set(retiradas["ALCANCE DEL SERVICIO"])),
-        placeholder="Todos los planes",
+        "Alcance del servicio", sorted(set(informes["PLAN"]) | set(retiradas["ALCANCE DEL SERVICIO"])),
+        placeholder="Todos",
     )
     meses_disp = [m for m in planes.ORDEN_MESES if m in set(informes["MES"]) | set(retiradas["MES"])]
     meses_sel = c_mes.multiselect("Mes", meses_disp, placeholder="Todos")
@@ -501,17 +509,10 @@ with sistema:
         )
     with tabs[4]:
         vista = st.radio(
-            "Vista",
-            ["Por enviar", "Pendientes de revisión", "Revisados por el especialista"],
+            "Vista", ["Pendientes de revisión", "Revisados por el especialista"],
             horizontal=True, key="radio_esp",
         )
-        if vista == "Por enviar":
-            sub = informes[informes["ETAPA"].isin(
-                [planes.ETAPA_SIN_ENVIAR, planes.ETAPA_FIABILIDAD])]
-            barra_accion(sub, "enviar", "Enviar a revisión", "enviar_revision",
-                         "Enviados a revisión", con_especialista=True)
-            mostrar_informes(sub, "Planes_Por_Enviar_Revision.xlsx")
-        elif vista == "Pendientes de revisión":
+        if vista == "Pendientes de revisión":
             sub = informes[informes["ETAPA"] == planes.ETAPA_PEND_ESP]
             barra_accion(sub, "revisar", "Marcar revisado", "revisado",
                          "Marcados como revisados", con_especialista=True,
@@ -519,22 +520,19 @@ with sistema:
             mostrar_informes(sub, "Planes_Pend_Revision_Especialista.xlsx")
         else:
             sub = informes[informes["ETAPA"] == planes.ETAPA_REVISADO]
+            barra_accion(sub, "cliente", "Enviar a revisión del cliente",
+                         "enviar_cliente", "Enviados a revisión del cliente")
             mostrar_informes(sub, "Planes_Revisados_Especialista.xlsx")
     with tabs[5]:
         vista = st.radio(
-            "Vista", ["Pendientes de valorizar", "Valorizados"],
+            "Vista", ["En revisión del cliente", "Valorizados"],
             horizontal=True, key="radio_val",
         )
-        if vista == "Pendientes de valorizar":
-            sub = informes[(informes["ESTADO"] == planes.FINALIZADO)
-                           & (informes["ETAPA"] != planes.ETAPA_VALORIZADO)]
-            st.caption(
-                "Lo habitual es valorizar informes ya revisados por el especialista"
-                " (etapa «Revisado por especialista»)."
-            )
+        if vista == "En revisión del cliente":
+            sub = informes[informes["ETAPA"] == planes.ETAPA_CLIENTE]
             barra_accion(sub, "valorizar", "Valorizar", "valorizar",
                          "Valorizados", icono=":material/paid:")
-            mostrar_informes(sub, "Planes_Pend_Valorizar.xlsx")
+            mostrar_informes(sub, "Planes_En_Revision_Cliente.xlsx")
         else:
             sub = informes[informes["ETAPA"] == planes.ETAPA_VALORIZADO]
             barra_accion(sub, "desval", "Quitar valorización", "quitar_valorizacion",
@@ -556,7 +554,8 @@ with sistema:
             tabla_html(vista)
     with tabs[8]:
         st.markdown("**Resumen por plan**")
-        tabla_html(planes.resumen_por_plan(kpis))
+        tabla_html(planes.resumen_por_plan(kpis).rename(
+            columns={"PLAN": "ALCANCE DEL SERVICIO"}))
         st.markdown("**Informes por mes**")
         tabla_html(planes.resumen_por_mes(informes_total))
         st.caption("El resumen no se ve afectado por los filtros.")
