@@ -259,8 +259,71 @@ def mostrar_informes(sub, archivo):
     )
 
 
+def contiene(texto, consulta):
+    return planes.texto_normalizado(consulta) in planes.texto_normalizado(texto)
+
+
+# Texto de búsqueda de cada informe: sus datos y los de sus puntos/líneas.
+_blob_lineas = (
+    activos.assign(_t=activos[["LINEAS", "SAP", "NOTAS"]].agg(" ".join, axis=1))
+    .groupby("CLAVE")["_t"].agg(" ".join)
+)
+
+
+def filtrar(sub_informes, sub_retiradas, buscar, planes_sel, meses_sel, unidades_sel):
+    inf = sub_informes
+    ret = sub_retiradas
+    if planes_sel:
+        inf = inf[inf["PLAN"].isin(planes_sel)]
+        ret = ret[ret["ALCANCE DEL SERVICIO"].isin(planes_sel)]
+    if meses_sel:
+        inf = inf[inf["MES"].isin(meses_sel)]
+        ret = ret[ret["MES"].isin(meses_sel)]
+    if unidades_sel:
+        inf = inf[inf["UNIDAD"].map(
+            lambda u: any(x.strip() in unidades_sel for x in u.split(","))
+        )]
+        ret = ret[ret["UNIDAD"].isin(unidades_sel)]
+    if buscar.strip():
+        inf = inf[inf.apply(
+            lambda f: contiene(
+                " ".join([f["CODIGO DE INFORME"], f["GRUPO DE TUBERÍAS"], f["UNIDAD"],
+                          f["MES"], f["PLAN"], f["ESTADO"], f["RESPONSABLE"],
+                          f["OBSERVACIÓN"], _blob_lineas.get(f["CLAVE"], "")]),
+                buscar), axis=1)]
+        ret = ret[ret.apply(lambda f: contiene(" ".join(f.astype(str)), buscar), axis=1)]
+    return inf, ret
+
+
 sistema = st.container(key="sistema_control")
 with sistema:
+    c_buscar, c_plan, c_mes, c_unidad = st.columns([2.2, 1.6, 1.2, 1.2])
+    buscar = c_buscar.text_input(
+        "Buscar", placeholder="Código de informe, línea, SAP, grupo, nota…",
+        icon=":material/search:",
+    )
+    planes_sel = c_plan.multiselect(
+        "Plan", sorted(set(informes["PLAN"]) | set(retiradas["ALCANCE DEL SERVICIO"])),
+        placeholder="Todos los planes",
+    )
+    meses_disp = [m for m in planes.ORDEN_MESES if m in set(informes["MES"]) | set(retiradas["MES"])]
+    meses_sel = c_mes.multiselect("Mes", meses_disp, placeholder="Todos")
+    unidades_disp = sorted(
+        {x.strip() for u in informes["UNIDAD"] for x in u.split(",") if x.strip()}
+        | {u for u in retiradas["UNIDAD"] if u}
+    )
+    unidades_sel = c_unidad.multiselect("Unidad", unidades_disp, placeholder="Todas")
+
+    informes_total = informes
+    informes, retiradas = filtrar(
+        informes, retiradas, buscar, planes_sel, meses_sel, unidades_sel
+    )
+    if buscar.strip() or planes_sel or meses_sel or unidades_sel:
+        st.caption(
+            f"{len(informes)} de {len(informes_total)} informes · "
+            f"{len(retiradas)} puntos retirados con el filtro aplicado"
+        )
+
     tabs = st.tabs([
         "Tabla general", "Pend. inspección", "Pend. elaboración",
         "Finalizados", "Retirados", "Resumen",
@@ -294,4 +357,5 @@ with sistema:
         st.markdown("**Resumen por plan**")
         tabla_html(planes.resumen_por_plan(kpis))
         st.markdown("**Informes por mes**")
-        tabla_html(planes.resumen_por_mes(informes))
+        tabla_html(planes.resumen_por_mes(informes_total))
+        st.caption("El resumen no se ve afectado por los filtros.")
