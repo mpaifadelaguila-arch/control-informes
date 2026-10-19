@@ -131,8 +131,10 @@ def bloque_de_plan(titulo, icono, color, k):
         ("Finalizados", k["finalizados"], "verde", False, k["puntos_finalizados"]),
         ("Pend. inspección", k["pend_inspeccion"], "naranja", True,
          k["puntos_pend_inspeccion"]),
-        ("Pend. elaboración", k["pend_elaboracion"], "rojo", True,
+        ("Listos para elaborar", k["pend_elaboracion"], "rojo", True,
          k["puntos_pend_elaboracion"]),
+        ("En proceso de elaboración", k["en_proceso"], "indigo", False,
+         k["puntos_en_proceso"]),
         ("Retirados", k["retirados"], "violeta", False, None, "línea"),
     ])
 
@@ -203,8 +205,12 @@ bloques = [
         ("Informes totales", t["informes"], "azul", False, t["puntos"]),
         ("Informes finalizados", t["finalizados"], "verde", False,
          t["puntos_finalizados"]),
-        ("Pendientes de elaborar", t["pend_elaborar"], "naranja", True,
-         t["puntos_pend_elaborar"]),
+        ("Pend. inspección", t["pend_inspeccion"], "naranja", True,
+         t["puntos_pend_inspeccion"]),
+        ("Listos para elaborar", t["pend_elaboracion"], "rojo", True,
+         t["puntos_pend_elaboracion"]),
+        ("En proceso de elaboración", t["en_proceso"], "indigo", False,
+         t["puntos_en_proceso"]),
         ("Retirados", t["retirados"], "violeta", False, None, "línea"),
     ]),
     bloque_de_plan("Puntos de inyección", "campo", "turquesa",
@@ -455,7 +461,8 @@ with sistema:
         )
 
     tabs = st.tabs([
-        "Matriz (llenar)", "Pend. inspección", "Pend. elaboración",
+        "Matriz (llenar)", "Pend. inspección", "Listos para elaborar",
+        "En proceso",
         "Revisión especialista", "Valorización", "Finalizados", "Retirados",
         "Resumen",
     ])
@@ -472,6 +479,10 @@ with sistema:
             "Planes_Pend_Elaboracion.xlsx",
         )
     with tabs[3]:
+        mostrar_informes(
+            informes[informes["ESTADO"] == planes.OTRO], "Planes_En_Proceso.xlsx"
+        )
+    with tabs[4]:
         vista = st.radio(
             "Vista",
             ["Por enviar", "Pendientes de revisión", "Revisados por el especialista"],
@@ -492,7 +503,7 @@ with sistema:
         else:
             sub = informes[informes["ETAPA"] == planes.ETAPA_REVISADO]
             mostrar_informes(sub, "Planes_Revisados_Especialista.xlsx")
-    with tabs[4]:
+    with tabs[5]:
         vista = st.radio(
             "Vista", ["Pendientes de valorizar", "Valorizados"],
             horizontal=True, key="radio_val",
@@ -513,12 +524,12 @@ with sistema:
                          "Valorización quitada", tipo="secondary",
                          icono=":material/undo:")
             mostrar_informes(sub, "Planes_Valorizados.xlsx")
-    with tabs[5]:
+    with tabs[6]:
         mostrar_informes(
             informes[informes["ESTADO"] == planes.FINALIZADO],
             "Planes_Finalizados.xlsx",
         )
-    with tabs[6]:
+    with tabs[7]:
         if retiradas.empty:
             st.info("No hay puntos retirados.", icon=":material/info:")
         else:
@@ -526,7 +537,7 @@ with sistema:
                                "CODIGO DE INFORME", "SAP", "NOTAS"]].copy()
             vista.index = range(1, len(vista) + 1)
             tabla_html(vista)
-    with tabs[7]:
+    with tabs[8]:
         st.markdown("**Resumen por plan**")
         tabla_html(planes.resumen_por_plan(kpis))
         st.markdown("**Informes por mes**")

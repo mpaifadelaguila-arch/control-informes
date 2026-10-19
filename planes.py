@@ -274,6 +274,7 @@ def _kpis_de(informes, retiradas):
     fin = informes[informes["ESTADO"] == FINALIZADO]
     p_ins = informes[informes["ESTADO"] == PEND_INSPECCION]
     p_ela = informes[informes["ESTADO"] == PEND_ELABORACION]
+    en_proc = informes[informes["ESTADO"] == OTRO]
     val = etapa(ETAPA_VALORIZADO)
     sin_val = fin[fin["ETAPA"] != ETAPA_VALORIZADO]
     sin_enviar = etapa(ETAPA_SIN_ENVIAR)
@@ -292,6 +293,8 @@ def _kpis_de(informes, retiradas):
         "puntos_pend_inspeccion": pts(p_ins),
         "pend_elaboracion": n(p_ela),
         "puntos_pend_elaboracion": pts(p_ela),
+        "en_proceso": n(en_proc),
+        "puntos_en_proceso": pts(en_proc),
         "retirados": int(len(retiradas)),
         "valorizados": n(val),
         "puntos_valorizados": pts(val),
@@ -339,6 +342,7 @@ def resumen_por_plan(kpis):
             "FINALIZADOS": k["finalizados"],
             "PEND. INSPECCIÓN": k["pend_inspeccion"],
             "PEND. ELABORACIÓN": k["pend_elaboracion"],
+            "EN PROCESO": k["en_proceso"],
             "RETIRADOS": k["retirados"],
             "REVISADOS": k["revisados"],
             "VALORIZADOS": k["valorizados"],
@@ -352,6 +356,7 @@ def resumen_por_plan(kpis):
         "FINALIZADOS": t["finalizados"],
         "PEND. INSPECCIÓN": t["pend_inspeccion"],
         "PEND. ELABORACIÓN": t["pend_elaboracion"],
+        "EN PROCESO": t["en_proceso"],
         "RETIRADOS": t["retirados"],
         "REVISADOS": t["revisados"],
         "VALORIZADOS": t["valorizados"],
