@@ -13,8 +13,14 @@ RAIZ = Path(__file__).resolve().parent.parent
 if str(RAIZ) not in sys.path:
     sys.path.append(str(RAIZ))
 
+import importlib  # noqa: E402
+
 import drive  # noqa: E402
 import planes  # noqa: E402
+
+# Streamlit conserva en memoria los módulos ya importados: se recarga para que
+# una actualización de planes.py se aplique sin reiniciar la app.
+planes = importlib.reload(planes)
 from tema import ICONOS, TONOS, aplicar_tema, tabla_html, tinte  # noqa: E402
 
 st.set_page_config(
