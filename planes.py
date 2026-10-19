@@ -40,6 +40,10 @@ ORDEN_MESES = [
     "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO",
     "AGOSTO", "SETIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE",
 ]
+# Nombre del campo en la base (se conserva por compatibilidad) y su encabezado
+# visible en el Excel y las tablas.
+COL_GRUPO = "GRUPO DE TUBERÍAS"
+ENCABEZADO_GRUPO = "IDENTIFICACIÓN"
 PLANES = ["PUNTOS DE INYECCIÓN", "DEAD LEG", "SULFIDACIÓN"]
 
 # Estados de un informe (mutuamente excluyentes).
@@ -411,6 +415,8 @@ def leer_excel_planes(archivo):
     hoja = "CONTROL" if "CONTROL" in libro.sheet_names else libro.sheet_names[0]
     df = pd.read_excel(libro, sheet_name=hoja, dtype=str)
     mapa = {str(c).strip().upper(): c for c in df.columns}
+    if ENCABEZADO_GRUPO in mapa and COL_GRUPO not in mapa:
+        mapa[COL_GRUPO] = mapa[ENCABEZADO_GRUPO]
     renombre = {
         mapa[c.strip().upper()]: c for c in COLUMNAS if c.strip().upper() in mapa
     }
@@ -420,7 +426,7 @@ def leer_excel_planes(archivo):
 def excel_con_formato(df, nombre_hoja="CONTROL"):
     """Excel con el mismo formato que el respaldo de la matriz general."""
     salida = io.BytesIO()
-    datos = df.copy().fillna("")
+    datos = df.copy().fillna("").rename(columns={COL_GRUPO: ENCABEZADO_GRUPO})
     with pd.ExcelWriter(salida, engine="openpyxl") as escritor:
         datos.to_excel(escritor, index=False, sheet_name=nombre_hoja[:31])
         hoja = escritor.book[nombre_hoja[:31]]
