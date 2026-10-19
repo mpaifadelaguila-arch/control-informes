@@ -378,6 +378,8 @@ def vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel):
         else ("Retirado" if planes.texto_normalizado(v) == "RETIRADO" else "Pendiente")
     )
     vista.insert(0, "SEÑAL", vista.apply(senal, axis=1))
+    # El grupo de tuberías no aplica a los planes especiales: se oculta aquí.
+    vista = vista.drop(columns=["GRUPO DE TUBERÍAS"])
     config = {
         "SEÑAL": st.column_config.TextColumn("Señal", width=170, disabled=True, pinned=True),
         "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
@@ -386,7 +388,6 @@ def vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel):
         "MES": st.column_config.TextColumn("Mes", width=90),
         "LINEAS": st.column_config.TextColumn("Líneas", width=190),
         "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=210),
-        "GRUPO DE TUBERÍAS": st.column_config.TextColumn("Grupo de tuberías", width=220),
         "SAP": st.column_config.TextColumn("SAP", width=85),
         "ALCANCE DEL SERVICIO": st.column_config.TextColumn("Plan", width=170),
         "NOTAS": st.column_config.TextColumn("Notas", width=200),
