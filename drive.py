@@ -72,6 +72,7 @@ def descargar(nombre, ruta_local, max_reintentos=3):
 
 
 def subir(nombre, ruta_local, mime_type="application/json", max_reintentos=3):
+    st.session_state.pop("error_drive", None)
     servicio = conectar_drive()
     if not servicio:
         return False
@@ -98,5 +99,6 @@ def subir(nombre, ruta_local, mime_type="application/json", max_reintentos=3):
                 time.sleep(1.2 * intento)
                 continue
             print(f"Error al respaldar en Google Drive ({nombre}): {e}")
+            st.session_state["error_drive"] = str(e)
             break
     return False
