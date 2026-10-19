@@ -106,7 +106,12 @@ def es_retirada(fila):
 def clave_informe(fila):
     mes = texto_limpio(fila["MES"])
     if es_codigo_provisional(fila["CODIGO DE INFORME"]):
-        return f"{mes}|SIN-CODIGO-GRUPO|{texto_normalizado(fila['GRUPO DE TUBERÍAS'])}"
+        clave = f"{mes}|SIN-CODIGO-GRUPO|{texto_normalizado(fila['GRUPO DE TUBERÍAS'])}"
+        # En puntos de inyección y dead legs cada punto es un informe: dos puntos
+        # sin código con el mismo nombre de grupo no deben juntarse en uno.
+        if nombre_de_plan(fila["ALCANCE DEL SERVICIO"]) != "SULFIDACIÓN":
+            clave += f"|{texto_normalizado(fila['UNIDAD'])}|{texto_normalizado(fila['LINEAS'])}"
+        return clave
     return f"{mes}|{texto_limpio(fila['CODIGO DE INFORME'])}"
 
 
