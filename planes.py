@@ -221,7 +221,7 @@ def procesar_planes(df_planes):
             "UNIDAD": ", ".join(sorted({u for u in g["UNIDAD"] if u})),
             "CODIGO DE INFORME": g["CODIGO DE INFORME"].iloc[0],
             "GRUPO DE TUBERÍAS": g["GRUPO DE TUBERÍAS"].iloc[0],
-            "PUNTOS": len(g),
+            "N° LÍNEAS": len(g),
             "ESTADO": _estado_de_informe(g[COL_ESTADO]),
             "RESPONSABLE": _primero_no_vacio(g["RESPONSABLE"]),
             "OBSERVACIÓN": _primero_no_vacio(g["OBSERVACIÓN"]),
@@ -232,7 +232,7 @@ def procesar_planes(df_planes):
     informes = pd.DataFrame(
         filas,
         columns=["CLAVE", "PLAN", "MES", "UNIDAD", "CODIGO DE INFORME",
-                 "GRUPO DE TUBERÍAS", "PUNTOS", "ESTADO", "RESPONSABLE",
+                 "GRUPO DE TUBERÍAS", "N° LÍNEAS", "ESTADO", "RESPONSABLE",
                  "OBSERVACIÓN", "VALORIZACIÓN", "ETAPA"],
     )
     if not informes.empty:
@@ -261,7 +261,7 @@ def _kpis_de(informes, retiradas):
         return int(len(df))
 
     def pts(df):
-        return int(df["PUNTOS"].sum())
+        return int(df["N° LÍNEAS"].sum())
 
     def etapa(*nombres):
         return informes[informes["ETAPA"].isin(nombres)]
@@ -330,7 +330,7 @@ def resumen_por_plan(kpis):
         filas.append({
             "PLAN": plan,
             "INFORMES": k["informes"],
-            "PUNTOS": k["puntos"],
+            "N° LÍNEAS": k["puntos"],
             "FINALIZADOS": k["finalizados"],
             "PEND. INSPECCIÓN": k["pend_inspeccion"],
             "PEND. ELABORACIÓN": k["pend_elaboracion"],
@@ -343,7 +343,7 @@ def resumen_por_plan(kpis):
     filas.append({
         "PLAN": "TOTAL",
         "INFORMES": t["informes"],
-        "PUNTOS": t["puntos"],
+        "N° LÍNEAS": t["puntos"],
         "FINALIZADOS": t["finalizados"],
         "PEND. INSPECCIÓN": t["pend_inspeccion"],
         "PEND. ELABORACIÓN": t["pend_elaboracion"],
