@@ -310,7 +310,8 @@ def mostrar_informes(sub, archivo):
     if sub.empty:
         st.info("No hay informes en esta vista.", icon=":material/info:")
         return
-    vista = sub[COLS_TABLA].copy()
+    vista = sub[COLS_TABLA].copy().rename(
+        columns={planes.COL_GRUPO: planes.ENCABEZADO_GRUPO})
     vista.index = range(1, len(vista) + 1)
     tabla_html(vista, detalles=[detalle_de(c) for c in sub["CLAVE"]])
     st.download_button(
