@@ -454,25 +454,23 @@ with sistema:
         )
 
     tabs = st.tabs([
-        "Tabla general", "Matriz (llenar)", "Pend. inspección", "Pend. elaboración",
+        "Matriz (llenar)", "Pend. inspección", "Pend. elaboración",
         "Revisión especialista", "Valorización", "Finalizados", "Retirados",
         "Resumen",
     ])
     with tabs[0]:
-        mostrar_informes(informes, "Planes_Especiales_General.xlsx")
-    with tabs[1]:
         vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel)
-    with tabs[2]:
+    with tabs[1]:
         mostrar_informes(
             informes[informes["ESTADO"] == planes.PEND_INSPECCION],
             "Planes_Pend_Inspeccion.xlsx",
         )
-    with tabs[3]:
+    with tabs[2]:
         mostrar_informes(
             informes[informes["ESTADO"] == planes.PEND_ELABORACION],
             "Planes_Pend_Elaboracion.xlsx",
         )
-    with tabs[4]:
+    with tabs[3]:
         vista = st.radio(
             "Vista",
             ["Por enviar", "Pendientes de revisión", "Revisados por el especialista"],
@@ -493,7 +491,7 @@ with sistema:
         else:
             sub = informes[informes["ETAPA"] == planes.ETAPA_REVISADO]
             mostrar_informes(sub, "Planes_Revisados_Especialista.xlsx")
-    with tabs[5]:
+    with tabs[4]:
         vista = st.radio(
             "Vista", ["Pendientes de valorizar", "Valorizados"],
             horizontal=True, key="radio_val",
@@ -514,12 +512,12 @@ with sistema:
                          "Valorización quitada", tipo="secondary",
                          icono=":material/undo:")
             mostrar_informes(sub, "Planes_Valorizados.xlsx")
-    with tabs[6]:
+    with tabs[5]:
         mostrar_informes(
             informes[informes["ESTADO"] == planes.FINALIZADO],
             "Planes_Finalizados.xlsx",
         )
-    with tabs[7]:
+    with tabs[6]:
         if retiradas.empty:
             st.info("No hay puntos retirados.", icon=":material/info:")
         else:
@@ -527,7 +525,7 @@ with sistema:
                                "CODIGO DE INFORME", "SAP", "NOTAS"]].copy()
             vista.index = range(1, len(vista) + 1)
             tabla_html(vista)
-    with tabs[8]:
+    with tabs[7]:
         st.markdown("**Resumen por plan**")
         tabla_html(planes.resumen_por_plan(kpis))
         st.markdown("**Informes por mes**")
