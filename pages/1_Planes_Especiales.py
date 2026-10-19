@@ -225,7 +225,8 @@ bloques = [
         ("Informes totales", t["informes"], "azul", False, t["puntos"]),
         ("Informes finalizados", t["finalizados"], "verde", False,
          t["puntos_finalizados"]),
-        ("Retirados", t["retirados"], "violeta", False, None, "línea"),
+        ("Pendientes elaborar", t["pend_elaborar"], "naranja", True,
+         t["puntos_pend_elaborar"]),
     ]),
     bloque_kpi("Campo", "campo", "naranja", [
         ("Pend. inspección", t["pend_inspeccion"], "naranja", True,
