@@ -1,4 +1,4 @@
-"""Resumen general: balance total de «Plan de líneas» y «Planes adicionales»."""
+"""Resumen general: qué informes faltan en «Plan de líneas» y «Planes adicionales»."""
 
 import importlib
 import os
@@ -6,7 +6,6 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -17,11 +16,11 @@ import drive  # noqa: E402
 import lineas_kpis  # noqa: E402
 import planes  # noqa: E402
 import resumen  # noqa: E402
-import ui_kpi  # noqa: E402
-from tema import aplicar_tema, tabla_html  # noqa: E402
+from tema import (BORDE, DORADO, ITEM, SUPERFICIE, TEXTO_SUAVE, TONOS,  # noqa: E402
+                  aplicar_tema, tabla_html, tinte)
 
 # Streamlit conserva los módulos en memoria: se recargan para aplicar cambios.
-for _modulo in (lineas_kpis, planes, resumen, ui_kpi):
+for _modulo in (lineas_kpis, planes, resumen):
     importlib.reload(_modulo)
 
 st.set_page_config(
@@ -39,14 +38,16 @@ HORA_LIMA = timezone(timedelta(hours=-5), "Lima")
 
 
 @st.cache_data(ttl=5, show_spinner=False)
-def cargar_kpis():
+def cargar():
     drive.descargar("database_informes.json", DB_LINEAS)
     drive.descargar("database_planes.json", DB_PLANES)
-    kl = lineas_kpis.calcular(lineas_kpis.cargar(DB_LINEAS))
-    ka = resumen.kpis_adicionales(
-        planes.procesar_planes(planes.cargar_json(DB_PLANES))["kpis"]["TOTAL"]
-    )
-    return kl, ka
+    df_l = lineas_kpis.cargar(DB_LINEAS)
+    res_a = planes.procesar_planes(planes.cargar_json(DB_PLANES))
+    kl = lineas_kpis.calcular(df_l)
+    ka = resumen.kpis_adicionales(res_a["kpis"]["TOTAL"])
+    insp_l, elab_l = lineas_kpis.listas(df_l)
+    insp_a, elab_a = resumen.listas_adicionales(res_a)
+    return kl, ka, resumen.ordenar(insp_l + insp_a), resumen.ordenar(elab_l + elab_a)
 
 
 def fecha_de(ruta):
@@ -60,10 +61,10 @@ def fecha_de(ruta):
         fecha = None
     if fecha is None and os.path.exists(ruta):
         fecha = datetime.fromtimestamp(os.path.getmtime(ruta), timezone.utc)
-    return fecha.astimezone(HORA_LIMA).strftime("%d/%m %H:%M") if fecha else "Sin datos"
+    return fecha.astimezone(HORA_LIMA).strftime("%d/%m · %H:%M") if fecha else "Sin datos"
 
 
-kl, ka = cargar_kpis()
+kl, ka, pend_insp, pend_elab = cargar()
 kt = resumen.total(kl, ka)
 
 # ------------------------------------------------------------------ Cabecera
@@ -73,12 +74,7 @@ ICONO = (
     '<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/>'
     '<rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>'
 )
-av = resumen.avance(kt)
 chips = (
-    "<div class='header-chip header-chip-avance'>"
-    f"<div class='chip-titulo'><span>Avance total</span><span class='chip-porcentaje'>{av:.1f}%</span></div>"
-    f"<div class='chip-barra'><div style='width:{av:.1f}%'></div></div>"
-    f"<div class='chip-detalle'>{kt['finalizados']} de {kt['informes']} finalizados</div></div>"
     "<div class='header-chip'><div class='chip-titulo'>Plan de líneas</div>"
     f"<div class='chip-valor'>{fecha_de(DB_LINEAS)}</div></div>"
     "<div class='header-chip'><div class='chip-titulo'>Planes adicionales</div>"
@@ -88,103 +84,109 @@ st.markdown(
     "<div class='header-banner header-indicadores'>"
     f"<div class='header-marca'><div class='header-icono'>{ICONO}</div>"
     "<div><div class='header-title'>RESUMEN GENERAL — ADEMINSAC</div>"
-    "<div class='header-subtitle'>Balance total · Plan de líneas y Planes adicionales"
-    " · Refinería La Pampilla</div></div></div>"
+    "<div class='header-subtitle'>Qué informes faltan y en qué etapa están · Plan de líneas"
+    " y Planes adicionales</div></div></div>"
     f"<div class='header-chips'>{chips}</div></div>",
     unsafe_allow_html=True,
 )
 
-barra = st.container(key="barra_datos")
-with barra:
-    texto, descarga = st.columns([4, 1], vertical_alignment="center")
-    texto.markdown(
-        "<div class='barra-datos-texto'><span class='barra-datos-titulo'>"
-        "Balance total</span><span>· los números se calculan con los datos"
-        " guardados de cada plan</span></div>",
+# ------------------------------------------------------------------ Balance (3 tarjetas)
+
+
+def tarjeta(titulo, k, color):
+    pct = resumen.avance(k)
+    tono = TONOS[color]
+    return (
+        f"<div style='background:{SUPERFICIE};border:1px solid {tinte(tono, 0.45)};"
+        "border-radius:14px;padding:16px 20px'>"
+        f"<div style='color:{TEXTO_SUAVE};font-size:12px;letter-spacing:.08em;"
+        f"text-transform:uppercase;font-weight:700'>{titulo}</div>"
+        f"<div style='font-size:34px;font-weight:700;margin:6px 0 2px;color:{tono}'>"
+        f"{pct:.1f}%<span style='font-size:14px;color:{TEXTO_SUAVE};font-weight:400;"
+        f"margin-left:8px'>{k['finalizados']} de {k['informes']} informes finalizados</span></div>"
+        f"<div style='height:8px;border-radius:6px;background:{BORDE};margin:8px 0 6px'>"
+        f"<div style='height:8px;border-radius:6px;width:{min(pct, 100):.1f}%;"
+        f"background:{tono}'></div></div>"
+        f"<div style='color:{TEXTO_SUAVE};font-size:12px'>Faltan "
+        f"<b style='color:{TONOS['naranja']}'>{k['pend_elaborar']}</b> informes por terminar"
+        f" · {k['valorizados']} valorizados</div></div>"
+    )
+
+
+with st.container(key="panel_control"):
+    st.markdown(
+        "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));"
+        f"gap:14px'>{tarjeta('Plan de líneas', kl, 'azul')}"
+        f"{tarjeta('Planes adicionales', ka, 'turquesa')}"
+        f"{tarjeta('Total ambos planes', kt, 'dorado')}</div>",
         unsafe_allow_html=True,
     )
-    descarga.download_button(
-        "Descargar resumen",
-        data=resumen.excel_resumen(kl, ka),
+
+# ------------------------------------------------------------------ Filtros
+with st.container(key="barra_datos"):
+    c_plan, c_buscar, c_desc = st.columns([2.2, 3, 1.2], vertical_alignment="bottom")
+    plan_sel = c_plan.radio(
+        "Plan", ["Todos", "Plan de líneas", "Planes adicionales"],
+        horizontal=True, key="resumen_plan",
+    )
+    consulta = c_buscar.text_input(
+        "Buscar", placeholder="Informe, identificación, línea, SAP, responsable…",
+        icon=":material/search:", key="resumen_buscar",
+    )
+
+insp = resumen.filtrar(pend_insp, plan_sel, consulta)
+elab = resumen.filtrar(pend_elab, plan_sel, consulta)
+tabla_insp, det_insp = resumen.tabla_lista(insp, True)
+tabla_elab, det_elab = resumen.tabla_lista(elab, False)
+
+with c_desc:
+    st.download_button(
+        "Descargar Excel",
+        data=resumen.excel_resumen(kl, ka, {
+            "PEND_INSPECCION": resumen.tabla_lista(pend_insp, True)[0],
+            "POR_ELABORAR": resumen.tabla_lista(pend_elab, False)[0],
+        }),
         file_name="Resumen_General_Planes.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         icon=":material/download:",
     )
 
-# ------------------------------------------------------------------ Balance total
-panel = st.container(key="panel_control")
-panel.markdown(
-    "<div class='section-title'>Balance total de ambos planes</div>",
-    unsafe_allow_html=True,
-)
-bloques = [
-    ui_kpi.bloque_kpi("General", "grafico", "azul", [
-        ("Informes totales", kt["informes"], "azul", False, kt["lineas"]),
-        ("Informes finalizados", kt["finalizados"], "verde"),
-        ("Pendientes elaborar", kt["pend_elaborar"], "naranja", True),
-        ("% avance", f"{av:.1f}%", "dorado"),
-    ]),
-    ui_kpi.bloque_kpi("Campo", "campo", "naranja", [
-        ("Pend. inspección", kt["pend_inspeccion"], "naranja", True),
-    ]),
-    ui_kpi.bloque_kpi("Gabinete", "carpeta", "violeta", [
-        ("Por elaborar", kt["por_elaborar"], "rojo", True),
-        ("En elaboración", kt["en_proceso"], "indigo"),
-    ]),
-    ui_kpi.bloque_kpi("Especialista", "especialista", "turquesa", [
-        ("Revisados", kt["revisados"], "verde"),
-        ("Por revisar", kt["por_revisar"], "naranja", True),
-    ]),
-    ui_kpi.bloque_kpi("Cliente", "cliente", "verde", [
-        ("Valorizados", kt["valorizados"], "verde"),
-        ("En revisión", kt["en_revision"], "dorado", True),
-    ]),
-]
-panel.markdown(f"<div class='kpi-row'>{''.join(bloques)}</div>", unsafe_allow_html=True)
-
-# ------------------------------------------------------------------ Tarjetas por plan
-st.markdown("<div class='section-title' style='margin:18px 0 8px'>Por plan</div>",
-            unsafe_allow_html=True)
-
-
-def tarjeta(titulo, icono, color, k):
-    pct = resumen.avance(k)
-    return ui_kpi.bloque_kpi(titulo, icono, color, [
-        ("Informes totales", k["informes"], "azul", False, k["lineas"]),
-        ("Finalizados", k["finalizados"], "verde"),
-        ("% avance", f"{pct:.1f}%", "dorado"),
-        ("Pend. inspección", k["pend_inspeccion"], "naranja", True),
-        ("Gabinete · por elaborar", k["por_elaborar"], "rojo", True),
-        ("Gabinete · en elaboración", k["en_proceso"], "indigo"),
-        ("Especialista · por revisar", k["por_revisar"], "naranja", True),
-        ("Especialista · revisados", k["revisados"], "verde"),
-        ("Cliente · en revisión", k["en_revision"], "dorado", True),
-        ("Cliente · valorizados", k["valorizados"], "verde"),
-    ], extra_html=ui_kpi.barra_avance(pct))
-
-
-c1, c2 = st.columns(2)
-with c1:
-    st.markdown(f"<div class='kpi-row' style='grid-template-columns:1fr'>"
-                f"{tarjeta('Plan de líneas', 'grafico', 'azul', kl)}</div>",
-                unsafe_allow_html=True)
-    st.page_link("plan_de_lineas.py", label="Abrir Plan de líneas",
-                 icon=":material/arrow_forward:")
-with c2:
-    st.markdown(f"<div class='kpi-row' style='grid-template-columns:1fr'>"
-                f"{tarjeta('Planes adicionales', 'campo', 'turquesa', ka)}</div>",
-                unsafe_allow_html=True)
-    st.page_link("pages/1_Planes_Adicionales.py", label="Abrir Planes adicionales",
-                 icon=":material/arrow_forward:")
-
-# ------------------------------------------------------------------ Alertas y comparativo
-sistema = st.container(key="sistema_control")
-with sistema:
-    st.markdown("**Alertas: pendientes que requieren acción**")
-    tabla_alertas = resumen.alertas(kl, ka)
-    if tabla_alertas.empty:
-        st.success("No hay pendientes críticos.", icon=":material/check_circle:")
+# ------------------------------------------------------------------ Listas de pendientes
+with st.container(key="sistema_control"):
+    st.markdown(
+        f"#### 🟠 Pendientes de inspección · {len(insp)} informes\n"
+        "El campo debe inspeccionar estas líneas. Pulsa un informe para ver sus líneas"
+        " (las pendientes van en rojo)."
+    )
+    if insp:
+        tabla_html(tabla_insp, detalles=det_insp)
     else:
-        tabla_html(tabla_alertas)
-    st.markdown("**Comparativo por plan**")
-    tabla_html(resumen.comparativo(kl, ka))
+        st.success("No hay informes pendientes de inspección.", icon=":material/check_circle:")
+
+    st.markdown(
+        f"#### 🔴 Pendientes por asignar / elaborar · {len(elab)} informes\n"
+        "Ya están inspeccionados: falta asignar responsable y elaborar el informe."
+    )
+    if elab:
+        tabla_html(tabla_elab, detalles=det_elab)
+    else:
+        st.success("No hay informes pendientes de elaborar.", icon=":material/check_circle:")
+
+    st.markdown("#### Otras etapas")
+    otras = [
+        ("Por revisar · Especialista", "por_revisar"),
+        ("En revisión · Cliente", "en_revision"),
+        ("Valorizados", "valorizados"),
+    ]
+    cols = st.columns(len(otras))
+    for col, (nombre, clave) in zip(cols, otras):
+        col.metric(
+            nombre, kt[clave],
+            f"Líneas {kl[clave]} · Adicionales {ka[clave]}", delta_color="off",
+            border=True,
+        )
+    b1, b2 = st.columns(2)
+    b1.page_link("plan_de_lineas.py", label="Abrir Plan de líneas",
+                 icon=":material/arrow_forward:")
+    b2.page_link("pages/1_Planes_Adicionales.py", label="Abrir Planes adicionales",
+                 icon=":material/arrow_forward:")
