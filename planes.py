@@ -1,4 +1,4 @@
-"""Lógica de la matriz de planes especiales (sin dependencias de Streamlit).
+"""Lógica de la matriz de planes adicionales (sin dependencias de Streamlit).
 
 La matriz de planes tiene las mismas 14 columnas que la matriz del plan general
 de tuberías, pero es independiente. El plan se identifica en la columna

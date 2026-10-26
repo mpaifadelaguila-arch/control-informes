@@ -1,4 +1,4 @@
-"""Control de informes de planes especiales (puntos de inyección, dead legs,
+"""Control de informes de planes adicionales (puntos de inyección, dead legs,
 sulfidación). Matriz independiente de la del plan general de tuberías."""
 
 import os
@@ -24,7 +24,7 @@ planes = importlib.reload(planes)
 from tema import ICONOS, TONOS, aplicar_tema, tabla_html, tinte  # noqa: E402
 
 st.set_page_config(
-    page_title="Planes especiales - Ademinsac",
+    page_title="Planes adicionales - Ademinsac",
     page_icon=":material/assignment:",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -96,7 +96,7 @@ def html_cabecera(finalizados=None, total=None):
     return (
         "<div class='header-banner header-indicadores'>"
         f"<div class='header-marca'><div class='header-icono'>{ICONO}</div>"
-        "<div><div class='header-title'>PLANES ESPECIALES — ADEMINSAC</div>"
+        "<div><div class='header-title'>PLANES ADICIONALES — ADEMINSAC</div>"
         "<div class='header-subtitle'>Puntos de inyección · Dead legs · Sulfidación"
         " · Refinería La Pampilla</div></div></div>"
         f"<div class='header-chips'>{chips}</div></div>"
@@ -171,12 +171,12 @@ with st.container(key="barra_datos"):
     texto, carga, respaldo = st.columns([3, 1, 1], vertical_alignment="center")
     texto.markdown(
         "<div class='barra-datos-texto'><span class='barra-datos-titulo'>"
-        f"Gestión de datos</span><span>· matriz de planes especiales, {len(df)}"
+        f"Gestión de datos</span><span>· matriz de planes adicionales, {len(df)}"
         " filas</span></div>",
         unsafe_allow_html=True,
     )
     with carga.popover("Cargar Excel", icon=":material/upload:", width="stretch"):
-        st.markdown("**Cargar matriz de planes especiales**")
+        st.markdown("**Cargar matriz de planes adicionales**")
         archivo = st.file_uploader(
             "Selecciona un archivo Excel", type=["xlsx", "xlsm"], key="subir_planes"
         )
@@ -195,14 +195,14 @@ with st.container(key="barra_datos"):
             st.download_button(
                 "Descargar respaldo",
                 data=planes.excel_con_formato(df),
-                file_name="Matriz_Planes_Especiales.xlsx",
+                file_name="Matriz_Planes_Adicionales.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 icon=":material/download:",
             )
 
 if df.empty:
     st.info(
-        "Carga la matriz de planes especiales con el botón «Cargar Excel».",
+        "Carga la matriz de planes adicionales con el botón «Cargar Excel».",
         icon=":material/info:",
     )
     st.stop()
@@ -217,7 +217,7 @@ cabecera.markdown(html_cabecera(t["finalizados"], t["informes"]), unsafe_allow_h
 # ------------------------------------------------------------------ Panel
 panel = st.container(key="panel_control")
 panel.markdown(
-    "<div class='section-title'>Panel de control de planes especiales</div>",
+    "<div class='section-title'>Panel de control de planes adicionales</div>",
     unsafe_allow_html=True,
 )
 bloques = [
@@ -409,8 +409,8 @@ def vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel):
         else ("Retirado" if planes.texto_normalizado(v) == "RETIRADO" else "Pendiente")
     )
     vista.insert(0, "SEÑAL", vista.apply(senal, axis=1))
-    # El grupo de tuberías no aplica a los planes especiales: se oculta aquí.
-    vista = vista.drop(columns=["GRUPO DE TUBERÍAS"])
+    # El campo interno «grupo de tuberías» se muestra como IDENTIFICACIÓN.
+    vista = vista.rename(columns={planes.COL_GRUPO: planes.ENCABEZADO_GRUPO})
     config = {
         "SEÑAL": st.column_config.TextColumn("Señal", width=170, disabled=True, pinned=True),
         "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
@@ -419,6 +419,8 @@ def vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel):
         "MES": st.column_config.TextColumn("Mes", width=90),
         "LINEAS": st.column_config.TextColumn("Líneas", width=190),
         "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=210),
+        planes.ENCABEZADO_GRUPO: st.column_config.TextColumn(
+            "Identificación", width=170),
         "SAP": st.column_config.TextColumn("SAP", width=85),
         "ALCANCE DEL SERVICIO": st.column_config.TextColumn(
             "Alcance del servicio", width=190),
@@ -440,6 +442,7 @@ def vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel):
     if st.button("Guardar cambios", key="guardar_matriz_planes",
                  icon=":material/save:", type="primary"):
         cambios = editado.drop(columns=["SEÑAL"], errors="ignore").fillna("")
+        cambios = cambios.rename(columns={planes.ENCABEZADO_GRUPO: planes.COL_GRUPO})
         cambios = cambios.replace(["None", "none", "NONE"], "")
         # SI = valorizado: se limpia la observación, como en el panel principal.
         cambios.loc[cambios["VALORIZACIÓN"].map(
