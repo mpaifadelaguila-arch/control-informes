@@ -154,3 +154,55 @@ def calcular(df):
         "en_revision": fiab,
         "valorizados": val,
     }
+
+
+def _linea_por_inspeccionar(fila):
+    texto = fila["ESTADO - ELABORACIÓN "] if es_anexo(fila["CODIGO DE INFORME"]) else fila["NOTAS"]
+    return "PENDIENTE INSPECCION" in norm(texto)
+
+
+def listas(df):
+    """Informes pendientes de inspección y por elaborar, con sus líneas.
+
+    Devuelve (pend_inspeccion, por_elaborar): listas de dicts con PLAN, MES,
+    INFORME, IDENTIFICACIÓN, RESPONSABLE, N_LINEAS, N_PEND y 'lineas' (DataFrame).
+    """
+    if df.empty:
+        return [], []
+    retirado = (
+        df["OBSERVACIÓN"].map(lambda v: "RETIRADO" in norm(v))
+        | df["NOTAS"].map(lambda v: "RETIRADO" in norm(v))
+        | df["VALORIZACIÓN"].map(lambda v: norm(v) == "RETIRADO")
+    )
+    act = df[~retirado].copy()
+    act["CLAVE"] = act.apply(
+        lambda f: f"{limpio(f['MES'])}|SIN-CODIGO-GRUPO|{norm(f['GRUPO DE TUBERÍAS'])}"
+        if es_provisional(f["CODIGO DE INFORME"])
+        else f"{limpio(f['MES'])}|{limpio(f['CODIGO DE INFORME'])}", axis=1)
+    act["TIPO"] = act["CODIGO DE INFORME"].map(lambda c: "Anexo" if es_anexo(c) else "Principal")
+    act["_PEND"] = act.apply(_linea_por_inspeccionar, axis=1)
+    pend_insp = act.apply(es_pendiente_inspeccion, axis=1)
+    claves_insp = set(act.loc[pend_insp & (act["TIPO"] == "Principal"), "CLAVE"])
+    estado = act["ESTADO - ELABORACIÓN "].map(norm)
+    claves_elab = set(act.loc[estado.str.contains("PENDIENTE ELABORACION")
+                              & (act["TIPO"] == "Principal"), "CLAVE"])
+
+    def armar(claves):
+        salida = []
+        for clave in claves:
+            x = act[act["CLAVE"] == clave]
+            codigo = x["CODIGO DE INFORME"].iloc[0]
+            lineas = x[["LINEAS", "SAP", "ESTADO - ELABORACIÓN ", "NOTAS", "_PEND"]].reset_index(drop=True)
+            salida.append({
+                "PLAN": "Plan de líneas",
+                "MES": limpio(x["MES"].iloc[0]),
+                "INFORME": "Pendiente asignar código" if es_provisional(codigo) else codigo,
+                "IDENTIFICACIÓN": " / ".join(dict.fromkeys(g for g in x["GRUPO DE TUBERÍAS"] if g)),
+                "RESPONSABLE": " / ".join(dict.fromkeys(r for r in x["RESPONSABLE"] if r)) or "Sin asignar",
+                "N_LINEAS": len(x),
+                "N_PEND": int(x["_PEND"].sum()),
+                "lineas": lineas,
+            })
+        return salida
+
+    return armar(sorted(claves_insp)), armar(sorted(claves_elab))
