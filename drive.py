@@ -1,4 +1,4 @@
-"""Acceso a Google Drive para las páginas adicionales (misma carpeta que app.py)."""
+"""Acceso a Google Drive para las páginas adicionales (misma carpeta que plan_de_lineas.py)."""
 
 import io
 import time
