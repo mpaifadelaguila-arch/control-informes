@@ -36,7 +36,7 @@ DB_PESCANTES = str(RAIZ / "database_pescantes.json")
 NOMBRE_DRIVE = "database_pescantes.json"
 HORA_LIMA = timezone(timedelta(hours=-5), "Lima")
 PLANES_PAGINA = ("PESCANTES", "TROLLEYS")
-COLUMNAS_OCULTAS = ["IT2", "LINEAS", "SAP"]
+COLUMNAS_OCULTAS = ["IT2", "SAP"]
 
 
 @st.cache_data(ttl=5, show_spinner=False)
@@ -114,11 +114,11 @@ def estilo_tono(color):
     )
 
 
-def item_kpi(titulo, valor, color, alerta=False, puntos=None, unidad="informe"):  # «puntos» = filas de la matriz (líneas)
+def item_kpi(titulo, valor, color, alerta=False, puntos=None, unidad="informe"):  # «puntos» = filas de la matriz (equipos)
     clase = "kpi-item alerta" if alerta and valor else "kpi-item"
     detalle = "del total" if isinstance(valor, str) else unidad + ("" if valor == 1 else "s")
     if puntos is not None:
-        detalle += f" · {puntos} línea{'' if puntos == 1 else 's'}"
+        detalle += f" · {puntos} equipo{'' if puntos == 1 else 's'}"
     return (
         f"<div class='{clase}' style='{estilo_tono(color)}'>"
         f"<div class='kpi-item-label'><span class='kpi-dot'></span>{titulo}</div>"
@@ -148,7 +148,7 @@ def bloque_de_plan(titulo, icono, color, k):
          k["puntos_pend_elaboracion"]),
         ("En proceso de elaboración", k["en_proceso"], "indigo", False,
          k["puntos_en_proceso"]),
-        ("Retirados", k["retirados"], "violeta", False, None, "línea"),
+        ("Retirados", k["retirados"], "violeta", False, None, "equipo"),
     ])
 
 
@@ -327,13 +327,15 @@ def mostrar_informes(sub, archivo):
         st.info("No hay informes en esta vista.", icon=":material/info:")
         return
     vista = sub[COLS_TABLA].copy().rename(columns={
-        planes.COL_GRUPO: planes.ENCABEZADO_GRUPO, "PLAN": "ALCANCE DEL SERVICIO"})
+        planes.COL_GRUPO: planes.ENCABEZADO_GRUPO, "PLAN": "ALCANCE DEL SERVICIO",
+        "N° LÍNEAS": "N° EQUIPOS"})
     vista.index = range(1, len(vista) + 1)
     tabla_html(vista, detalles=[detalle_de(c) for c in sub["CLAVE"]])
     st.download_button(
         "Descargar Excel",
         data=planes.excel_con_formato(
-            sub[COLS_TABLA].rename(columns={"PLAN": "ALCANCE DEL SERVICIO"})),
+            sub[COLS_TABLA].rename(columns={
+                "PLAN": "ALCANCE DEL SERVICIO", "N° LÍNEAS": "N° EQUIPOS"})),
         file_name=archivo,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         icon=":material/download:",
@@ -418,7 +420,7 @@ def vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel):
         else ("Retirado" if planes.texto_normalizado(v) == "RETIRADO" else "Pendiente")
     )
     vista.insert(0, "SEÑAL", vista.apply(senal, axis=1))
-    # IT2, líneas y SAP no aplican a este tipo de inspección: no se muestran.
+    # IT2 y SAP no aplican a este tipo de inspección: no se muestran.
     vista = vista.drop(columns=COLUMNAS_OCULTAS)
     # El campo interno «grupo de tuberías» se muestra como IDENTIFICACIÓN.
     vista = vista.rename(columns={planes.COL_GRUPO: planes.ENCABEZADO_GRUPO})
@@ -427,6 +429,7 @@ def vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel):
         "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
         "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
         "MES": st.column_config.TextColumn("Mes", width=90),
+        "LINEAS": st.column_config.TextColumn("Equipo", width=260),
         "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=210),
         planes.ENCABEZADO_GRUPO: st.column_config.TextColumn(
             "Identificación", width=170),
@@ -472,7 +475,7 @@ sistema = st.container(key="sistema_control")
 with sistema:
     c_buscar, c_plan, c_mes, c_unidad = st.columns([2.2, 1.6, 1.2, 1.2])
     buscar = c_buscar.text_input(
-        "Buscar", placeholder="Código de informe, línea, SAP, grupo, nota…",
+        "Buscar", placeholder="Código de informe, equipo, grupo, nota…",
         icon=":material/search:",
     )
     planes_sel = c_plan.multiselect(
@@ -572,7 +575,7 @@ with sistema:
         kpis_pagina = {p: k for p, k in kpis.items()
                        if p == "TOTAL" or p in PLANES_PAGINA}
         tabla_html(planes.resumen_por_plan(kpis_pagina).rename(
-            columns={"PLAN": "ALCANCE DEL SERVICIO"}))
+            columns={"PLAN": "ALCANCE DEL SERVICIO", "N° LÍNEAS": "N° EQUIPOS"}))
         st.markdown("**Informes por mes**")
         tabla_html(planes.resumen_por_mes(informes_total))
         st.caption("El resumen no se ve afectado por los filtros.")
