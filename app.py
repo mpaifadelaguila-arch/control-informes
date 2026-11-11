@@ -3,6 +3,7 @@
 - «Resumen general»: balance total de ambos planes (pages/0_Resumen_General.py).
 - «Plan de líneas»: control interno de informes del plan de tuberías (plan_de_lineas.py).
 - «Planes adicionales»: puntos de inyección, dead legs y sulfidación.
+- «Pescantes y trolleys»: control de informes de pescantes y trolleys por unidad.
 """
 
 import streamlit as st
@@ -23,6 +24,11 @@ navegacion = st.navigation([
         "pages/1_Planes_Adicionales.py",
         title="Planes adicionales",
         icon=":material/add_task:",
+    ),
+    st.Page(
+        "pages/2_Pescantes_Trolleys.py",
+        title="Pescantes y trolleys",
+        icon=":material/construction:",
     ),
 ])
 navegacion.run()
