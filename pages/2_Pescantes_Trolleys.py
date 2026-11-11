@@ -36,6 +36,7 @@ DB_PESCANTES = str(RAIZ / "database_pescantes.json")
 NOMBRE_DRIVE = "database_pescantes.json"
 HORA_LIMA = timezone(timedelta(hours=-5), "Lima")
 PLANES_PAGINA = ("PESCANTES", "TROLLEYS")
+COLUMNAS_OCULTAS = ["IT2", "LINEAS", "SAP"]
 
 
 @st.cache_data(ttl=5, show_spinner=False)
@@ -274,7 +275,8 @@ COLS_TABLA = ["PLAN", "MES", "UNIDAD", "CODIGO DE INFORME", "GRUPO DE TUBERÍAS"
 
 def detalle_de(clave):
     sub = activos[activos["CLAVE"] == clave]
-    d = sub[["UNIDAD", "LINEAS", "SAP", planes.COL_ESTADO, "NOTAS"]].copy()
+    d = sub[["UNIDAD", "LINEAS", planes.COL_ESTADO]].copy().rename(
+        columns={"LINEAS": "EQUIPO"})
     d["_PEND"] = sub[planes.COL_ESTADO].map(
         lambda e: "PENDIENTE" in planes.texto_normalizado(e)
     )
@@ -416,19 +418,18 @@ def vista_editable(df, buscar, planes_sel, meses_sel, unidades_sel):
         else ("Retirado" if planes.texto_normalizado(v) == "RETIRADO" else "Pendiente")
     )
     vista.insert(0, "SEÑAL", vista.apply(senal, axis=1))
+    # IT2, líneas y SAP no aplican a este tipo de inspección: no se muestran.
+    vista = vista.drop(columns=COLUMNAS_OCULTAS)
     # El campo interno «grupo de tuberías» se muestra como IDENTIFICACIÓN.
     vista = vista.rename(columns={planes.COL_GRUPO: planes.ENCABEZADO_GRUPO})
     config = {
         "SEÑAL": st.column_config.TextColumn("Señal", width=170, disabled=True, pinned=True),
         "ITEM POR MES": st.column_config.TextColumn("Item", width=70),
-        "IT2": st.column_config.TextColumn("IT2", width=55),
         "UNIDAD": st.column_config.TextColumn("Unidad", width=65),
         "MES": st.column_config.TextColumn("Mes", width=90),
-        "LINEAS": st.column_config.TextColumn("Líneas", width=190),
         "CODIGO DE INFORME": st.column_config.TextColumn("Código de informe", width=210),
         planes.ENCABEZADO_GRUPO: st.column_config.TextColumn(
             "Identificación", width=170),
-        "SAP": st.column_config.TextColumn("SAP", width=85),
         "ALCANCE DEL SERVICIO": st.column_config.TextColumn(
             "Alcance del servicio", width=190),
         "NOTAS": st.column_config.TextColumn("Notas", width=200),
@@ -560,7 +561,8 @@ with sistema:
             st.info("No hay puntos retirados.", icon=":material/info:")
         else:
             vista = retiradas[["ALCANCE DEL SERVICIO", "MES", "UNIDAD", "LINEAS",
-                               "CODIGO DE INFORME", "SAP", "NOTAS"]].copy()
+                               "CODIGO DE INFORME", "NOTAS"]].copy().rename(
+                columns={"LINEAS": "EQUIPO"})
             vista.index = range(1, len(vista) + 1)
             tabla_html(vista)
     with tabs[8]:
