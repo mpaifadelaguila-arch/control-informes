@@ -34,6 +34,7 @@ aplicar_tema()
 
 DB_LINEAS = str(RAIZ / "database_informes.json")
 DB_PLANES = str(RAIZ / "database_planes.json")
+DB_PESC = str(RAIZ / "database_pescantes.json")
 HORA_LIMA = timezone(timedelta(hours=-5), "Lima")
 
 
@@ -41,13 +42,19 @@ HORA_LIMA = timezone(timedelta(hours=-5), "Lima")
 def cargar():
     drive.descargar("database_informes.json", DB_LINEAS)
     drive.descargar("database_planes.json", DB_PLANES)
+    drive.descargar("database_pescantes.json", DB_PESC)
     df_l = lineas_kpis.cargar(DB_LINEAS)
     res_a = planes.procesar_planes(planes.cargar_json(DB_PLANES))
     kl = lineas_kpis.calcular(df_l)
     ka = resumen.kpis_adicionales(res_a["kpis"]["TOTAL"])
     insp_l, elab_l = lineas_kpis.listas(df_l)
     insp_a, elab_a = resumen.listas_adicionales(res_a)
-    return kl, ka, resumen.ordenar(insp_l + insp_a), resumen.ordenar(elab_l + elab_a)
+    res_p = planes.procesar_planes(planes.cargar_json(DB_PESC))
+    kp = resumen.kpis_adicionales(res_p["kpis"]["TOTAL"])
+    insp_p, elab_p = resumen.listas_adicionales(
+        res_p, plan="Pescantes y trolleys", unidad="equipo")
+    return (kl, ka, kp, resumen.ordenar(insp_l + insp_a + insp_p),
+            resumen.ordenar(elab_l + elab_a + elab_p))
 
 
 def fecha_de(ruta):
@@ -64,8 +71,9 @@ def fecha_de(ruta):
     return fecha.astimezone(HORA_LIMA).strftime("%d/%m · %H:%M") if fecha else "Sin datos"
 
 
-kl, ka, pend_insp, pend_elab = cargar()
-kt = resumen.total(kl, ka)
+kl, ka, kp, pend_insp, pend_elab = cargar()
+PLANES_K = {"Plan de líneas": kl, "Planes adicionales": ka, "Pescantes y trolleys": kp}
+kt = resumen.total(kl, ka, kp)
 
 # ------------------------------------------------------------------ Cabecera
 ICONO = (
@@ -79,6 +87,8 @@ chips = (
     f"<div class='chip-valor'>{fecha_de(DB_LINEAS)}</div></div>"
     "<div class='header-chip'><div class='chip-titulo'>Planes adicionales</div>"
     f"<div class='chip-valor'>{fecha_de(DB_PLANES)}</div></div>"
+    "<div class='header-chip'><div class='chip-titulo'>Pescantes y trolleys</div>"
+    f"<div class='chip-valor'>{fecha_de(DB_PESC)}</div></div>"
 )
 st.markdown(
     "<div class='header-banner header-indicadores'>"
@@ -118,7 +128,8 @@ with st.container(key="panel_control"):
         "<div style='display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));"
         f"gap:14px'>{tarjeta('Plan de líneas', kl, 'azul')}"
         f"{tarjeta('Planes adicionales', ka, 'turquesa')}"
-        f"{tarjeta('Total ambos planes', kt, 'dorado')}</div>",
+        f"{tarjeta('Pescantes y trolleys', kp, 'violeta')}"
+        f"{tarjeta('Total de los tres planes', kt, 'dorado')}</div>",
         unsafe_allow_html=True,
     )
 
@@ -126,7 +137,7 @@ with st.container(key="panel_control"):
 with st.container(key="barra_datos"):
     c_plan, c_buscar, c_desc = st.columns([2.2, 3, 1.2], vertical_alignment="bottom")
     plan_sel = c_plan.radio(
-        "Plan", ["Todos", "Plan de líneas", "Planes adicionales"],
+        "Plan", ["Todos", "Plan de líneas", "Planes adicionales", "Pescantes y trolleys"],
         horizontal=True, key="resumen_plan",
     )
     consulta = c_buscar.text_input(
@@ -142,7 +153,7 @@ tabla_elab, det_elab = resumen.tabla_lista(elab, False)
 with c_desc:
     st.download_button(
         "Descargar Excel",
-        data=resumen.excel_resumen(kl, ka, {
+        data=resumen.excel_resumen(PLANES_K, {
             "PEND_INSPECCION": resumen.tabla_lista(pend_insp, True)[0],
             "POR_ELABORAR": resumen.tabla_lista(pend_elab, False)[0],
         }),
@@ -182,11 +193,13 @@ with st.container(key="sistema_control"):
     for col, (nombre, clave) in zip(cols, otras):
         col.metric(
             nombre, kt[clave],
-            f"Líneas {kl[clave]} · Adicionales {ka[clave]}", delta_color="off",
+            f"Líneas {kl[clave]} · Adicionales {ka[clave]} · Pescantes {kp[clave]}", delta_color="off",
             border=True,
         )
-    b1, b2 = st.columns(2)
+    b1, b2, b3 = st.columns(3)
     b1.page_link("plan_de_lineas.py", label="Abrir Plan de líneas",
                  icon=":material/arrow_forward:")
     b2.page_link("pages/1_Planes_Adicionales.py", label="Abrir Planes adicionales",
+                 icon=":material/arrow_forward:")
+    b3.page_link("pages/2_Pescantes_Trolleys.py", label="Abrir Pescantes y trolleys",
                  icon=":material/arrow_forward:")
