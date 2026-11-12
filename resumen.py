@@ -48,32 +48,38 @@ def kpis_adicionales(kp):
     }
 
 
-def total(kl, ka):
-    return {k: kl.get(k, 0) + ka.get(k, 0) for k in set(kl) | set(ka)}
+def total(*ks):
+    claves = set().union(*ks)
+    return {k: sum(x.get(k, 0) for x in ks) for k in claves}
 
 
 def avance(k):
     return (k["finalizados"] / k["informes"] * 100) if k["informes"] else 0.0
 
 
-def comparativo(kl, ka):
-    kt = total(kl, ka)
-    filas = [{"INDICADOR": et, "PLAN DE LÍNEAS": kl[c], "PLANES ADICIONALES": ka[c],
-              "TOTAL": kt[c]} for c, et in FILAS]
-    filas.append({"INDICADOR": "% avance (finalizados)",
-                  "PLAN DE LÍNEAS": f"{avance(kl):.1f}%",
-                  "PLANES ADICIONALES": f"{avance(ka):.1f}%",
-                  "TOTAL": f"{avance(kt):.1f}%"})
+def comparativo(planes_k):
+    """planes_k: dict nombre del plan -> KPIs. Agrega la columna TOTAL."""
+    kt = total(*planes_k.values())
+    filas = []
+    for c, et in FILAS:
+        fila = {"INDICADOR": et}
+        fila.update({n.upper(): k[c] for n, k in planes_k.items()})
+        fila["TOTAL"] = kt[c]
+        filas.append(fila)
+    av = {"INDICADOR": "% avance (finalizados)"}
+    av.update({n.upper(): f"{avance(k):.1f}%" for n, k in planes_k.items()})
+    av["TOTAL"] = f"{avance(kt):.1f}%"
+    filas.append(av)
     tabla = pd.DataFrame(filas)
     tabla.index = range(1, len(tabla) + 1)
     return tabla
 
 
-def alertas(kl, ka):
+def alertas(planes_k):
     """Pendientes críticos (solo los mayores que cero), de mayor a menor."""
     filas = []
     for c, et in ALERTAS:
-        for plan, k in (("Plan de líneas", kl), ("Planes adicionales", ka)):
+        for plan, k in planes_k.items():
             if k[c] > 0:
                 filas.append({"PLAN": plan, "PENDIENTE": et, "INFORMES": k[c]})
     filas.sort(key=lambda f: -f["INFORMES"])
@@ -82,8 +88,8 @@ def alertas(kl, ka):
     return tabla
 
 
-def excel_resumen(kl, ka, extra=None):
-    hojas = {"RESUMEN": comparativo(kl, ka), "ALERTAS": alertas(kl, ka)}
+def excel_resumen(planes_k, extra=None):
+    hojas = {"RESUMEN": comparativo(planes_k), "ALERTAS": alertas(planes_k)}
     hojas.update(extra or {})
     salida = io.BytesIO()
     with pd.ExcelWriter(salida, engine="openpyxl") as w:
@@ -105,11 +111,12 @@ def excel_resumen(kl, ka, extra=None):
     return salida.getvalue()
 
 
+ORDEN_PLANES = ["Plan de líneas", "Planes adicionales", "Pescantes y trolleys"]
 ORDEN_MESES = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO",
                "AGOSTO", "SETIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"]
 
 
-def listas_adicionales(res):
+def listas_adicionales(res, plan="Planes adicionales", unidad="línea"):
     """Informes de planes adicionales pendientes de inspección / por elaborar.
 
     ``res`` es el resultado de planes.procesar_planes. Mismo formato que
@@ -130,7 +137,8 @@ def listas_adicionales(res):
             ).values
             codigo = inf["CODIGO DE INFORME"]
             salida.append({
-                "PLAN": "Planes adicionales",
+                "PLAN": plan,
+                "UNIT": unidad,
                 "ALCANCE": inf["PLAN"],
                 "MES": inf["MES"],
                 "INFORME": "Sin código de informe" if planes.es_codigo_provisional(codigo) else codigo,
@@ -149,7 +157,7 @@ def ordenar(items):
     """Plan de líneas primero y, dentro de cada plan, por mes."""
     def clave(i):
         mes = ORDEN_MESES.index(i["MES"]) if i["MES"] in ORDEN_MESES else 99
-        return (0 if i["PLAN"] == "Plan de líneas" else 1, mes)
+        return (ORDEN_PLANES.index(i["PLAN"]) if i["PLAN"] in ORDEN_PLANES else 9, mes)
     return sorted(items, key=clave)
 
 
@@ -160,7 +168,8 @@ def tabla_lista(items, inspeccion):
         if inspeccion:
             lineas = f"{i['N_PEND']} de {i['N_LINEAS']} por inspeccionar"
         else:
-            lineas = f"{i['N_LINEAS']} línea{'' if i['N_LINEAS'] == 1 else 's'}"
+            u = i.get("UNIT", "línea")
+            lineas = f"{i['N_LINEAS']} {u}{'' if i['N_LINEAS'] == 1 else 's'}"
         filas.append({
             "PLAN": i["PLAN"], "MES": i["MES"], "INFORME": i["INFORME"],
             "IDENTIFICACIÓN": i["IDENTIFICACIÓN"], "LÍNEAS": lineas,
