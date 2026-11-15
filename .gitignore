@@ -1,3 +1,10 @@
 __pycache__/
 *.pyc
 *.modificado
+
+# Préstamos M3K: datos reales y secretos nunca se suben
+prestamos_m3k/data/*.json
+prestamos_m3k/data/*.tmp
+.streamlit/secrets.toml
+prestamos_m3k/.streamlit/secrets.toml
+.pytest_cache/

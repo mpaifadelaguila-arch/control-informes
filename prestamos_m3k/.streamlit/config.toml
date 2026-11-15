@@ -1,0 +1,12 @@
+# Tema claro tipo software contable: fondo blanco, verde sobrio y tablas densas.
+# Los estilos de las piezas propias (tablas, tarjetas, pastillas) están en estilos.py.
+[theme]
+base = "light"
+primaryColor = "#1F6B4F"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F1F5F3"
+textColor = "#1B2A22"
+linkColor = "#1F6B4F"
+borderColor = "#D3DCD7"
+baseRadius = "6px"
+font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap, sans-serif"
