@@ -127,6 +127,35 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
   .m3k-fila {{ flex-direction:column; align-items:flex-start; }}
 }}
 @media (prefers-reduced-motion: reduce) {{ * {{ animation:none !important; transition:none !important; scroll-behavior:auto !important; }} }}
+
+/* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
+   así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */
+:root {{ color-scheme: light; }}
+.stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stMain"] {{ background:#FFFFFF !important; color:var(--texto) !important; }}
+[data-testid="stSidebar"], [data-testid="stSidebarContent"], [data-testid="stSidebarNav"] {{ background:#F1F5F3 !important; border-right:1px solid var(--borde); }}
+.stApp, .stApp p, .stApp li, .stApp span, .stApp label, .stApp h1, .stApp h2, .stApp h3, .stApp h4,
+.stApp [data-testid="stMarkdownContainer"], .stApp [data-testid="stWidgetLabel"], .stApp [data-testid="stCaptionContainer"] {{ color:var(--texto); }}
+.stApp [data-testid="stCaptionContainer"], .stApp small {{ color:var(--suave) !important; }}
+[data-testid="stSidebar"] a, [data-testid="stSidebar"] [data-testid="stSidebarNavLink"] span, [data-testid="stSidebarNavSeparator"] span,
+[data-testid="stSidebar"] [data-testid="stSidebarNavLink"] {{ color:var(--texto) !important; }}
+[data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] {{ background:#DDE8E2 !important; font-weight:700; }}
+[data-testid="stSidebar"] [data-testid="stSidebarNavLink"]:hover {{ background:#E6EEE9 !important; }}
+[data-testid="stSidebar"] hr {{ border-color:var(--borde) !important; }}
+[data-testid="stSidebarNav"] header span, [data-testid="stSidebarNav"] [data-testid="stNavSectionHeader"], [data-testid="stSidebarNav"] ul li > div > span {{ color:var(--suave) !important; }}
+.stTextInput input, .stNumberInput input, .stDateInput input, .stTextArea textarea, div[data-baseweb="select"] > div,
+div[data-baseweb="input"], div[data-baseweb="base-input"], [data-testid="stNumberInputContainer"] {{ background:#FFFFFF !important; color:var(--texto) !important; border-color:var(--borde) !important; }}
+div[data-baseweb="popover"] ul, div[data-baseweb="menu"], div[data-baseweb="popover"] li {{ background:#FFFFFF !important; color:var(--texto) !important; }}
+div[data-baseweb="popover"] li:hover {{ background:#EEF4F0 !important; }}
+.stButton button, .stDownloadButton button, .stFormSubmitButton button {{ background:#FFFFFF; color:var(--texto); border:1px solid var(--borde); }}
+.stButton button[kind="primary"], .stFormSubmitButton button[kind="primary"] {{ background:var(--acento); color:#FFFFFF; border-color:var(--acento); }}
+.stButton button:disabled {{ opacity:.5; }}
+[data-testid="stExpander"] {{ background:#FFFFFF; border:1px solid var(--borde); }}
+[data-testid="stExpander"] summary, [data-testid="stExpander"] summary * {{ color:var(--texto) !important; }}
+[data-baseweb="tab-list"] button, [data-baseweb="tab-list"] button * {{ color:var(--suave) !important; }}
+[data-baseweb="tab-list"] button[aria-selected="true"], [data-baseweb="tab-list"] button[aria-selected="true"] * {{ color:var(--acento) !important; font-weight:700; }}
+[data-testid="stRadio"] label, [data-testid="stRadio"] label * {{ color:var(--texto) !important; }}
+[data-testid="stForm"] {{ border:1px solid var(--borde); background:var(--papel); }}
+[data-testid="stAlert"] {{ border:1px solid var(--borde); }}
 </style>
 """
 
