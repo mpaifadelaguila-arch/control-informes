@@ -150,3 +150,18 @@ def columnas(datos: list[tuple[str, float, bool]], vacio_txt: str = "") -> str:
             f'{f'<div class="col" style="height:{alto:.0f}%"><span class="val num">{_corto(valor)}</span><i class="cob" style="animation-delay:{i * 0.06:.2f}s"></i></div>' if valor else ""}'
             f'</div><span class="rot">{ui.esc(rotulo)}</span></div>')
     return f'<div class="m3k-sem una" style="grid-template-columns:repeat({max(1, len(datos))},minmax(0,1fr))">{"".join(cols)}</div>'
+
+
+def cascada(filas: list[tuple[str, float, str]]) -> str:
+    """Cómo se formó un saldo: filas (nombre, monto, tipo) con tipo «mas», «menos» o «total»; la longitud de cada barra compara los montos."""
+    mayor = max((abs(m) for _, m, _ in filas), default=0) or 1
+    colores = {"mas": ui.TONOS["ok"], "menos": ui.TONOS["aviso"], "total": ui.TONOS["info"]}
+    out = []
+    for i, (nombre, monto, tipo) in enumerate(filas):
+        ancho = max(1.5, abs(monto) / mayor * 100) if monto else 0
+        signo = {"mas": "+ ", "menos": "− ", "total": ""}[tipo]
+        out.append(
+            f'<div class="fila {tipo}"><span class="n">{ui.esc(nombre)}</span>'
+            f'<div class="pista"><i style="width:{ancho:.1f}%;background:{colores[tipo]};animation-delay:{i * 0.07:.2f}s"></i></div>'
+            f'<b class="num">{signo}{ui.soles(abs(monto))}</b></div>')
+    return f'<div class="m3k-cascada">{"".join(out)}</div>'

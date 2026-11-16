@@ -199,6 +199,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-reparto li {{ display:grid; grid-template-columns:12px 1fr auto 38px; gap:.5rem; align-items:center; padding:.3rem 0; font-size:.88rem; border-bottom:1px solid #E6ECE8; }}
 .m3k-reparto li i {{ width:10px; height:10px; border-radius:50%; }} .m3k-reparto li em {{ font-style:normal; color:var(--suave); text-align:right; font-size:.78rem; }}
 
+.m3k-cascada .fila {{ display:grid; grid-template-columns:minmax(120px,190px) 1fr auto; gap:.8rem; align-items:center; padding:.38rem 0; border-bottom:1px solid #E6ECE8; font-size:.9rem; }}
+.m3k-cascada .fila:last-child {{ border-bottom:0; }} .m3k-cascada .fila.total {{ border-top:2px solid var(--borde); margin-top:.2rem; font-weight:700; }}
+.m3k-cascada .pista {{ height:12px; background:#EEF2EF; border-radius:99px; overflow:hidden; }}
+.m3k-cascada .pista i {{ display:block; height:100%; border-radius:99px; transform-origin:left; animation:m3k-ancho .9s cubic-bezier(.2,.7,.2,1) both; }}
+.m3k-cascada b {{ text-align:right; min-width:92px; }}
+@media (max-width: 640px) {{ .m3k-cascada .fila {{ grid-template-columns:1fr auto; }} .m3k-cascada .pista {{ grid-column:1 / -1; grid-row:2; }} }}
+
 /* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
    así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */
 :root {{ color-scheme: light; }}

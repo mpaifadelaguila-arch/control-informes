@@ -1,11 +1,15 @@
-"""Caja: liquidez, movimientos manuales, historial único y capital base con auditoría."""
+"""Caja: saldo, cómo se formó, movimientos manuales, historial con saldo y capital base con auditoría."""
 
 import streamlit as st
 
 import calculos as calc
 import datos
 import estilos as ui
+import graficos as g
 import operaciones as ops
+
+
+TONO_TIPO = {"Cobro": "ok", "Aporte de capital": "ok", "Desembolso": "info", "Retiro": "aviso", "Gasto": "aviso", "Pago de servicio": "aviso"}
 
 
 def _monto_coloreado(importe: float) -> ui.Raw:
@@ -23,13 +27,22 @@ def mostrar() -> None:
     ui.kpis([
         {"etiqueta": "Saldo disponible", "valor": ui.soles(r["liquidez"]), "heroe": True, "tono": "ok" if r["liquidez"] >= 0 else "malo",
          "nota": "Lo que hay hoy en caja"},
-        {"etiqueta": "Entradas", "valor": ui.soles(entradas), "tono": "ok", "nota": f"Cobros {ui.soles(r['cobrado'])} · aportes {ui.soles(r['aportes'])}"},
-        {"etiqueta": "Salidas", "valor": ui.soles(salidas), "tono": "aviso", "nota": f"Créditos {ui.soles(r['desembolsado'])} · retiros y gastos {ui.soles(r['salidas'])}"},
+        {"etiqueta": "Ha entrado", "valor": ui.soles(entradas), "tono": "ok", "nota": "Cobros y aportes"},
+        {"etiqueta": "Ha salido", "valor": ui.soles(salidas), "tono": "aviso", "nota": "Créditos, retiros y gastos"},
     ])
 
-    with st.expander("Registrar movimiento", expanded=not db["movimientos"] and not db["prestamos"]):
+    # ---- cómo se formó el saldo: cada fuente aparece una sola vez ----
+    por_tipo = {t: round(sum(m["monto"] for m in db["movimientos"] if not m.get("anulado") and m["tipo"] == t), 2) for t in ops.TIPOS_MOVIMIENTO}
+    filas = [("Capital base", r["capital_base"], "mas"), ("Cobros a clientes", r["cobrado"], "mas")]
+    filas += [("Aportes de capital", por_tipo["aporte"], "mas")] if por_tipo["aporte"] else []
+    filas += [("Créditos entregados", r["desembolsado"], "menos")]
+    filas += [(n, por_tipo[t], "menos") for t, n in (("retiro", "Retiros de capital"), ("gasto", "Gastos"), ("servicio", "Pago de servicios")) if por_tipo[t]]
+    filas += [("Saldo disponible", r["liquidez"], "total")]
+    st.markdown(g.panel("¿Cómo se formó tu saldo?", g.cascada(filas)), unsafe_allow_html=True)
+
+    with st.expander("Registrar entrada o salida de dinero", expanded=not db["movimientos"] and not db["prestamos"], icon=":material/add_circle:"):
         with st.form("form_movimiento", clear_on_submit=True):
-            tipo = st.selectbox("Tipo", list(ops.TIPOS_MOVIMIENTO), format_func=ops.TIPOS_MOVIMIENTO.get)
+            tipo = st.radio("¿Qué pasó?", list(ops.TIPOS_MOVIMIENTO), format_func=lambda t: ops.TIPOS_MOVIMIENTO[t], horizontal=True)
             c1, c2 = st.columns(2)
             monto = c1.number_input("Monto (S/)", min_value=0.0, step=10.0, format="%.2f")
             fecha = c2.date_input("Fecha", value=hoy, format="DD/MM/YYYY")
@@ -45,20 +58,20 @@ def mostrar() -> None:
                     st.rerun()
 
     st.subheader("Historial", anchor=False)
-    historial = calc.movimientos_caja(db)
-    filtro = st.selectbox("Mostrar", ["Todo", "Desembolso", "Cobro", "Movimientos manuales"], label_visibility="collapsed")
-    if filtro == "Movimientos manuales":
-        historial = [h for h in historial if h["tipo"] not in ("Desembolso", "Cobro")]
-    elif filtro != "Todo":
-        historial = [h for h in historial if h["tipo"] == filtro]
+    historial = calc.movimientos_con_saldo(db)  # el saldo se calcula con todo el historial, antes de filtrar
+    filtros = {"Todo": None, "Cobros": ("Cobro",), "Créditos": ("Desembolso",), "Aportes": ("Aporte de capital",),
+               "Retiros y gastos": ("Retiro", "Gasto", "Pago de servicio")}
+    filtro = st.radio("Mostrar", list(filtros), horizontal=True, label_visibility="collapsed")
+    if filtros[filtro]:
+        historial = [h for h in historial if h["tipo"] in filtros[filtro]]
     if not historial:
         ui.vacio("Sin movimientos", "Los desembolsos, cobros y movimientos manuales aparecerán aquí.")
     else:
-        ui.tabla(["Fecha", "Tipo", "Detalle", "Folio", "Monto"],
-                 [[ui.fecha_txt(h["fecha"]), h["tipo"], h["detalle"], h["folio"] or "—", _monto_coloreado(h["monto"])] for h in historial[-200:]],
-                 numericas=(4,), sin_corte=(0, 3), etiqueta="Historial de caja")
-        if len(historial) > 200:
-            st.caption(f"Se muestran los 200 más recientes de {len(historial)}.")
+        ui.tabla(["Fecha", "Tipo", "Detalle", "Folio", "Monto", "Saldo"],
+                 [[ui.fecha_txt(h["fecha"]), ui.chip(h["tipo"], TONO_TIPO.get(h["tipo"], "neutro")), h["detalle"], h["folio"] or "—",
+                   _monto_coloreado(h["monto"]), ui.soles(h["saldo"])] for h in historial[-200:]],
+                 numericas=(4, 5), sin_corte=(0, 3), etiqueta="Historial de caja")
+        st.caption("«Saldo» es lo que quedaba en caja después de cada movimiento." + (f" Se muestran los 200 más recientes de {len(historial)}." if len(historial) > 200 else ""))
 
     manuales = [m for m in db["movimientos"] if not m.get("anulado")]
     if manuales:
