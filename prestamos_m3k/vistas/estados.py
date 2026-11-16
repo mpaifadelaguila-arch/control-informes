@@ -9,44 +9,15 @@ import estilos as ui
 from vistas import comun
 
 
-def _intereses_cobrados(db: dict, desde, hasta) -> float:
-    """Parte de interés de las cuotas cobradas en el periodo (base de caja), para comparar con lo devengado."""
-    prestamos = {p["id"]: p for p in db["prestamos"]}
-    total = 0.0
-    for p in db["pagos"]:
-        if p.get("anulado") or not (desde <= calc.fecha(p["fecha"]) <= hasta):
-            continue
-        pr = prestamos.get(p["prestamo_id"])
-        if pr and not pr.get("anulado"):
-            total += p["monto_cuota"] * (pr["total"] - pr["monto"]) / pr["total"]
-    return round(total, 2)
-
-
-def _resultados(db: dict, lib: list[dict], desde, hasta) -> None:
+def _resultados(lib: list[dict], desde, hasta) -> None:
     er = cont.estado_resultados(lib, desde, hasta)
-    cobrados = _intereses_cobrados(db, desde, hasta)
-    ui.kpis([
-        {"etiqueta": "Ingresos", "valor": ui.soles(er["ingresos"]), "tono": "ok", "nota": "Intereses devengados y mora"},
-        {"etiqueta": "Gastos", "valor": ui.soles(er["gastos"]), "tono": "aviso", "nota": "Gastos operativos y servicios"},
-        {"etiqueta": "Utilidad neta", "valor": ui.soles(er["utilidad"]), "heroe": True, "tono": "ok" if er["utilidad"] >= 0 else "malo",
-         "nota": "Base devengado"},
-    ])
     ui.tabla(["Concepto", "Importe (S/)"], [
-        {"celdas": ["INGRESOS", ""], "clase": "cab"},
-        ["  701 Ingresos por intereses (devengados)", ui.monto(er["intereses"])],
-        ["  702 Ingresos por mora", ui.monto(er["mora"])],
+        ["Intereses ganados", ui.monto(er["intereses"])],
+        ["Mora cobrada", ui.monto(er["mora"])],
         {"celdas": ["Total ingresos", ui.monto(er["ingresos"])], "clase": "sub"},
-        {"celdas": ["GASTOS", ""], "clase": "cab"},
-        ["  601 Gastos operativos", ui.monto(-er["gastos"] if er["gastos"] else 0)],
-        {"celdas": ["Total gastos", ui.monto(-er["gastos"] if er["gastos"] else 0)], "clase": "sub"},
-    ], numericas=(1,), etiqueta="Estado de resultados", pie=["Utilidad neta del periodo", ui.monto(er["utilidad"])])
-    st.subheader("Intereses: devengados frente a cobrados", anchor=False)
-    ui.tabla(["Concepto", "Importe (S/)"], [
-        ["Intereses devengados (ganados en el periodo)", ui.monto(er["intereses"])],
-        ["Intereses cobrados en efectivo en el periodo", ui.monto(cobrados)],
-    ], numericas=(1,), etiqueta="Intereses devengados y cobrados",
-        pie=["Diferencia (ganado y aún no cobrado, o cobrado de periodos anteriores)", ui.monto(round(er["intereses"] - cobrados, 2))])
-    st.caption("El interés se reconoce como ganancia de forma lineal entre el desembolso y la última cuota. No incluye provisiones por incobrabilidad.")
+        ["Gastos y servicios", ui.monto(-er["gastos"] if er["gastos"] else 0)],
+    ], numericas=(1,), etiqueta="Estado de resultados", pie=["Utilidad del periodo", ui.monto(er["utilidad"])])
+    st.caption("Los intereses se cuentan como ganados día a día entre la entrega y la última cuota, aunque el cliente aún no haya pagado.")
 
 
 def _balance(lib: list[dict], hasta) -> None:
@@ -63,8 +34,11 @@ def _balance(lib: list[dict], hasta) -> None:
         ["  302 (−) Retiros de capital", ui.monto(-b["retiros"] if b["retiros"] else 0)],
         ["  Resultados acumulados", ui.monto(b["resultados"])],
         {"celdas": ["Total patrimonio", ui.monto(b["patrimonio"])], "clase": "sub"},
-    ], numericas=(1,), etiqueta="Balance general", pie=["Activo − Patrimonio", ui.monto(round(b["activo"] - b["patrimonio"], 2))])
-    ui.verificaciones([("Activo = Patrimonio", b["cuadra"], "No hay deudas con terceros: todo el activo se financia con capital y resultados.")])
+    ], numericas=(1,), etiqueta="Balance general")
+    if b["cuadra"]:
+        st.caption("El balance cuadra: el activo es igual al patrimonio.")
+    else:
+        st.error("El activo y el patrimonio no son iguales. Revisa los asientos en el Libro diario.")
 
 
 def _flujo(db: dict, lib: list[dict], hoy) -> None:
@@ -98,7 +72,7 @@ def mostrar() -> None:
     lib = cont.asientos(db, hoy, hoy)
     t1, t2, t3 = st.tabs(["Estado de resultados", "Balance general", "Flujo de caja"])
     with t1:
-        _resultados(db, lib, desde, hasta)
+        _resultados(lib, desde, hasta)
     with t2:
         _balance(lib, hasta)
     with t3:

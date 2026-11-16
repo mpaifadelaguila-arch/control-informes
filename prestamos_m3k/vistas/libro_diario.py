@@ -64,8 +64,10 @@ def _comprobacion(lib: list[dict]) -> None:
              [[f["cuenta"], f["nombre"], ui.monto(f["debe"]), ui.monto(f["haber"]), ui.monto(f["deudor"]), ui.monto(f["acreedor"])] for f in bc["filas"]],
              numericas=(2, 3, 4, 5), etiqueta="Balance de comprobación",
              pie=["", "Totales", ui.monto(bc["total"]["debe"]), ui.monto(bc["total"]["haber"]), ui.monto(bc["total"]["deudor"]), ui.monto(bc["total"]["acreedor"])])
-    ui.verificaciones([("Total debe = total haber", bc["total"]["debe"] == bc["total"]["haber"], "Todos los asientos son de partida doble."),
-                       ("Saldos deudores = saldos acreedores", bc["total"]["deudor"] == bc["total"]["acreedor"], "Condición del balance de comprobación.")])
+    if bc["cuadra"]:
+        st.caption("Todo cuadra: el total del Debe es igual al total del Haber.")
+    else:
+        st.error("El Debe y el Haber no son iguales. Avísame para revisar los asientos.")
 
 
 def mostrar() -> None:

@@ -35,12 +35,8 @@ def mostrar() -> None:
          "nota": f"{ind['prestamos_activos']} préstamo(s) activo(s) · sin contar lo ya recuperado"},
         {"etiqueta": "Por cobrar", "valor": ui.soles(ind["por_cobrar"]), "tono": "aviso",
          "nota": f"{ui.soles(ind['vencido'])} vencido" if sobre_vencido else "Nada vencido"},
-        {"etiqueta": "Cartera vencida", "valor": ui.pct(ind["morosidad"]), "tono": "malo" if sobre_vencido else "ok",
-         "nota": f"{ind['cuotas_vencidas']} cuota(s) vencida(s)" + (f" · mora {ui.soles(ind['mora_pendiente'])}" if ind["mora_pendiente"] else "")},
         {"etiqueta": "Para cobrar hoy", "valor": ui.soles(ind["cobros_hoy_monto"]), "tono": "info",
          "nota": f"{ind['cobros_hoy_n']} cuota(s) vencen hoy"},
-        {"etiqueta": "Ganancia cobrada", "valor": ui.soles(ind["ganancia_realizada"]), "tono": "ok",
-         "nota": f"de {ui.soles(ind['ganancia_proyectada'])} proyectados en toda la cartera"},
     ])
 
     st.subheader("Cobranza", anchor=False)
@@ -68,12 +64,3 @@ def mostrar() -> None:
             comun.ir_a("cobros")
     if len(cola) > 10:
         st.caption(f"Mostrando 10 de {len(cola)}. El detalle completo está en «Préstamos».")
-
-    st.subheader("Antigüedad de la mora", anchor=False)
-    antig = calc.antiguedad_mora(evals)
-    if not any(f["cuotas"] for f in antig):
-        ui.vacio("Sin mora", "Cuando haya cuotas vencidas aparecerán agrupadas por días de atraso.")
-    else:
-        ui.tabla(["Atraso", "Cuotas", "Monto vencido"],
-                 [[f["tramo"], f["cuotas"], ui.soles(f["monto"])] for f in antig], numericas=(1, 2),
-                 etiqueta="Deuda vencida por días de atraso")

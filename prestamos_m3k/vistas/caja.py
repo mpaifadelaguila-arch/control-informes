@@ -19,13 +19,12 @@ def mostrar() -> None:
     r = calc.resumen_caja(db)
     ui.encabezado("Caja", "Todo el dinero que entra y sale del negocio")
 
+    entradas, salidas = r["cobrado"] + r["aportes"], r["desembolsado"] + r["salidas"]
     ui.kpis([
         {"etiqueta": "Saldo disponible", "valor": ui.soles(r["liquidez"]), "heroe": True, "tono": "ok" if r["liquidez"] >= 0 else "malo",
-         "nota": f"Capital base {ui.soles(r['capital_base'])}"},
-        {"etiqueta": "Desembolsado", "valor": ui.soles(r["desembolsado"]), "tono": "info", "nota": "Créditos entregados"},
-        {"etiqueta": "Cobrado", "valor": ui.soles(r["cobrado"]), "tono": "ok", "nota": "Cuotas y mora"},
-        {"etiqueta": "Aportes", "valor": ui.soles(r["aportes"]), "nota": "Capital que ingresó"},
-        {"etiqueta": "Retiros y gastos", "valor": ui.soles(r["salidas"]), "tono": "aviso", "nota": "Retiros, gastos y servicios"},
+         "nota": "Lo que hay hoy en caja"},
+        {"etiqueta": "Entradas", "valor": ui.soles(entradas), "tono": "ok", "nota": f"Cobros {ui.soles(r['cobrado'])} · aportes {ui.soles(r['aportes'])}"},
+        {"etiqueta": "Salidas", "valor": ui.soles(salidas), "tono": "aviso", "nota": f"Créditos {ui.soles(r['desembolsado'])} · retiros y gastos {ui.soles(r['salidas'])}"},
     ])
 
     with st.expander("Registrar movimiento", expanded=not db["movimientos"] and not db["prestamos"]):
