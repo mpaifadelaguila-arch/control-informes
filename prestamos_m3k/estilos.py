@@ -100,7 +100,9 @@ html {{ scroll-behavior: smooth; }}
 .m3k-tabla td.n, .m3k-tabla th.n {{ text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }}
 .m3k-tabla tr.cab td {{ background:var(--papel) !important; font-weight:600; border-top:1px solid var(--borde); }}
 .m3k-tabla tr.sub td {{ font-weight:600; background:var(--papel) !important; }}
-.m3k-tabla td.sangria {{ padding-left:1.6rem; color:var(--suave); }}
+.m3k-tabla td.sangria {{ padding-left:1.6rem; color:var(--texto); }}
+.m3k-tabla td.nw, .m3k-tabla th.nw {{ white-space:nowrap; }}
+.m3k-tabla tr.cab td {{ border-top:2px solid var(--borde); }}
 .m3k-tabla tfoot td {{ font-weight:700; background:{CABECERA_TABLA}; border-top:2px solid var(--borde); padding:.45rem .65rem;
   font-variant-numeric:tabular-nums; }}
 .m3k-tabla tfoot td.n {{ text-align:right; }}
@@ -215,24 +217,35 @@ def kpis(items: list[dict]) -> None:
     st.markdown(f'<div class="m3k-kpis">{"".join(tarjetas)}</div>', unsafe_allow_html=True)
 
 
-def tabla(columnas: list[str], filas: list, numericas: tuple[int, ...] = (), etiqueta: str = "", pie: list | None = None) -> None:
+def tabla(columnas: list[str], filas: list, numericas: tuple[int, ...] = (), etiqueta: str = "", pie: list | None = None,
+          sin_corte: tuple[int, ...] = ()) -> None:
     """Tabla HTML con cabecera fija, desplazamiento propio y fila de totales opcional.
 
     Cada fila es una lista de celdas, o un dict {"celdas": [...], "clase": "cab"|"sub"} para filas de agrupación.
-    Las celdas se escapan salvo que sean `Raw`. Una celda con prefijo «  » (dos espacios) se muestra con sangría.
+    Si una fila trae menos celdas que columnas, su última celda ocupa el resto del ancho (útil para títulos de asiento).
+    Las celdas se escapan salvo que sean `Raw`. Una celda que empieza con dos espacios se muestra con sangría.
+    `sin_corte` lista las columnas cuyo texto nunca se parte en dos líneas (fechas, números, cuentas).
     """
-    def celda(i: int, valor) -> str:
-        clase = "n" if i in numericas else ""
+    def celda(i: int, valor, ancho: int = 1) -> str:
+        clases = []
+        if i in numericas:
+            clases.append("n")
+        if i in sin_corte and ancho == 1:  # los títulos que ocupan varias columnas sí deben poder partirse
+            clases.append("nw")
         texto = esc(valor)
         if isinstance(valor, str) and valor.startswith("  ") and not isinstance(valor, Raw):
-            clase, texto = "sangria", esc(valor.strip())
-        return f'<td class="{clase}">{texto}</td>'
+            clases.append("sangria")
+            texto = esc(valor.strip())
+        span = f' colspan="{ancho}"' if ancho > 1 else ""
+        return f'<td class="{" ".join(clases)}"{span}>{texto}</td>'
 
     cab = "".join(f'<th class="{"n" if i in numericas else ""}">{esc(c)}</th>' for i, c in enumerate(columnas))
     cuerpo = []
     for fila in filas:
         celdas, clase = (fila["celdas"], fila.get("clase", "")) if isinstance(fila, dict) else (fila, "")
-        cuerpo.append(f'<tr class="{clase}">' + "".join(celda(i, c) for i, c in enumerate(celdas)) + "</tr>")
+        resto = len(columnas) - len(celdas) + 1
+        partes = [celda(i, c, resto if i == len(celdas) - 1 else 1) for i, c in enumerate(celdas)]
+        cuerpo.append(f'<tr class="{clase}">' + "".join(partes) + "</tr>")
     tfoot = ""
     if pie:
         tfoot = "<tfoot><tr>" + "".join(f'<td class="{"n" if i in numericas else ""}">{esc(c)}</td>' for i, c in enumerate(pie)) + "</tr></tfoot>"

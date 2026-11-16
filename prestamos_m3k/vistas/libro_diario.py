@@ -25,15 +25,16 @@ def _diario(lib: list[dict], desde) -> None:
         ui.vacio("Sin asientos en este periodo", "Los desembolsos, cobros, movimientos de caja y devengos generan asientos automáticamente.")
         return
     mostrados = sel[-MAX_ASIENTOS:]
+    st.caption("Cada bloque gris es un asiento: arriba se explica qué pasó y debajo van las cuentas que se mueven. "
+               "En cada asiento, lo que entra por Debe es igual a lo que sale por Haber.")
     filas, debe, haber = [], 0, 0
     for a in mostrados:
-        glosa = f"{a['glosa']} · {a['ref']}" + (" · PROVISIONAL" if a["provisional"] else "")
-        filas.append({"celdas": [ui.fecha_txt(a["fecha"]), a["numero"], "", glosa, "", ""], "clase": "cab"})
+        filas.append({"celdas": [ui.fecha_txt(a["fecha"]), a["numero"], a["glosa"]], "clase": "cab"})
         for c, d, h in a["lineas"]:
-            filas.append(["", "", f"  {c} {cont.CUENTAS[c][0]}", "", ui.monto(cont.importe(d)), ui.monto(cont.importe(h))])
+            filas.append(["", "", f"  {c} {cont.CUENTAS[c][0]}", ui.monto(cont.importe(d)), ui.monto(cont.importe(h))])
             debe, haber = debe + d, haber + h
-    ui.tabla(["Fecha", "Asiento", "Cuenta", "Glosa", "Debe", "Haber"], filas, numericas=(4, 5), etiqueta="Libro diario",
-             pie=["", "", "", f"Totales de los {len(mostrados)} asientos mostrados", ui.monto(cont.importe(debe)), ui.monto(cont.importe(haber))])
+    ui.tabla(["Fecha", "Asiento", "Cuenta", "Debe", "Haber"], filas, numericas=(3, 4), sin_corte=(0, 1, 2), etiqueta="Libro diario",
+             pie=["", "", f"Totales de los {len(mostrados)} asientos mostrados", ui.monto(cont.importe(debe)), ui.monto(cont.importe(haber))])
     if len(sel) > MAX_ASIENTOS:
         st.caption(f"Se muestran los últimos {MAX_ASIENTOS} de {len(sel)} asientos del periodo. Descarga el CSV para ver todos.")
     st.download_button("Descargar libro diario (CSV)", _csv_diario(sel), file_name="libro_diario.csv", mime="text/csv", icon=":material/download:")
@@ -52,7 +53,7 @@ def _mayor(lib: list[dict], desde) -> None:
     filas += [[ui.fecha_txt(f["fecha"]), f["numero"], f"{f['glosa']} · {f['ref']}", ui.monto(f["debe"]), ui.monto(f["haber"]), ui.monto(f["saldo"])]
               for f in periodo]
     final = periodo[-1]["saldo"] if periodo else saldo_ini
-    ui.tabla(["Fecha", "Asiento", "Detalle", "Debe", "Haber", "Saldo"], filas, numericas=(3, 4, 5), etiqueta="Libro mayor",
+    ui.tabla(["Fecha", "Asiento", "Detalle", "Debe", "Haber", "Saldo"], filas, numericas=(3, 4, 5), sin_corte=(0, 1), etiqueta="Libro mayor",
              pie=["", "", "Saldo final", ui.monto(round(sum(f["debe"] for f in periodo), 2)), ui.monto(round(sum(f["haber"] for f in periodo), 2)), ui.monto(final)])
     st.caption(f"Naturaleza de la cuenta: {'deudora' if cont.CUENTAS[cuenta][1] == 'D' else 'acreedora'}; el saldo se calcula en ese sentido.")
 
