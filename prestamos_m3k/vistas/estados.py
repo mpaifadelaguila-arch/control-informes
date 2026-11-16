@@ -25,13 +25,13 @@ def _balance(lib: list[dict], hasta) -> None:
     st.caption(f"Situación al {ui.fecha_txt(hasta)}.")
     ui.tabla(["Concepto", "Importe (S/)"], [
         {"celdas": ["ACTIVO", ""], "clase": "cab"},
-        ["  101 Caja y bancos", ui.monto(b["caja"])],
-        ["  121 Cartera de créditos", ui.monto(b["cartera"])],
-        ["  129 (−) Intereses no devengados", ui.monto(-b["no_devengados"] if b["no_devengados"] else 0)],
+        ["  Caja y bancos", ui.monto(b["caja"])],
+        ["  Cartera de créditos", ui.monto(b["cartera"])],
+        ["  (−) Intereses no devengados", ui.monto(-b["no_devengados"] if b["no_devengados"] else 0)],
         {"celdas": ["Total activo", ui.monto(b["activo"])], "clase": "sub"},
         {"celdas": ["PATRIMONIO", ""], "clase": "cab"},
-        ["  301 Capital aportado", ui.monto(b["capital"])],
-        ["  302 (−) Retiros de capital", ui.monto(-b["retiros"] if b["retiros"] else 0)],
+        ["  Capital aportado", ui.monto(b["capital"])],
+        ["  (−) Retiros de capital", ui.monto(-b["retiros"] if b["retiros"] else 0)],
         ["  Resultados acumulados", ui.monto(b["resultados"])],
         {"celdas": ["Total patrimonio", ui.monto(b["patrimonio"])], "clase": "sub"},
     ], numericas=(1,), etiqueta="Balance general")
@@ -58,7 +58,7 @@ def _flujo(db: dict, lib: list[dict], hoy) -> None:
              etiqueta="Flujo de caja mensual",
              pie=["Total", ui.monto(total["inicial"]), ui.monto(m["cobro"]), ui.monto(m["aporte"]), ui.monto(m["desembolso"]), ui.monto(m["retiro"]),
                   ui.monto(m["gasto"]), ui.monto(total["final"])])
-    st.caption("Las salidas aparecen entre paréntesis. Saldo final = saldo inicial + entradas − salidas, y coincide con la cuenta 101 Caja y bancos.")
+    st.caption("Las salidas aparecen entre paréntesis. Saldo final = saldo inicial + entradas − salidas, y coincide con el saldo de Caja.")
 
 
 def mostrar() -> None:
