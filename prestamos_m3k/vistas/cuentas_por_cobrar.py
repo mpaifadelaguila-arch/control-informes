@@ -28,14 +28,22 @@ def mostrar() -> None:
         {"etiqueta": "Cartera neta", "valor": ui.soles(cont.importe(t["cartera_neta"])), "tono": "ok", "nota": "Por cobrar menos intereses no devengados"},
     ])
 
-    cols = ["Cliente", "DNI", "Créditos activos", "Por cobrar", "Por vencer", "Vencido"] + [t_[0] for t_ in calc.TRAMOS_MORA] + ["Int. no devengados", "Cartera neta"]
-    filas = [[f["cliente"], f["dni"], f["creditos"], ui.monto(cont.importe(f["por_cobrar"])), ui.monto(cont.importe(f["por_vencer"])),
-              ui.monto(cont.importe(f["vencido"]))] + [ui.monto(cont.importe(x)) for x in f["tramos"]]
-             + [ui.monto(cont.importe(f["no_devengado"])), ui.monto(cont.importe(f["cartera_neta"]))] for f in cxc["filas"]]
-    pie = ["Total", "", t["creditos"], ui.monto(cont.importe(t["por_cobrar"])), ui.monto(cont.importe(t["por_vencer"])), ui.monto(cont.importe(t["vencido"]))] \
-        + [ui.monto(cont.importe(x)) for x in t["tramos"]] + [ui.monto(cont.importe(t["no_devengado"])), ui.monto(cont.importe(t["cartera_neta"]))]
-    ui.tabla(cols, filas, numericas=tuple(range(2, len(cols))), etiqueta="Cuentas por cobrar por cliente", pie=pie)
-    st.caption("Los tramos de antigüedad miden los días de atraso de cada cuota vencida. Los importes entre paréntesis son negativos.")
+    m = lambda c: ui.monto(cont.importe(c))
+    cols = ["Cliente", "DNI", "Créditos", "Por cobrar", "Por vencer", "Vencido", "Int. no devengados", "Cartera neta"]
+    filas = [[f["cliente"], f["dni"], f["creditos"], m(f["por_cobrar"]), m(f["por_vencer"]), m(f["vencido"]), m(f["no_devengado"]), m(f["cartera_neta"])]
+             for f in cxc["filas"]]
+    pie = ["Total", "", t["creditos"], m(t["por_cobrar"]), m(t["por_vencer"]), m(t["vencido"]), m(t["no_devengado"]), m(t["cartera_neta"])]
+    ui.tabla(cols, filas, numericas=tuple(range(2, len(cols))), sin_corte=(0, 1), etiqueta="Cuentas por cobrar por cliente", pie=pie)
+    st.caption("Por vencer: cuotas que aún no llegan a su fecha. Vencido: cuotas cuya fecha ya pasó. "
+               "Cartera neta: lo que te deben menos el interés que todavía no has ganado.")
+
+    st.subheader("Antigüedad del saldo vencido", anchor=False)
+    tramos = [t_[0] for t_ in calc.TRAMOS_MORA]
+    ui.tabla(["Cliente"] + tramos + ["Total vencido"],
+             [[f["cliente"]] + [m(x) for x in f["tramos"]] + [m(f["vencido"])] for f in cxc["filas"]],
+             numericas=tuple(range(1, len(tramos) + 2)), sin_corte=(0,), etiqueta="Antigüedad del saldo vencido",
+             pie=["Total"] + [m(x) for x in t["tramos"]] + [m(t["vencido"])])
+    st.caption("Los tramos cuentan los días de atraso de cada cuota vencida. Si no hay nada vencido, todo aparece en guion.")
 
     st.subheader("Conciliación con el libro mayor", anchor=False)
     ui.tabla(["Cuenta", "Auxiliar (por cliente)", "Libro mayor", "Diferencia", "Estado"],

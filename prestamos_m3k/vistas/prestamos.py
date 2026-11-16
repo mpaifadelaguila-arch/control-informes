@@ -36,7 +36,7 @@ def _cartera(db: dict, evals: dict) -> None:
           f"{comun.nombre_modalidad(p['modalidad'])} · {len(p['cuotas'])} cuota(s)", ui.fecha_txt(p["fecha_desembolso"]),
           ui.soles(p["monto"]), ui.soles(p["total"]), ui.barra(evals[p["id"]]["avance"]), ui.soles(evals[p["id"]]["saldo"]),
           ui.chip_prestamo(evals[p["id"]]["estado"])] for p in lista],
-        numericas=(4, 5, 7), etiqueta="Cartera de créditos",
+        numericas=(4, 5, 7), sin_corte=(0, 1, 3), etiqueta="Cartera de créditos",
     )
 
     ids = [p["id"] for p in lista]
