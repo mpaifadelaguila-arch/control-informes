@@ -31,7 +31,7 @@ def _diario(lib: list[dict], desde) -> None:
     for a in mostrados:
         filas.append({"celdas": [ui.fecha_txt(a["fecha"]), a["numero"], a["glosa"]], "clase": "cab"})
         for c, d, h in a["lineas"]:
-            filas.append(["", "", f"  {c} {cont.CUENTAS[c][0]}", ui.monto(cont.importe(d)), ui.monto(cont.importe(h))])
+            filas.append(["", "", f"  {cont.CUENTAS[c][0]}", ui.monto(cont.importe(d)), ui.monto(cont.importe(h))])
             debe, haber = debe + d, haber + h
     ui.tabla(["Fecha", "Asiento", "Cuenta", "Debe", "Haber"], filas, numericas=(3, 4), sin_corte=(0, 1, 2), etiqueta="Libro diario",
              pie=["", "", f"Totales de los {len(mostrados)} asientos mostrados", ui.monto(cont.importe(debe)), ui.monto(cont.importe(haber))])
@@ -41,7 +41,7 @@ def _diario(lib: list[dict], desde) -> None:
 
 
 def _mayor(lib: list[dict], desde) -> None:
-    cuenta = st.selectbox("Cuenta", list(cont.CUENTAS), format_func=lambda c: f"{c} · {cont.CUENTAS[c][0]}", key="mayor_cuenta")
+    cuenta = st.selectbox("Cuenta", list(cont.CUENTAS), format_func=lambda c: cont.CUENTAS[c][0], key="mayor_cuenta")
     todas = cont.mayor(lib, cuenta)
     previas = [f for f in todas if f["fecha"] < desde]
     periodo = [f for f in todas if f["fecha"] >= desde]
@@ -60,10 +60,10 @@ def _mayor(lib: list[dict], desde) -> None:
 
 def _comprobacion(lib: list[dict]) -> None:
     bc = cont.balance_comprobacion(lib)
-    ui.tabla(["Cuenta", "Nombre", "Debe", "Haber", "Saldo deudor", "Saldo acreedor"],
-             [[f["cuenta"], f["nombre"], ui.monto(f["debe"]), ui.monto(f["haber"]), ui.monto(f["deudor"]), ui.monto(f["acreedor"])] for f in bc["filas"]],
-             numericas=(2, 3, 4, 5), etiqueta="Balance de comprobación",
-             pie=["", "Totales", ui.monto(bc["total"]["debe"]), ui.monto(bc["total"]["haber"]), ui.monto(bc["total"]["deudor"]), ui.monto(bc["total"]["acreedor"])])
+    ui.tabla(["Cuenta", "Debe", "Haber", "Saldo deudor", "Saldo acreedor"],
+             [[f["nombre"], ui.monto(f["debe"]), ui.monto(f["haber"]), ui.monto(f["deudor"]), ui.monto(f["acreedor"])] for f in bc["filas"]],
+             numericas=(1, 2, 3, 4), etiqueta="Balance de comprobación",
+             pie=["Totales", ui.monto(bc["total"]["debe"]), ui.monto(bc["total"]["haber"]), ui.monto(bc["total"]["deudor"]), ui.monto(bc["total"]["acreedor"])])
     if bc["cuadra"]:
         st.caption("Todo cuadra: el total del Debe es igual al total del Haber.")
     else:

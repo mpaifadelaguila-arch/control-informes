@@ -21,7 +21,7 @@ def _verificaciones(db: dict, hoy) -> list[tuple[str, bool, str]]:
         ("El libro diario cuadra", bc["cuadra"], "Total debe = total haber en todos los asientos."),
         ("Activo = Patrimonio", bal["cuadra"], "El balance general está equilibrado."),
         ("Caja del libro = caja de la app", caja_ok, "La cuenta 101 coincide con el saldo disponible de Caja."),
-        ("Cuentas por cobrar = libro mayor", cxc["cuadra"], "El detalle por cliente coincide con las cuentas 121 y 129."),
+        ("Cuentas por cobrar = libro mayor", cxc["cuadra"], "El detalle por cliente coincide con la cartera y los intereses no devengados del libro."),
     ]
 
 
