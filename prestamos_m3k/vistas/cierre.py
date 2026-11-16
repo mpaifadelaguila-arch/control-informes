@@ -35,7 +35,7 @@ def mostrar() -> None:
         return
 
     filas = []
-    for f in reversed(periodos):
+    for f in periodos:
         cifras = f["cierre"]["cifras"] if f["cierre"] else cont.instantanea(db, f["periodo"], hoy)
         etiqueta, tono = ESTADOS[f["estado"]]
         filas.append([cont.nombre_mes(f["periodo"]), ui.chip(etiqueta, tono), ui.monto(cifras["caja"]), ui.monto(cifras["cartera"]),

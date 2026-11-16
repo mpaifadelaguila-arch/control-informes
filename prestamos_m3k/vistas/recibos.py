@@ -132,17 +132,17 @@ def mostrar() -> None:
     lista = [r for r in registros
              if (tipo == "Todos" or (tipo == "Cobros") == (r["tipo"] == "pago"))
              and (not buscar or buscar in r["cliente"].lower() or buscar in r["folio"].lower())]
-    lista.sort(key=lambda r: (r["fecha"], r["folio"]), reverse=True)
+    lista.sort(key=lambda r: (r["fecha"], r["folio"]))  # el más antiguo primero
     if not lista:
         ui.vacio("Sin resultados", "Cambia el tipo o la búsqueda.")
         return
 
     ui.tabla(["Folio", "Fecha", "Cliente", "Crédito", "Monto", "Estado"],
              [[r["folio"], ui.fecha_dia(r["fecha"]), r["cliente"], r["detalle"], ui.soles(r["monto"]),
-               ui.chip("Anulado", "neutro") if r["anulado"] else ui.chip("Vigente", "ok")] for r in lista[:150]],
+               ui.chip("Anulado", "neutro") if r["anulado"] else ui.chip("Vigente", "ok")] for r in lista[-150:]],
              numericas=(4,), sin_corte=(0, 1, 2, 3), etiqueta="Recibos")
     if len(lista) > 150:
-        st.caption(f"Se muestran los 150 más recientes de {len(lista)}. Usa la búsqueda para encontrar uno anterior.")
+        st.caption(f"Se muestran los 150 más recientes (los anteriores quedan fuera de la lista) de {len(lista)}. Usa la búsqueda para encontrar uno anterior.")
 
     ids = [r["id"] for r in lista]
     if st.session_state.get("recibo_sel") not in ids:

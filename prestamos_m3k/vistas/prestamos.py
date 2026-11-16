@@ -20,7 +20,7 @@ def _cartera(db: dict, evals: dict) -> None:
     buscar = c2.text_input("Buscar cliente", placeholder="Nombre del cliente").strip().lower()
 
     lista = []
-    for p in sorted(db["prestamos"], key=lambda x: x["numero"], reverse=True):
+    for p in sorted(db["prestamos"], key=lambda x: x["numero"]):
         if FILTROS[filtro] and evals[p["id"]]["estado"] != FILTROS[filtro]:
             continue
         if buscar and buscar not in comun.nombre_cliente(db, p["cliente_id"]).lower():

@@ -346,5 +346,5 @@ def movimientos_caja(db: dict) -> list[dict]:
             signo = 1 if m["tipo"] == "aporte" else -1
             filas.append({"fecha": fecha(m["fecha"]), "tipo": etiquetas.get(m["tipo"], m["tipo"]),
                           "detalle": m.get("detalle", ""), "monto": signo * m["monto"], "folio": ""})
-    filas.sort(key=lambda f: (f["fecha"], f["folio"]), reverse=True)
+    filas.sort(key=lambda f: (f["fecha"], f["folio"]))  # el más antiguo primero
     return filas

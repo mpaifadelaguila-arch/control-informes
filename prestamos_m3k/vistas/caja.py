@@ -55,7 +55,7 @@ def mostrar() -> None:
         ui.vacio("Sin movimientos", "Los desembolsos, cobros y movimientos manuales aparecerán aquí.")
     else:
         ui.tabla(["Fecha", "Tipo", "Detalle", "Folio", "Monto"],
-                 [[ui.fecha_txt(h["fecha"]), h["tipo"], h["detalle"], h["folio"] or "—", _monto_coloreado(h["monto"])] for h in historial[:200]],
+                 [[ui.fecha_txt(h["fecha"]), h["tipo"], h["detalle"], h["folio"] or "—", _monto_coloreado(h["monto"])] for h in historial[-200:]],
                  numericas=(4,), sin_corte=(0, 3), etiqueta="Historial de caja")
         if len(historial) > 200:
             st.caption(f"Se muestran los 200 más recientes de {len(historial)}.")
