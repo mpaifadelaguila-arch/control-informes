@@ -76,3 +76,17 @@ def test_reparto_y_columnas_de_reportes():
     c = g.columnas([("9/11", 180.0, False), ("16/11", 0.0, True)])
     assert c.count('class="col"') == 1 and "180" in c and "\n\n" not in c  # la semana sin cobros no dibuja columna
     assert g.columnas([]) and g.reparto([("Capital", 0.0, "#000")])  # sin datos no se rompe
+
+
+def test_historial_de_caja_con_saldo_termina_en_la_liquidez():
+    db, _ = _escenario()
+    ops.registrar_movimiento(db, "gasto", 25, HOY, "Pasajes", hoy_=HOY)
+    h = calc.movimientos_con_saldo(db)
+    assert h[-1]["saldo"] == calc.resumen_caja(db)["liquidez"]
+    assert h[0]["saldo"] == 2000.0 - 600.0  # primer movimiento: el desembolso sobre el capital base
+    assert [x["tipo"] for x in h] == ["Desembolso", "Cobro", "Gasto"]
+
+
+def test_cascada_html():
+    html = g.cascada([("Capital base", 2000.0, "mas"), ("Créditos entregados", 600.0, "menos"), ("Saldo disponible", 1400.0, "total")])
+    assert "+ S/ 2,000.00" in html and "− S/ 600.00" in html and "\n\n" not in html
