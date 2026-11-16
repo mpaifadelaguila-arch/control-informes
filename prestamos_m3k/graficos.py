@@ -96,11 +96,11 @@ def dona(segmentos: list[dict], centro: str, centro_sub: str) -> str:
     aros, acum, items = [], 0.0, []
     for i, s in enumerate(segmentos):
         largo = s["monto"] / total * c
-        color = COLORES_GRAVEDAD[min(s["gravedad"], len(COLORES_GRAVEDAD) - 1)]
+        color = s.get("color") or COLORES_GRAVEDAD[min(s.get("gravedad", 0), len(COLORES_GRAVEDAD) - 1)]
         aros.append(f'<circle class="seg" cx="60" cy="60" r="{r}" fill="none" stroke="{color}" stroke-width="16" transform="rotate(-90 60 60)" '
                     f'style="stroke-dasharray:{largo:.2f} {c - largo:.2f};stroke-dashoffset:{-acum:.2f};--c:{c:.2f};animation-delay:{i * 0.12:.2f}s"/>')
         acum += largo
-        etiqueta = s["nombre"] if s["gravedad"] == 0 else f'Atraso {s["nombre"]}'
+        etiqueta = s.get("etiqueta") or (s["nombre"] if s.get("gravedad", 0) == 0 else f'Atraso {s["nombre"]}')
         items.append(f'<li><i style="background:{color}"></i><span>{ui.esc(etiqueta)}</span><b class="num">{ui.soles(s["monto"])}</b>'
                      f'<em>{s["monto"] / total * 100:.0f} %</em></li>')
     svg = (f'<svg viewBox="0 0 120 120" width="150" height="150" role="img" aria-label="Cartera por antigüedad">'
@@ -128,3 +128,25 @@ def linea(serie: list[tuple]) -> str:
            f'<span class="mm">Mín {ui.soles(menor)} · Máx {ui.soles(mayor)}</span>'
            f'<span class="der">Hoy<b class="num">{ui.soles(fin[1])}</b></span></div>')
     return f"{svg}{pie}"
+
+
+def reparto(partes: list[tuple[str, float, str]]) -> str:
+    """Una sola barra dividida en partes (nombre, monto, color), con la lista de cada parte debajo."""
+    total = sum(m for _, m, _ in partes) or 1
+    trozos = "".join(f'<i style="width:{m / total * 100:.2f}%;background:{c}" title="{ui.esc(n)}"></i>' for n, m, c in partes if m)
+    leyenda = "".join(
+        f'<li><i style="background:{c}"></i><span>{ui.esc(n)}</span><b class="num">{ui.soles(m)}</b><em>{m / total * 100:.0f} %</em></li>' for n, m, c in partes)
+    return f'<div class="m3k-reparto"><div class="barra" role="img" aria-label="Reparto de lo cobrado">{trozos}</div><ul>{leyenda}</ul></div>'
+
+
+def columnas(datos: list[tuple[str, float, bool]], vacio_txt: str = "") -> str:
+    """Una columna por periodo (rótulo, monto, resaltada). El monto va sobre la columna, así una sola barra no parece un bloque sin sentido."""
+    mayor = max((v for _, v, _ in datos), default=0) or 1
+    cols = []
+    for i, (rotulo, valor, resaltar) in enumerate(datos):
+        alto = max(3, valor / mayor * 100) if valor else 0
+        cols.append(
+            f'<div class="c{" act" if resaltar else ""}" title="{ui.esc(rotulo)}: {ui.soles(valor)}"><div class="barras">'
+            f'{f'<div class="col" style="height:{alto:.0f}%"><span class="val num">{_corto(valor)}</span><i class="cob" style="animation-delay:{i * 0.06:.2f}s"></i></div>' if valor else ""}'
+            f'</div><span class="rot">{ui.esc(rotulo)}</span></div>')
+    return f'<div class="m3k-sem una" style="grid-template-columns:repeat({max(1, len(datos))},minmax(0,1fr))">{"".join(cols)}</div>'

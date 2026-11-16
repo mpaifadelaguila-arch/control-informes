@@ -68,3 +68,11 @@ def test_graficos_generan_html_de_una_linea_sin_romperse():
     for html in cuerpo:
         assert "\n\n" not in html
     assert "&lt;b&gt;" in cuerpo[-1]  # el título se escapa
+
+
+def test_reparto_y_columnas_de_reportes():
+    r = g.reparto([("Capital", 150.0, "#1D5F9A"), ("Ganancia", 30.0, "#1E7B4B")])
+    assert "83 %" in r and "17 %" in r and "\n\n" not in r
+    c = g.columnas([("9/11", 180.0, False), ("16/11", 0.0, True)])
+    assert c.count('class="col"') == 1 and "180" in c and "\n\n" not in c  # la semana sin cobros no dibuja columna
+    assert g.columnas([]) and g.reparto([("Capital", 0.0, "#000")])  # sin datos no se rompe
