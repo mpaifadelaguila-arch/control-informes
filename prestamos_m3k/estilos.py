@@ -139,6 +139,56 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 }}
 @media (prefers-reduced-motion: reduce) {{ * {{ animation:none !important; transition:none !important; scroll-behavior:auto !important; }} }}
 
+/* Gráficos del inicio y animaciones (se apagan con «reducir movimiento», más abajo) */
+@keyframes m3k-subir {{ from {{ opacity:0; transform:translateY(10px); }} to {{ opacity:1; transform:none; }} }}
+@keyframes m3k-alto {{ from {{ transform:scaleY(0); }} to {{ transform:scaleY(1); }} }}
+@keyframes m3k-ancho {{ from {{ transform:scaleX(0); }} to {{ transform:scaleX(1); }} }}
+@keyframes m3k-aro {{ from {{ stroke-dasharray:0 var(--c); }} }}
+@keyframes m3k-revela {{ from {{ clip-path:inset(0 100% 0 0); }} to {{ clip-path:inset(0 0 0 0); }} }}
+.m3k-kpi {{ animation:m3k-subir .5s cubic-bezier(.2,.7,.2,1) both; transition:transform .2s ease, box-shadow .2s ease; }}
+.m3k-kpi:nth-child(2) {{ animation-delay:.07s; }} .m3k-kpi:nth-child(3) {{ animation-delay:.14s; }} .m3k-kpi:nth-child(4) {{ animation-delay:.21s; }}
+.m3k-kpi:hover {{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(27,42,34,.10); }}
+.m3k-fila {{ animation:m3k-subir .45s ease both; transition:box-shadow .2s ease; }} .m3k-fila:hover {{ box-shadow:0 3px 10px rgba(27,42,34,.08); }}
+.m3k-panel {{ background:var(--fondo); border:1px solid var(--borde); border-radius:8px; padding:.85rem 1rem; margin:.2rem 0 1rem;
+  animation:m3k-subir .55s cubic-bezier(.2,.7,.2,1) both; }}
+.m3k-panel .t {{ font-size:.78rem; letter-spacing:.04em; text-transform:uppercase; color:var(--suave); font-weight:600; margin-bottom:.7rem; }}
+.m3k-panel .pie {{ color:var(--suave); font-size:.78rem; margin-top:.55rem; }}
+.m3k-avance .cab {{ display:flex; justify-content:space-between; align-items:baseline; gap:1rem; margin-bottom:.45rem; flex-wrap:wrap; }}
+.m3k-avance strong {{ font-size:1.4rem; color:var(--ok); }}
+.m3k-avance .pista {{ height:12px; background:#E6ECE8; border-radius:99px; overflow:hidden; }}
+.m3k-avance .pista i {{ display:block; height:100%; background:linear-gradient(90deg,#2E9461,var(--ok)); border-radius:99px; transform-origin:left;
+  animation:m3k-ancho 1s cubic-bezier(.2,.7,.2,1) .15s both; }}
+.m3k-dias {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(125px,1fr)); gap:.6rem; }}
+.m3k-dia {{ border:1px solid var(--borde); border-radius:8px; padding:.6rem .75rem; background:var(--fondo); animation:m3k-subir .5s ease both;
+  transition:transform .2s ease, box-shadow .2s ease; }}
+.m3k-dia:hover {{ transform:translateY(-2px); box-shadow:0 5px 14px rgba(27,42,34,.09); }}
+.m3k-dia.hoy {{ border-color:var(--acento); background:#F3F8F5; }} .m3k-dia.vacio {{ opacity:.6; }}
+.m3k-dia .d {{ font-size:.74rem; text-transform:uppercase; letter-spacing:.03em; color:var(--suave); }}
+.m3k-dia .m {{ font-size:1.12rem; font-weight:700; margin:.1rem 0; }} .m3k-dia .n {{ font-size:.76rem; color:var(--suave); }}
+.m3k-dia .nivel {{ height:4px; background:#E6ECE8; border-radius:99px; margin-top:.5rem; overflow:hidden; }}
+.m3k-dia .nivel i {{ display:block; height:100%; background:var(--info); border-radius:99px; transform-origin:left; animation:m3k-ancho .8s ease .2s both; }}
+.m3k-sem {{ display:grid; grid-template-columns:repeat(6,1fr); gap:.5rem; align-items:end; }}
+.m3k-sem .c {{ display:flex; flex-direction:column; align-items:center; gap:.25rem; min-width:0; }}
+.m3k-sem .barras {{ height:120px; width:100%; display:flex; align-items:flex-end; justify-content:center; gap:3px; border-bottom:1px solid var(--borde); }}
+.m3k-sem .barras i {{ display:block; width:36%; max-width:24px; border-radius:3px 3px 0 0; transform-origin:bottom; animation:m3k-alto .75s cubic-bezier(.2,.7,.2,1) both;
+  transition:filter .2s ease; }}
+.m3k-sem .c:hover .barras i {{ filter:brightness(.92); }}
+.m3k-sem i.esp, .leyenda i.esp {{ background:#C9D6CE; }} .m3k-sem i.cob, .leyenda i.cob {{ background:var(--ok); }}
+.m3k-sem .rot {{ font-size:.72rem; color:var(--suave); white-space:nowrap; }} .m3k-sem .act .rot {{ color:var(--texto); font-weight:700; }}
+.m3k-sem .val {{ font-size:.7rem; color:var(--suave); white-space:nowrap; }}
+.leyenda {{ display:flex; gap:1rem; margin-top:.6rem; font-size:.76rem; color:var(--suave); }}
+.leyenda i {{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:.35rem; vertical-align:-1px; }}
+.m3k-dona {{ display:flex; align-items:center; gap:1.1rem; flex-wrap:wrap; }}
+.m3k-dona svg {{ flex:none; }} .m3k-dona .dc {{ font-size:13px; font-weight:700; fill:var(--texto); }} .m3k-dona .ds {{ font-size:8px; fill:var(--suave); }}
+.m3k-dona .seg {{ animation:m3k-aro 1s cubic-bezier(.3,.7,.2,1) both; }}
+.m3k-dona ul {{ list-style:none; margin:0; padding:0; flex:1; min-width:170px; }}
+.m3k-dona li {{ display:grid; grid-template-columns:12px 1fr auto 38px; gap:.5rem; align-items:center; padding:.3rem 0; border-bottom:1px solid #E6ECE8; font-size:.85rem; }}
+.m3k-dona li:last-child {{ border-bottom:0; }} .m3k-dona li i {{ width:10px; height:10px; border-radius:50%; }}
+.m3k-dona li em {{ font-style:normal; color:var(--suave); text-align:right; font-size:.78rem; }}
+.m3k-panel svg.lin {{ width:100%; height:150px; display:block; }} .m3k-panel .revela {{ animation:m3k-revela 1.3s cubic-bezier(.4,.1,.2,1) both; }}
+.extremos {{ display:flex; justify-content:space-between; align-items:flex-start; gap:.5rem; font-size:.76rem; color:var(--suave); margin-top:.35rem; flex-wrap:wrap; }}
+.extremos b {{ display:block; color:var(--texto); font-size:.9rem; }} .extremos .der {{ text-align:right; }} .extremos .mm {{ align-self:center; }}
+
 /* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
    así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */
 :root {{ color-scheme: light; }}

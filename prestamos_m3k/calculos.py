@@ -348,3 +348,71 @@ def movimientos_caja(db: dict) -> list[dict]:
                           "detalle": m.get("detalle", ""), "monto": signo * m["monto"], "folio": ""})
     filas.sort(key=lambda f: (f["fecha"], f["folio"]))  # el más antiguo primero
     return filas
+
+
+# ───────────────────────── series para los gráficos del inicio ─────────────────────────
+
+def _cuotas_de_creditos(db: dict, evals: dict[str, dict]):
+    for pr in db["prestamos"]:
+        if not pr.get("anulado"):
+            yield from evals[pr["id"]]["cuotas"]
+
+
+def cuotas_por_semana(db: dict, evals: dict[str, dict], al_dia, atras: int = 4, adelante: int = 1) -> list[dict]:
+    """Por semana (de lunes a sábado): lo que vencía y lo que ya se cobró de esas cuotas."""
+    al_dia = fecha(al_dia)
+    lunes = al_dia - timedelta(days=al_dia.weekday())
+    semanas = [{"desde": lunes + timedelta(days=7 * k), "esperado_c": 0, "cobrado_c": 0, "actual": k == 0} for k in range(-atras, adelante + 1)]
+    for c in _cuotas_de_creditos(db, evals):
+        for s in semanas:
+            if s["desde"] <= c["vence"] <= s["desde"] + timedelta(days=6):
+                s["esperado_c"] += a_centimos(c["monto"])
+                s["cobrado_c"] += a_centimos(c["pagado"])
+                break
+    return [{"desde": s["desde"], "actual": s["actual"], "esperado": de_centimos(s["esperado_c"]), "cobrado": de_centimos(s["cobrado_c"])} for s in semanas]
+
+
+def avance_mes(db: dict, evals: dict[str, dict], al_dia) -> dict:
+    """De las cuotas que vencen en el mes de `al_dia`: cuánto era y cuánto se lleva cobrado."""
+    al_dia = fecha(al_dia)
+    esperado = cobrado = 0
+    for c in _cuotas_de_creditos(db, evals):
+        if (c["vence"].year, c["vence"].month) == (al_dia.year, al_dia.month):
+            esperado += a_centimos(c["monto"])
+            cobrado += a_centimos(c["pagado"])
+    return {"esperado": de_centimos(esperado), "cobrado": de_centimos(cobrado), "pct": (cobrado / esperado) if esperado else 0.0}
+
+
+def proximos_cobros(db: dict, evals: dict[str, dict], al_dia, n: int = 6) -> list[dict]:
+    """Los próximos `n` días de trabajo (sin domingos), desde hoy, con lo que vence cada día."""
+    dia = fecha(al_dia)
+    dias = []
+    while len(dias) < n:
+        if dia.weekday() != 6:
+            dias.append({"fecha": dia, "monto_c": 0, "cuotas": 0})
+        dia += timedelta(days=1)
+    por_fecha = {d["fecha"]: d for d in dias}
+    for c in _cuotas_de_creditos(db, evals):
+        d = por_fecha.get(c["vence"])
+        if d and c["saldo"] > 0:
+            d["monto_c"] += a_centimos(c["saldo"])
+            d["cuotas"] += 1
+    return [{"fecha": d["fecha"], "monto": de_centimos(d["monto_c"]), "cuotas": d["cuotas"]} for d in dias]
+
+
+def composicion_cartera(db: dict, evals: dict[str, dict]) -> list[dict]:
+    """Lo que te deben, separado en «al día» y en cada tramo de atraso. `gravedad` va de 0 (al día) a 5."""
+    nombres = ["Al día"] + [t for t, _, _ in TRAMOS_MORA]
+    montos = [0] * len(nombres)
+    for pr in db["prestamos"]:
+        ev = evals[pr["id"]]
+        if pr.get("anulado") or ev["estado"] not in ("vigente", "vencido"):
+            continue
+        for c in ev["cuotas"]:
+            if c["saldo"] <= 0:
+                continue
+            idx = 0
+            if c["estado"] == "vencida":
+                idx = 1 + next(i for i, (_, d1, d2) in enumerate(TRAMOS_MORA) if d1 <= c["atraso"] <= d2)
+            montos[idx] += a_centimos(c["saldo"])
+    return [{"nombre": n, "monto": de_centimos(m), "gravedad": i} for i, (n, m) in enumerate(zip(nombres, montos)) if m]

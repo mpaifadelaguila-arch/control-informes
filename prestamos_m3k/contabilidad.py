@@ -381,3 +381,21 @@ def diferencias_con_cierre(db: dict, hoy_=None) -> list[dict]:
         if cambios:
             difs.append({"periodo": periodo, "cambios": cambios})
     return difs
+
+
+def serie_caja(lista: list[dict], al_dia, dias: int = 30) -> list[tuple]:
+    """Saldo de caja al cierre de cada uno de los últimos `dias` días (incluye hoy). Sale del libro diario."""
+    al_dia = calc.fecha(al_dia)
+    desde = al_dia - timedelta(days=dias)
+    neto: dict = {}
+    for a in lista:
+        n = sum(d - h for c, d, h in a["lineas"] if c == "101")
+        if n:
+            neto[a["fecha"]] = neto.get(a["fecha"], 0) + n
+    saldo = sum(v for f, v in neto.items() if f < desde)
+    serie = []
+    for i in range(dias + 1):
+        dia = desde + timedelta(days=i)
+        saldo += neto.get(dia, 0)
+        serie.append((dia, importe(saldo)))
+    return serie
