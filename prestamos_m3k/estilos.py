@@ -189,6 +189,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .extremos {{ display:flex; justify-content:space-between; align-items:flex-start; gap:.5rem; font-size:.76rem; color:var(--suave); margin-top:.35rem; flex-wrap:wrap; }}
 .extremos b {{ display:block; color:var(--texto); font-size:.9rem; }} .extremos .der {{ text-align:right; }} .extremos .mm {{ align-self:center; }}
 
+.m3k-sem.una .barras {{ height:140px; }}
+.m3k-sem.una .col {{ width:70%; max-width:46px; display:flex; flex-direction:column; align-items:center; }}
+.m3k-sem.una .col i {{ width:100%; max-width:none; flex:1; border-radius:3px 3px 0 0; }}
+.m3k-sem.una .col .val {{ font-weight:600; color:var(--texto); font-size:.74rem; white-space:nowrap; line-height:1.5; animation:m3k-subir .6s ease .3s both; }}
+.m3k-reparto .barra {{ display:flex; height:22px; border-radius:99px; overflow:hidden; background:#E6ECE8; animation:m3k-revela 1s cubic-bezier(.4,.1,.2,1) both; }}
+.m3k-reparto .barra i {{ display:block; height:100%; }}
+.m3k-reparto ul {{ list-style:none; margin:.7rem 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:.2rem 1.5rem; }}
+.m3k-reparto li {{ display:grid; grid-template-columns:12px 1fr auto 38px; gap:.5rem; align-items:center; padding:.3rem 0; font-size:.88rem; border-bottom:1px solid #E6ECE8; }}
+.m3k-reparto li i {{ width:10px; height:10px; border-radius:50%; }} .m3k-reparto li em {{ font-style:normal; color:var(--suave); text-align:right; font-size:.78rem; }}
+
 /* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
    así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */
 :root {{ color-scheme: light; }}
