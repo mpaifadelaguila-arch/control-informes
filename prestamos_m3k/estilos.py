@@ -48,6 +48,15 @@ def fecha_txt(valor) -> str:
     return calc.fecha(valor).strftime("%d/%m/%Y")
 
 
+DIAS_CORTOS = ("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
+
+
+def fecha_dia(valor) -> str:
+    """Fecha con el día de la semana: «Sáb 21/11/2026»."""
+    d = calc.fecha(valor)
+    return f"{DIAS_CORTOS[d.weekday()]} {d.strftime('%d/%m/%Y')}"
+
+
 def pct(valor: float, decimales: int = 1) -> str:
     return f"{valor * 100:,.{decimales}f} %"
 

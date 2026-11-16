@@ -53,7 +53,7 @@ def _cartera(db: dict, evals: dict) -> None:
          "nota": f"{ui.soles(ev['vencido'])} vencido" if ev["vencido"] else "Sin deuda vencida"},
     ])
     ui.tabla(["N.º", "Vence", "Cuota", "Pagado", "Saldo", "Atraso", "Estado"],
-             [[c["n"], ui.fecha_txt(c["vence"]), ui.soles(c["monto"]), ui.soles(c["pagado"]), ui.soles(c["saldo"]),
+             [[c["n"], ui.fecha_dia(c["vence"]), ui.soles(c["monto"]), ui.soles(c["pagado"]), ui.soles(c["saldo"]),
                f"{c['atraso']} días" if c["atraso"] else "—", ui.chip_cuota(c["estado"])] for c in ev["cuotas"]],
              numericas=(2, 3, 4), etiqueta="Cronograma de cuotas")
 
@@ -120,7 +120,7 @@ def _nuevo(db: dict, hoy) -> None:
         {"etiqueta": "Interés", "valor": ui.soles(total - monto), "tono": "ok", "nota": f"{tasa:g} % sobre el capital"},
     ])
     st.caption("Los domingos no se cuentan: el plazo son 24 días de trabajo (lunes a sábado).")
-    ui.tabla(["N.º", "Vence", "Cuota"], [[q["n"], ui.fecha_txt(q["vence"]), ui.soles(q["monto"])] for q in cuotas],
+    ui.tabla(["N.º", "Vence", "Cuota"], [[q["n"], ui.fecha_dia(q["vence"]), ui.soles(q["monto"])] for q in cuotas],
              numericas=(2,), etiqueta="Cronograma proyectado")
 
     liquidez = calc.resumen_caja(db)["liquidez"]
