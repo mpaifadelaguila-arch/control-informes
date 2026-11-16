@@ -20,7 +20,7 @@ def _verificaciones(db: dict, hoy) -> list[tuple[str, bool, str]]:
     return [
         ("El libro diario cuadra", bc["cuadra"], "Total debe = total haber en todos los asientos."),
         ("Activo = Patrimonio", bal["cuadra"], "El balance general está equilibrado."),
-        ("Caja del libro = caja de la app", caja_ok, "La cuenta 101 coincide con el saldo disponible de Caja."),
+        ("Caja del libro = caja de la app", caja_ok, "La caja del libro coincide con el saldo disponible de Caja."),
         ("Cuentas por cobrar = libro mayor", cxc["cuadra"], "El detalle por cliente coincide con la cartera y los intereses no devengados del libro."),
     ]
 
@@ -41,7 +41,7 @@ def mostrar() -> None:
         filas.append([cont.nombre_mes(f["periodo"]), ui.chip(etiqueta, tono), ui.monto(cifras["caja"]), ui.monto(cifras["cartera"]),
                       ui.monto(cifras["ingresos"]), ui.monto(cifras["gastos"]), ui.monto(round(cifras["utilidad"], 2)),
                       ui.fecha_txt(f["cierre"]["cerrado"]) if f["cierre"] else "—"])
-    ui.tabla(["Mes", "Estado", "Caja al cierre", "Cartera (121)", "Ingresos", "Gastos", "Utilidad", "Cerrado el"], filas, numericas=(2, 3, 4, 5, 6),
+    ui.tabla(["Mes", "Estado", "Caja al cierre", "Te deben", "Ingresos", "Gastos", "Utilidad", "Cerrado el"], filas, numericas=(2, 3, 4, 5, 6),
              etiqueta="Meses contables")
     st.caption("Los meses cerrados muestran las cifras guardadas al cerrar; los demás, las cifras de hoy.")
 
