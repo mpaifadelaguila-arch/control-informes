@@ -108,21 +108,18 @@ def _nuevo(db: dict, hoy) -> None:
     entrega = col4.selectbox("Forma de entrega", calc.ENTREGAS, key="nc_entrega")
 
     if monto <= 0:
-        ui.vacio("Escribe el monto para simular", "Verás la cuota, el total, el costo anual y el cronograma antes de confirmar.")
+        ui.vacio("Escribe el monto para simular", "Verás la cuota, el total y el cronograma antes de confirmar.")
         return
 
     cuotas = calc.generar_cronograma(monto, tasa, modalidad, f0, n_cuotas)
     total = calc.total_a_pagar(monto, tasa)
-    costo = calc.costo_efectivo(monto, cuotas, f0)
     iguales = len({q["monto"] for q in cuotas[:-1]}) <= 1
     ui.kpis([
         {"etiqueta": "Cuota", "valor": ui.soles(cuotas[0]["monto"]), "nota": f"{len(cuotas)} cuota(s)" + ("" if iguales else " · la última ajusta céntimos")},
         {"etiqueta": "Total a pagar", "valor": ui.soles(total), "tono": "info", "nota": f"Hasta el {ui.fecha_txt(cuotas[-1]['vence'])}"},
         {"etiqueta": "Interés", "valor": ui.soles(total - monto), "tono": "ok", "nota": f"{tasa:g} % sobre el capital"},
-        {"etiqueta": "Costo anual (TCEA)", "valor": ui.pct(costo["tea"], 0), "tono": "aviso", "nota": f"Equivale a {ui.pct(costo['tem'], 0)} cada 30 días"},
     ])
-    st.caption("El interés es fijo sobre el periodo y el capital se devuelve en cuotas, por eso el costo anual (TCEA) es mucho mayor "
-               "que el porcentaje nominal. Los domingos no se cuentan: el plazo son 24 días de trabajo (lunes a sábado).")
+    st.caption("Los domingos no se cuentan: el plazo son 24 días de trabajo (lunes a sábado).")
     ui.tabla(["N.º", "Vence", "Cuota"], [[q["n"], ui.fecha_txt(q["vence"]), ui.soles(q["monto"])] for q in cuotas],
              numericas=(2,), etiqueta="Cronograma proyectado")
 

@@ -33,8 +33,6 @@ En **Configuración → Datos de ejemplo** puedes cargar una cartera ficticia pa
 - Cada cobro cubre primero la **mora** (si está activada) y luego las cuotas más antiguas; se admiten abonos parciales.
 - **Capital en calle** = capital entregado − capital ya recuperado (la parte de capital de cada cuota cobrada).
 - **Cartera vencida** = saldo vencido ÷ saldo por cobrar. También se muestran las cuotas vencidas.
-- Se muestra siempre el **costo efectivo anual (TCEA)**: con interés plano y cuotas que devuelven capital, es muy superior
-  al porcentaje nominal.
 - La **mora** está en 0 % (no se cobra hoy) pero se puede activar en *Configuración*.
 - Los recibos y folios no se borran: se anulan con motivo y quedan en la auditoría.
 
