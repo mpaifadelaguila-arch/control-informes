@@ -1,10 +1,12 @@
-"""Inicio: posición financiera, cobranza del día y antigüedad de la mora."""
+"""Inicio: indicadores, avance del mes, cobranza y gráficos de la cartera."""
 
 import streamlit as st
 
 import calculos as calc
+import contabilidad as cont
 import datos
 import estilos as ui
+import graficos as g
 from vistas import comun
 
 
@@ -39,6 +41,11 @@ def mostrar() -> None:
          "nota": f"{ind['cobros_hoy_n']} cuota(s) vencen hoy"},
     ])
 
+    mes = calc.avance_mes(db, evals, hoy)
+    if mes["esperado"]:
+        nombre_mes = cont.nombre_mes(cont.periodo_de(hoy)).split()[0].lower()
+        st.markdown(g.panel("Avance de la cobranza del mes", g.avance(mes["cobrado"], mes["esperado"], nombre_mes)), unsafe_allow_html=True)
+
     st.subheader("Cobranza", anchor=False)
     cola = calc.cola_cobranza(db, evals, hoy)
     if not cola:
@@ -64,3 +71,27 @@ def mostrar() -> None:
             comun.ir_a("cobros")
     if len(cola) > 10:
         st.caption(f"Mostrando 10 de {len(cola)}. El detalle completo está en «Préstamos».")
+
+    proximos = calc.proximos_cobros(db, evals, hoy)
+    st.subheader("Próximos cobros", anchor=False)
+    if any(d["monto"] for d in proximos):
+        st.markdown(g.panel("Lo que vence en los próximos días", g.proximos_dias(proximos, hoy), "No se cuentan los domingos."), unsafe_allow_html=True)
+    else:
+        st.caption("No hay cuotas que venzan en los próximos días.")
+
+    semanas = calc.cuotas_por_semana(db, evals, hoy)
+    composicion = calc.composicion_cartera(db, evals)
+    if any(sm["esperado"] for sm in semanas) or composicion:
+        st.subheader("Cartera", anchor=False)
+        izq, der = st.columns([3, 2])
+        if any(sm["esperado"] for sm in semanas):
+            izq.markdown(g.panel("Cobrado frente a lo que vencía, por semana", g.semanas(semanas), "Se comparan las cuotas que vencían cada semana con lo ya cobrado de ellas."),
+                         unsafe_allow_html=True)
+        if composicion:
+            total = sum(c["monto"] for c in composicion)
+            der.markdown(g.panel("Lo que te deben, por antigüedad", g.dona(composicion, f"S/ {total:,.0f}", "te deben")), unsafe_allow_html=True)
+
+    serie = cont.serie_caja(cont.asientos(db, hoy, hoy), hoy, 30)
+    if len({v for _, v in serie}) > 1:
+        st.subheader("Caja", anchor=False)
+        st.markdown(g.panel("Dinero disponible, últimos 30 días", g.linea(serie)), unsafe_allow_html=True)
