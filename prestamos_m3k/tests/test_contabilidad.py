@@ -145,3 +145,11 @@ def test_datos_de_ejemplo_cuadran_en_contabilidad():
     assert cont.balance_comprobacion(lib)["cuadra"] and cont.balance_general(lib, HOY)["cuadra"]
     assert cont.saldo(lib, "101") == calc.resumen_caja(db)["liquidez"]
     assert cont.cuentas_por_cobrar(db, calc.evaluar_cartera(db, HOY), HOY)["cuadra"]
+
+
+def test_recibos_pdf_incluyen_el_dia_y_se_generan():
+    import types, sys
+    sys.modules.setdefault("streamlit", types.ModuleType("streamlit"))
+    import estilos
+    assert estilos.fecha_dia(date(2026, 11, 21)) == "Sáb 21/11/2026"
+    assert estilos.fecha_dia(date(2026, 11, 22)).startswith("Dom")
