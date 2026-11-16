@@ -1,4 +1,4 @@
-"""Cuentas por cobrar: saldo por cliente, antigüedad y conciliación con el libro mayor."""
+"""Cuentas por cobrar: una sola tabla con lo que debe cada cliente y cuánto lleva de atraso."""
 
 import pandas as pd
 import streamlit as st
@@ -12,7 +12,7 @@ import estilos as ui
 def mostrar() -> None:
     db = datos.cargar()
     hoy = calc.hoy()
-    ui.encabezado("Cuentas por cobrar", f"Cartera de créditos al {ui.fecha_txt(hoy)}, por cliente y por antigüedad")
+    ui.encabezado("Cuentas por cobrar", f"Lo que te deben al {ui.fecha_txt(hoy)}, por cliente")
     evals = calc.evaluar_cartera(db, hoy)
     cxc = cont.cuentas_por_cobrar(db, evals, hoy)
     if not cxc["filas"]:
@@ -21,27 +21,18 @@ def mostrar() -> None:
 
     t = cxc["total"]
     m = lambda c: ui.monto(cont.importe(c))
-    ui.kpis([
-        {"etiqueta": "Te deben en total", "valor": ui.soles(cont.importe(t["por_cobrar"])), "heroe": True, "tono": "info", "nota": f"{t['creditos']} crédito(s) activo(s)"},
-        {"etiqueta": "Vencido", "valor": ui.soles(cont.importe(t["vencido"])), "tono": "malo" if t["vencido"] else "ok",
-         "nota": "Cuotas cuya fecha ya pasó" if t["vencido"] else "Nadie está atrasado"},
-    ])
-    ui.tabla(["Cliente", "DNI", "Por vencer", "Vencido", "Total que debe"],
-             [[f["cliente"], f["dni"], m(f["por_vencer"]), m(f["vencido"]), m(f["por_cobrar"])] for f in cxc["filas"]],
-             numericas=(2, 3, 4), sin_corte=(0, 1), etiqueta="Cuentas por cobrar por cliente",
-             pie=["Total", "", m(t["por_vencer"]), m(t["vencido"]), m(t["por_cobrar"])])
-
-    if t["vencido"]:
-        st.subheader("Cuánto tiempo llevan atrasadas", anchor=False)
-        tramos = [t_[0] for t_ in calc.TRAMOS_MORA]
-        ui.tabla(["Cliente"] + tramos, [[f["cliente"]] + [m(x) for x in f["tramos"]] for f in cxc["filas"] if f["vencido"]],
-                 numericas=tuple(range(1, len(tramos) + 1)), sin_corte=(0,), etiqueta="Antigüedad del saldo vencido",
-                 pie=["Total"] + [m(x) for x in t["tramos"]])
-
-    if cxc["cuadra"]:
-        st.caption("Estas cifras coinciden con el libro mayor.")
-    else:
-        st.error("El detalle por cliente no coincide con el libro mayor. Revisa los créditos y cobros anulados antes de cerrar el mes.")
+    filas = [f for f in cxc["filas"] if f["por_cobrar"]]
+    # solo se muestran las columnas de atraso que tienen algo
+    usados = [i for i, (nombre, _, _) in enumerate(calc.TRAMOS_MORA) if t["tramos"][i]]
+    cols = ["Cliente", "Al día"] + [f"Atraso {calc.TRAMOS_MORA[i][0]}" for i in usados] + ["Total que debe"]
+    ui.tabla(cols,
+             [[f["cliente"], m(f["por_vencer"])] + [m(f["tramos"][i]) for i in usados] + [m(f["por_cobrar"])] for f in filas],
+             numericas=tuple(range(1, len(cols))), sin_corte=(0,), etiqueta="Cuentas por cobrar",
+             pie=["Total", m(t["por_vencer"])] + [m(t["tramos"][i]) for i in usados] + [m(t["por_cobrar"])])
+    st.caption(f"{t['creditos']} crédito(s) activo(s). «Al día» son las cuotas que aún no vencen; las columnas de atraso son las cuotas vencidas, "
+               "según cuántos días llevan sin pagarse." if usados else f"{t['creditos']} crédito(s) activo(s). Nadie está atrasado.")
+    if not cxc["cuadra"]:
+        st.error("El detalle por cliente no coincide con los libros. Revisa los créditos y cobros anulados antes de cerrar el mes.")
 
     df = pd.DataFrame([{"cliente": f["cliente"], "dni": f["dni"], "por_cobrar": cont.importe(f["por_cobrar"]), "por_vencer": cont.importe(f["por_vencer"]),
                         "vencido": cont.importe(f["vencido"])}
