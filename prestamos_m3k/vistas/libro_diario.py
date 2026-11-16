@@ -73,7 +73,7 @@ def _comprobacion(lib: list[dict]) -> None:
 def mostrar() -> None:
     db = datos.cargar()
     hoy = calc.hoy()
-    ui.encabezado("Libro diario y mayor", "Asientos de partida doble generados por cada desembolso, cobro, movimiento y devengo de intereses")
+    ui.encabezado("Libros contables", "Para tu contador: el detalle de cada asiento, el mayor por cuenta y el balance de comprobación")
     if not (db["prestamos"] or db["movimientos"] or db["config"]["capital_base"]):
         ui.vacio("Aún no hay asientos", "Registra un crédito, un cobro o un aporte de capital y aparecerán aquí.")
         return
