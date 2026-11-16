@@ -67,12 +67,6 @@ def mostrar() -> None:
         {"etiqueta": "Ganancia real", "valor": ui.soles(float(df["interes"].sum() + df["mora"].sum())), "tono": "ok", "nota": "Intereses y mora cobrados"},
         {"etiqueta": "Desembolsado", "valor": ui.soles(sum(p["monto"] for p in desembolsos)), "nota": f"{len(desembolsos)} crédito(s) nuevo(s)"},
     ])
-    ui.kpis([
-        {"etiqueta": "Cartera vencida hoy", "valor": ui.pct(ind["morosidad"]), "tono": "malo" if ind["vencido"] else "ok",
-         "nota": f"{ui.soles(ind['vencido'])} de {ui.soles(ind['por_cobrar'])} por cobrar · no depende del periodo"},
-        {"etiqueta": "Cuotas vencidas hoy", "valor": str(ind["cuotas_vencidas"]), "tono": "malo" if ind["cuotas_vencidas"] else "ok"},
-    ])
-
     st.subheader("Cobrado por semana", anchor=False)
     if df.empty:
         ui.vacio("Sin cobros en este periodo", "Prueba con otro periodo o registra cobros en «Registrar cobro».")
@@ -91,10 +85,6 @@ def mostrar() -> None:
                           ui.soles(float(sub["cuota"].sum() + sub["mora"].sum())), ui.soles(float(sub["interes"].sum() + sub["mora"].sum()))])
     ui.tabla(["Modalidad", "Créditos nuevos", "Desembolsado", "Cobrado", "Ganancia real"], filas_mod, numericas=(1, 2, 3, 4),
              etiqueta="Rendimiento por modalidad")
-
-    st.subheader("Antigüedad de la mora (hoy)", anchor=False)
-    ui.tabla(["Atraso", "Cuotas", "Monto vencido"], [[f["tramo"], f["cuotas"], ui.soles(f["monto"])] for f in calc.antiguedad_mora(evals)],
-             numericas=(1, 2), etiqueta="Antigüedad de la mora")
 
     if not df.empty:
         csv = df.assign(fecha=df["fecha"].map(ui.fecha_txt)).to_csv(index=False).encode("utf-8-sig")
