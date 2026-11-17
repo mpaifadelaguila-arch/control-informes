@@ -1,7 +1,7 @@
 name: Mantener la app activa
 
 # Streamlit Community Cloud duerme la app tras unas horas sin visitas.
-# Esta tarea la visita cada 6 horas para que no entre en reposo.
+# Esta tarea visita cada app cada 6 horas para que no entre en reposo.
 on:
   schedule:
     - cron: "17 */6 * * *"
@@ -9,9 +9,9 @@ on:
 
 jobs:
   visitar:
-    # La dirección de la app se guarda en la variable de repositorio APP_URL
-    # (Settings > Secrets and variables > Actions > Variables).
-    if: ${{ vars.APP_URL != '' }}
+    # Las direcciones se guardan en variables de repositorio (Settings > Secrets and variables > Actions > Variables):
+    # APP_URL (app de informes) y APP_URL_PRESTAMOS (app de préstamos). Basta con que exista una.
+    if: ${{ vars.APP_URL != '' || vars.APP_URL_PRESTAMOS != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -23,3 +23,4 @@ jobs:
       - run: python .github/scripts/mantener_activa.py
         env:
           APP_URL: ${{ vars.APP_URL }}
+          APP_URL_PRESTAMOS: ${{ vars.APP_URL_PRESTAMOS }}
