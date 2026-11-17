@@ -65,7 +65,7 @@ CSS = f"""
 <style>
 :root {{ --fondo:{FONDO}; --papel:{PAPEL}; --borde:{BORDE}; --texto:{TEXTO}; --suave:{TEXTO_SUAVE}; --acento:{ACENTO};
   --ok:{TONOS['ok']}; --aviso:{TONOS['aviso']}; --malo:{TONOS['malo']}; --info:{TONOS['info']}; }}
-.block-container {{ padding-top: 1.2rem; max-width: 1240px; }}
+.block-container {{ padding-top: 1.2rem; padding-left: 2.2rem; padding-right: 2.2rem; max-width: 1760px; }}
 html {{ scroll-behavior: smooth; }}
 .num {{ font-variant-numeric: tabular-nums; }}
 
