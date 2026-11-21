@@ -170,7 +170,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-sem {{ display:grid; grid-template-columns:repeat(6,1fr); gap:.5rem; align-items:end; }}
 .m3k-sem .c {{ display:flex; flex-direction:column; align-items:center; gap:.25rem; min-width:0; }}
 .m3k-sem .barras {{ height:120px; width:100%; display:flex; align-items:flex-end; justify-content:center; gap:3px; border-bottom:1px solid var(--borde); }}
-.m3k-sem .barras i {{ display:block; width:36%; max-width:24px; border-radius:3px 3px 0 0; transform-origin:bottom; animation:m3k-alto .75s cubic-bezier(.2,.7,.2,1) both;
+.m3k-sem .barras i {{ display:block; width:36%; max-width:34px; border-radius:3px 3px 0 0; transform-origin:bottom; animation:m3k-alto .75s cubic-bezier(.2,.7,.2,1) both;
   transition:filter .2s ease; }}
 .m3k-sem .c:hover .barras i {{ filter:brightness(.92); }}
 .m3k-sem i.esp, .leyenda i.esp {{ background:#C9D6CE; }} .m3k-sem i.cob, .leyenda i.cob {{ background:var(--ok); }}
@@ -181,7 +181,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-dona {{ display:flex; align-items:center; gap:1.1rem; flex-wrap:wrap; }}
 .m3k-dona svg {{ flex:none; }} .m3k-dona .dc {{ font-size:13px; font-weight:700; fill:var(--texto); }} .m3k-dona .ds {{ font-size:8px; fill:var(--suave); }}
 .m3k-dona .seg {{ animation:m3k-aro 1s cubic-bezier(.3,.7,.2,1) both; }}
-.m3k-dona ul {{ list-style:none; margin:0; padding:0; flex:1; min-width:170px; }}
+.m3k-dona ul {{ list-style:none; margin:0; padding:0; flex:1; min-width:170px; max-width:380px; }}
 .m3k-dona li {{ display:grid; grid-template-columns:12px 1fr auto 38px; gap:.5rem; align-items:center; padding:.3rem 0; border-bottom:1px solid #E6ECE8; font-size:.85rem; }}
 .m3k-dona li:last-child {{ border-bottom:0; }} .m3k-dona li i {{ width:10px; height:10px; border-radius:50%; }}
 .m3k-dona li em {{ font-style:normal; color:var(--suave); text-align:right; font-size:.78rem; }}
@@ -205,6 +205,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-cascada .pista i {{ display:block; height:100%; border-radius:99px; transform-origin:left; animation:m3k-ancho .9s cubic-bezier(.2,.7,.2,1) both; }}
 .m3k-cascada b {{ text-align:right; min-width:92px; }}
 @media (max-width: 640px) {{ .m3k-cascada .fila {{ grid-template-columns:1fr auto; }} .m3k-cascada .pista {{ grid-column:1 / -1; grid-row:2; }} }}
+
+[data-testid="stVerticalBlockBorderWrapper"]:has(> div > [data-testid="stVerticalBlock"] [data-testid="stHorizontalBlock"]) {{ border-color:var(--borde) !important; background:var(--fondo); border-radius:8px; }}
 
 /* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
    así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */

@@ -1,5 +1,7 @@
 """Inicio: indicadores, avance del mes, cobranza y gráficos de la cartera."""
 
+from datetime import timedelta
+
 import streamlit as st
 
 import calculos as calc
@@ -52,30 +54,30 @@ def mostrar() -> None:
         ui.vacio("Todo al día", "No hay cuotas vencidas ni cobros pendientes para hoy.")
     for i, fila in enumerate(cola[:10]):
         pr = fila["prestamo"]
-        tono = "malo" if fila["vencido"] > 0 else "info"
         detalle = []
         if fila["vencido"] > 0:
             detalle.append(f"{ui.soles(fila['vencido'])} vencido · {fila['cuotas_vencidas']} cuota(s) · {fila['atraso']} días de atraso")
         if fila["hoy"] > 0:
             detalle.append(f"{ui.soles(fila['hoy'])} vence hoy")
-        izq, der = st.columns([5, 1], vertical_alignment="center")
-        izq.markdown(
-            f'<div class="m3k-fila" style="--tono:{ui.TONOS[tono]}"><div><b>{ui.esc(fila["cliente"].get("nombre", "—"))}</b>'
-            f'<small>Préstamo {pr["numero"]:04d} · {ui.esc(comun.nombre_modalidad(pr["modalidad"]))} · '
-            f'{ui.esc(fila["cliente"].get("telefono") or "sin teléfono")}</small></div>'
-            f'<div>{ui.esc(" · ".join(detalle))}</div></div>',
-            unsafe_allow_html=True,
-        )
-        if der.button("Cobrar", key=f"cobrar_{i}_{pr['id']}", icon=":material/payments:"):
-            st.session_state["cobro_prestamo"] = pr["id"]
-            comun.ir_a("cobros")
+        with st.container(border=True):
+            c1, c2, c3 = st.columns([4, 4, 1.3], vertical_alignment="center")
+            c1.markdown(
+                f'<b>{ui.esc(fila["cliente"].get("nombre", "—"))}</b><br><small style="color:{ui.TEXTO_SUAVE}">Préstamo {pr["numero"]:04d} · '
+                f'{ui.esc(comun.nombre_modalidad(pr["modalidad"]))} · {ui.esc(fila["cliente"].get("telefono") or "sin teléfono")}</small>',
+                unsafe_allow_html=True)
+            c2.markdown(f'{ui.chip("Vencido" if fila["vencido"] > 0 else "Vence hoy", "malo" if fila["vencido"] > 0 else "info")} '
+                        f'<span class="num">{ui.esc(" · ".join(detalle))}</span>', unsafe_allow_html=True)
+            if c3.button("Cobrar", key=f"cobrar_{i}_{pr['id']}", icon=":material/payments:", use_container_width=True):
+                st.session_state["cobro_prestamo"] = pr["id"]
+                comun.ir_a("cobros")
     if len(cola) > 10:
         st.caption(f"Mostrando 10 de {len(cola)}. El detalle completo está en «Préstamos».")
+    st.markdown('<div style="height:.5rem"></div>', unsafe_allow_html=True)
 
-    proximos = calc.proximos_cobros(db, evals, hoy)
+    proximos = calc.proximos_cobros(db, evals, hoy + timedelta(days=1))  # lo de hoy ya está en «Cobranza»
     st.subheader("Próximos cobros", anchor=False)
     if any(d["monto"] for d in proximos):
-        st.markdown(g.panel("Lo que vence en los próximos días", g.proximos_dias(proximos, hoy), "No se cuentan los domingos."), unsafe_allow_html=True)
+        st.markdown(g.panel("Lo que vence desde mañana", g.proximos_dias(proximos, hoy), "Lo de hoy está arriba, en Cobranza. No se cuentan los domingos."), unsafe_allow_html=True)
     else:
         st.caption("No hay cuotas que venzan en los próximos días.")
 
@@ -85,6 +87,8 @@ def mostrar() -> None:
         st.subheader("Cartera", anchor=False)
         izq, der = st.columns([3, 2])
         if any(sm["esperado"] for sm in semanas):
+            primera = next(k for k, sm in enumerate(semanas) if sm["esperado"] or sm["actual"])
+            semanas = semanas[min(primera, len(semanas) - 4):]
             izq.markdown(g.panel("Cobrado frente a lo que vencía, por semana", g.semanas(semanas), "Se comparan las cuotas que vencían cada semana con lo ya cobrado de ellas."),
                          unsafe_allow_html=True)
         if composicion:
