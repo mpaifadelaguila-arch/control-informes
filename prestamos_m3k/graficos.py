@@ -85,7 +85,7 @@ def semanas(datos: list[dict]) -> str:
             f'<span class="rot">{"Esta sem." if s["actual"] else _dm(s["desde"])}</span>'
             f'<span class="val num">{_corto(s["cobrado"])} / {_corto(s["esperado"])}</span></div>')
     leyenda = '<div class="leyenda"><span><i class="esp"></i>Vencía</span><span><i class="cob"></i>Cobrado</span></div>'
-    return f'<div class="m3k-sem">{"".join(cols)}</div>{leyenda}'
+    return f'<div class="m3k-sem" style="grid-template-columns:repeat({max(1, len(datos))},minmax(0,1fr))">{"".join(cols)}</div>{leyenda}'
 
 
 def dona(segmentos: list[dict], centro: str, centro_sub: str) -> str:
