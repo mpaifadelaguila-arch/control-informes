@@ -90,3 +90,11 @@ def test_historial_de_caja_con_saldo_termina_en_la_liquidez():
 def test_cascada_html():
     html = g.cascada([("Capital base", 2000.0, "mas"), ("Créditos entregados", 600.0, "menos"), ("Saldo disponible", 1400.0, "total")])
     assert "+ S/ 2,000.00" in html and "− S/ 600.00" in html and "\n\n" not in html
+
+
+def test_tarjetas_de_cuotas_por_estado():
+    db, ev = _escenario()
+    cuotas = next(iter(ev.values()))["cuotas"]
+    html = g.cuotas(cuotas)
+    assert html.count("Cuota ") == 4 and "Pagada" in html and "días de atraso" in html and "\n\n" not in html
+    assert g.avance(180, 720, detalle="del total a pagar").count("del total a pagar") == 1

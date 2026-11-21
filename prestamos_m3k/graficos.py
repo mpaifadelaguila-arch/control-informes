@@ -38,12 +38,13 @@ def panel(titulo: str, cuerpo: str, pie: str = "") -> str:
     return _una_linea(f'<div class="m3k-panel"><div class="t">{ui.esc(titulo)}</div>{cuerpo}{pie_html}</div>')
 
 
-def avance(cobrado: float, esperado: float, mes: str) -> str:
-    """Barra de avance: «S/ 360 cobrados de S/ 540 que vencen en noviembre»."""
+def avance(cobrado: float, esperado: float, mes: str = "", detalle: str | None = None) -> str:
+    """Barra de avance: «S/ 360 cobrados de S/ 540 que vencen en noviembre» (o con el `detalle` que se indique)."""
+    detalle = detalle if detalle is not None else f"que vencen en {mes}"
     pct = 0 if not esperado else min(100.0, cobrado / esperado * 100)
     return _una_linea(f'''
       <div class="m3k-avance">
-        <div class="cab"><div><b class="num">{ui.soles(cobrado)}</b> cobrados de <span class="num">{ui.soles(esperado)}</span> que vencen en {ui.esc(mes)}</div>
+        <div class="cab"><div><b class="num">{ui.soles(cobrado)}</b> cobrados de <span class="num">{ui.soles(esperado)}</span> {ui.esc(detalle)}</div>
         <strong class="num">{pct:.0f} %</strong></div>
         <div class="pista" role="img" aria-label="{pct:.0f} % cobrado"><i style="width:{pct:.1f}%"></i></div>
       </div>''')
@@ -165,3 +166,24 @@ def cascada(filas: list[tuple[str, float, str]]) -> str:
             f'<div class="pista"><i style="width:{ancho:.1f}%;background:{colores[tipo]};animation-delay:{i * 0.07:.2f}s"></i></div>'
             f'<b class="num">{signo}{ui.soles(abs(monto))}</b></div>')
     return f'<div class="m3k-cascada">{"".join(out)}</div>'
+
+
+def cuotas(lista: list[dict]) -> str:
+    """Una tarjeta por cuota (n, vence, monto, pagado, estado, atraso), con el color de su estado y lo pagado como barra."""
+    tarjetas = []
+    for i, c in enumerate(lista):
+        nombre, tono = ui.ESTADOS_CUOTA.get(c["estado"], (c["estado"], "neutro"))
+        color = ui.TONOS[tono]
+        pct = min(100.0, c["pagado"] / c["monto"] * 100) if c["monto"] else 0
+        if c["estado"] == "vencida" and c.get("atraso"):
+            nota = f'{c["atraso"]} días de atraso'
+        elif c["estado"] == "parcial":
+            nota = f'Pagado {ui.soles(c["pagado"])}'
+        else:
+            nota = nombre
+        tarjetas.append(
+            f'<div class="m3k-dia" style="border-top:3px solid {color};animation-delay:{min(i * 0.025, 0.5):.2f}s"><div class="d">Cuota {c["n"]}</div>'
+            f'<div class="m num">{ui.soles(c["monto"])}</div><div class="n">{ui.esc(ui.fecha_dia(c["vence"]))}</div>'
+            f'<div class="n" style="color:{color};font-weight:600">{ui.esc(nota)}</div>'
+            f'<div class="nivel"><i style="width:{pct:.0f}%;background:{color}"></i></div></div>')
+    return f'<div class="m3k-dias cuotas">{"".join(tarjetas)}</div>'

@@ -1,10 +1,11 @@
-"""Préstamos: cartera con su detalle y el simulador para crear un crédito nuevo."""
+"""Préstamos: cartera con filtros y detalle por cuotas, y el simulador para crear un crédito nuevo."""
 
 import streamlit as st
 
 import calculos as calc
 import datos
 import estilos as ui
+import graficos as g
 import operaciones as ops
 from vistas import comun
 
@@ -15,9 +16,13 @@ def _cartera(db: dict, evals: dict) -> None:
     if not db["prestamos"]:
         ui.vacio("Aún no hay créditos", "Crea el primero en la pestaña «Nuevo crédito».")
         return
-    c1, c2 = st.columns([1, 2])
-    filtro = c1.selectbox("Estado", list(FILTROS))
-    buscar = c2.text_input("Buscar cliente", placeholder="Nombre del cliente").strip().lower()
+    # filtros con su conteo: sirven también de resumen de la cartera
+    conteo = {k: sum(1 for p in db["prestamos"] if v is None or evals[p["id"]]["estado"] == v) for k, v in FILTROS.items()}
+    visibles = [k for k in FILTROS if k == "Todos" or conteo[k]]
+    if st.session_state.get("filtro_prestamo") not in visibles:
+        st.session_state["filtro_prestamo"] = "Todos"
+    filtro = st.radio("Estado", visibles, format_func=lambda k: f"{k} ({conteo[k]})", horizontal=True, key="filtro_prestamo", label_visibility="collapsed")
+    buscar = st.text_input("Buscar cliente", placeholder="Buscar por nombre del cliente", key="buscar_prestamo", label_visibility="collapsed").strip().lower()
 
     lista = []
     for p in sorted(db["prestamos"], key=lambda x: x["numero"]):
@@ -39,23 +44,20 @@ def _cartera(db: dict, evals: dict) -> None:
         numericas=(4, 5, 7), sin_corte=(0, 1, 3), etiqueta="Cartera de créditos",
     )
 
+    st.subheader("Detalle del crédito", anchor=False)
     ids = [p["id"] for p in lista]
     if st.session_state.get("prestamo_sel") not in ids:
         st.session_state.pop("prestamo_sel", None)
-    sel = st.selectbox("Ver detalle de", ids, format_func=lambda i: comun.etiqueta_prestamo(db, ops.buscar(db["prestamos"], i)), key="prestamo_sel")
+    sel = st.selectbox("Crédito", ids, format_func=lambda i: comun.etiqueta_prestamo(db, ops.buscar(db["prestamos"], i)), key="prestamo_sel", label_visibility="collapsed")
     p, ev = ops.buscar(db["prestamos"], sel), evals[sel]
 
-    ui.kpis([
-        {"etiqueta": "Capital entregado", "valor": ui.soles(p["monto"]), "nota": f"{ui.fecha_txt(p['fecha_desembolso'])} · {p['entrega']} · {p['folio_desembolso']}"},
-        {"etiqueta": "Total a pagar", "valor": ui.soles(p["total"]), "nota": f"Interés {p['tasa']:g} % = {ui.soles(p['total'] - p['monto'])}"},
-        {"etiqueta": "Cobrado", "valor": ui.soles(ev["pagado"]), "tono": "ok", "nota": ui.pct(ev["avance"], 0) + " del total"},
-        {"etiqueta": "Saldo", "valor": ui.soles(ev["saldo"]), "tono": "malo" if ev["vencido"] else "info",
-         "nota": f"{ui.soles(ev['vencido'])} vencido" if ev["vencido"] else "Sin deuda vencida"},
-    ])
-    ui.tabla(["N.º", "Vence", "Cuota", "Pagado", "Saldo", "Atraso", "Estado"],
-             [[c["n"], ui.fecha_dia(c["vence"]), ui.soles(c["monto"]), ui.soles(c["pagado"]), ui.soles(c["saldo"]),
-               f"{c['atraso']} días" if c["atraso"] else "—", ui.chip_cuota(c["estado"])] for c in ev["cuotas"]],
-             numericas=(2, 3, 4), etiqueta="Cronograma de cuotas")
+    # lo que ya está en la tabla (capital, total, cobrado, saldo) no se repite: aquí va lo que la tabla no dice
+    st.markdown(g.panel(f"Préstamo {p['numero']:04d} · {comun.nombre_cliente(db, p['cliente_id'])}",
+                        g.avance(ev["pagado"], p["total"], detalle="del total a pagar" + (f" · {ui.soles(ev['vencido'])} vencido" if ev["vencido"] else "")),
+                        f"Entregado el {ui.fecha_txt(p['fecha_desembolso'])} en {p['entrega']} · folio {p['folio_desembolso']} · "
+                        f"interés {p['tasa']:g} % = {ui.soles(p['total'] - p['monto'])}"), unsafe_allow_html=True)
+    st.markdown(g.cuotas(ev["cuotas"]), unsafe_allow_html=True)
+    st.markdown('<div style="height:.6rem"></div>', unsafe_allow_html=True)
 
     if ev["estado"] in ("vigente", "vencido"):
         if st.button("Cobrar este crédito", type="primary", icon=":material/payments:"):
@@ -111,17 +113,16 @@ def _nuevo(db: dict, hoy) -> None:
         ui.vacio("Escribe el monto para simular", "Verás la cuota, el total y el cronograma antes de confirmar.")
         return
 
-    cuotas = calc.generar_cronograma(monto, tasa, modalidad, f0, n_cuotas)
+    plan = calc.generar_cronograma(monto, tasa, modalidad, f0, n_cuotas)
     total = calc.total_a_pagar(monto, tasa)
-    iguales = len({q["monto"] for q in cuotas[:-1]}) <= 1
+    iguales = len({q["monto"] for q in plan[:-1]}) <= 1
     ui.kpis([
-        {"etiqueta": "Cuota", "valor": ui.soles(cuotas[0]["monto"]), "nota": f"{len(cuotas)} cuota(s)" + ("" if iguales else " · la última ajusta céntimos")},
-        {"etiqueta": "Total a pagar", "valor": ui.soles(total), "tono": "info", "nota": f"Hasta el {ui.fecha_txt(cuotas[-1]['vence'])}"},
+        {"etiqueta": "Cuota", "valor": ui.soles(plan[0]["monto"]), "nota": f"{len(plan)} cuota(s)" + ("" if iguales else " · la última ajusta céntimos")},
+        {"etiqueta": "Total a pagar", "valor": ui.soles(total), "tono": "info", "nota": f"Hasta el {ui.fecha_txt(plan[-1]['vence'])}"},
         {"etiqueta": "Interés", "valor": ui.soles(total - monto), "tono": "ok", "nota": f"{tasa:g} % sobre el capital"},
     ])
     st.caption("Los domingos no se cuentan: el plazo son 24 días de trabajo (lunes a sábado).")
-    ui.tabla(["N.º", "Vence", "Cuota"], [[q["n"], ui.fecha_dia(q["vence"]), ui.soles(q["monto"])] for q in cuotas],
-             numericas=(2,), etiqueta="Cronograma proyectado")
+    st.markdown(g.panel("Cronograma proyectado", g.cuotas([{**q, "pagado": 0.0, "estado": "pendiente", "atraso": 0} for q in plan])), unsafe_allow_html=True)
 
     liquidez = calc.resumen_caja(db)["liquidez"]
     forzar = True
