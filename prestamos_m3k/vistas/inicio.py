@@ -89,11 +89,15 @@ def mostrar() -> None:
         if any(sm["esperado"] for sm in semanas):
             primera = next(k for k, sm in enumerate(semanas) if sm["esperado"] or sm["actual"])
             semanas = semanas[min(primera, len(semanas) - 4):]
-            izq.markdown(g.panel("Cobrado frente a lo que vencía, por semana", g.semanas(semanas), "Se comparan las cuotas que vencían cada semana con lo ya cobrado de ellas."),
+            izq.markdown(g.panel("Cobrado frente a lo que vencía, por semana", g.semanas(semanas), "Cada grupo es una semana de lunes a sábado (la fecha es su lunes): en gris, lo que vencía; en verde, lo que ya se cobró de eso."),
                          unsafe_allow_html=True)
         if composicion:
             total = sum(c["monto"] for c in composicion)
-            der.markdown(g.panel("Lo que te deben, por antigüedad", g.dona(composicion, f"S/ {total:,.0f}", "te deben")), unsafe_allow_html=True)
+            if any(c["gravedad"] > 0 for c in composicion):
+                der.markdown(g.panel("Lo que te deben, por antigüedad", g.dona(composicion, f"S/ {total:,.0f}", "te deben"),
+                                     "Cada color es un tramo de atraso, de verde (al día) a rojo (muy atrasado)."), unsafe_allow_html=True)
+            else:
+                der.markdown(g.panel("Lo que te deben", g.todo_al_dia(total)), unsafe_allow_html=True)
 
     serie = cont.serie_caja(cont.asientos(db, hoy, hoy), hoy, 30)
     if len({v for _, v in serie}) > 1:

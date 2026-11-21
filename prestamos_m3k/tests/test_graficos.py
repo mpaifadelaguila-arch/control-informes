@@ -98,3 +98,10 @@ def test_tarjetas_de_cuotas_por_estado():
     html = g.cuotas(cuotas)
     assert html.count("Cuota ") == 4 and "Pagada" in html and "días de atraso" in html and "\n\n" not in html
     assert g.avance(180, 720, detalle="del total a pagar").count("del total a pagar") == 1
+
+
+def test_semanas_con_palabras_y_todo_al_dia():
+    db, ev = _escenario()
+    html = g.semanas(calc.cuotas_por_semana(db, ev, HOY))
+    assert "Faltan S/ 180.00" in html and "Por cobrar" in html and "Completo" in html and "Esta semana" in html
+    assert "nada está vencido" in g.todo_al_dia(660.0) and "S/ 660.00" in g.todo_al_dia(660.0)
