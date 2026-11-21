@@ -208,6 +208,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 
 [data-testid="stVerticalBlockBorderWrapper"]:has(> div > [data-testid="stVerticalBlock"] [data-testid="stHorizontalBlock"]) {{ border-color:var(--borde) !important; background:var(--fondo); border-radius:8px; }}
 
+.m3k-dias.cuotas {{ grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:.5rem; }}
+.m3k-dias.cuotas .m3k-dia {{ padding:.5rem .65rem; }} .m3k-dias.cuotas .m {{ font-size:1rem; }}
+.m3k-cliente {{ display:grid; grid-template-columns:44px minmax(160px,1.3fr) 190px minmax(190px,1fr); gap:.9rem; align-items:center; }}
+.m3k-cliente .est {{ display:flex; gap:.35rem; justify-content:flex-end; flex-wrap:wrap; }}
+.m3k-cliente .av {{ width:40px; height:40px; border-radius:50%; background:#DCEBE3; color:var(--acento); font-weight:700; display:flex; align-items:center; justify-content:center; }}
+.m3k-cliente .dat b {{ display:block; }} .m3k-cliente small {{ color:var(--suave); }}
+.m3k-cliente .monto {{ text-align:right; }} .m3k-cliente .monto b {{ display:block; font-size:1.05rem; }}
+.m3k-cliente .m3k-barra {{ margin-top:.35rem; }}
+@media (max-width: 760px) {{ .m3k-cliente {{ grid-template-columns:44px 1fr; }} .m3k-cliente .est, .m3k-cliente .monto {{ grid-column:1 / -1; text-align:left; }} }}
+
 /* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
    así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */
 :root {{ color-scheme: light; }}
