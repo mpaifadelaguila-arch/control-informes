@@ -74,8 +74,19 @@ def proximos_dias(dias: list[dict], hoy) -> str:
 def semanas(datos: list[dict]) -> str:
     """Barras por semana: lo que vencía (gris) frente a lo ya cobrado (verde)."""
     mayor = max((s["esperado"] for s in datos), default=0) or 1
+    pos_actual = next((k for k, s in enumerate(datos) if s["actual"]), len(datos))
     cols = []
     for i, s in enumerate(datos):
+        falta = round(s["esperado"] - s["cobrado"], 2)
+        if not s["esperado"]:
+            texto = '<span class="val">Sin cuotas</span>'
+        elif i > pos_actual:  # semanas que aún no llegan
+            texto = f'<span class="val">Por cobrar</span><span class="val num"><b>{ui.soles(s["esperado"])}</b></span>'
+        elif falta > 0.004:
+            texto = (f'<span class="val">Cobrado <b class="num">{ui.soles(s["cobrado"])}</b></span>'
+                     f'<span class="val f num">Faltan {ui.soles(falta)}</span>')
+        else:
+            texto = f'<span class="val">Cobrado <b class="num">{ui.soles(s["cobrado"])}</b></span><span class="val ok">Completo</span>'
         h_esp = max(3, s["esperado"] / mayor * 100) if s["esperado"] else 0
         h_cob = max(3, s["cobrado"] / mayor * 100) if s["cobrado"] else 0
         titulo = f'Semana del {_dm(s["desde"])}: vencían {ui.soles(s["esperado"])}, cobrado {ui.soles(s["cobrado"])}'
@@ -83,9 +94,8 @@ def semanas(datos: list[dict]) -> str:
             f'<div class="c{" act" if s["actual"] else ""}" title="{ui.esc(titulo)}"><div class="barras">'
             f'<i class="esp" style="height:{h_esp:.0f}%;animation-delay:{i * 0.07:.2f}s"></i>'
             f'<i class="cob" style="height:{h_cob:.0f}%;animation-delay:{i * 0.07 + 0.12:.2f}s"></i></div>'
-            f'<span class="rot">{"Esta sem." if s["actual"] else _dm(s["desde"])}</span>'
-            f'<span class="val num">{_corto(s["cobrado"])} / {_corto(s["esperado"])}</span></div>')
-    leyenda = '<div class="leyenda"><span><i class="esp"></i>Vencía</span><span><i class="cob"></i>Cobrado</span></div>'
+            f'<span class="rot">{"Esta semana" if s["actual"] else "Sem. " + _dm(s["desde"])}</span>{texto}</div>')
+    leyenda = '<div class="leyenda"><span><i class="esp"></i>Lo que vencía</span><span><i class="cob"></i>Lo ya cobrado</span></div>'
     return f'<div class="m3k-sem" style="grid-template-columns:repeat({max(1, len(datos))},minmax(0,1fr))">{"".join(cols)}</div>{leyenda}'
 
 
@@ -187,3 +197,9 @@ def cuotas(lista: list[dict]) -> str:
             f'<div class="n" style="color:{color};font-weight:600">{ui.esc(nota)}</div>'
             f'<div class="nivel"><i style="width:{pct:.0f}%;background:{color}"></i></div></div>')
     return f'<div class="m3k-dias cuotas">{"".join(tarjetas)}</div>'
+
+
+def todo_al_dia(total: float) -> str:
+    """Reemplaza a la dona cuando no hay nada atrasado: un anillo de un solo color no aporta información."""
+    return (f'<div class="m3k-aldia"><b class="num">{ui.soles(total)}</b>'
+            f'<span>es lo que te deben en total y <strong>nada está vencido</strong>.</span></div>')

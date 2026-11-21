@@ -167,7 +167,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-dia .m {{ font-size:1.12rem; font-weight:700; margin:.1rem 0; }} .m3k-dia .n {{ font-size:.76rem; color:var(--suave); }}
 .m3k-dia .nivel {{ height:4px; background:#E6ECE8; border-radius:99px; margin-top:.5rem; overflow:hidden; }}
 .m3k-dia .nivel i {{ display:block; height:100%; background:var(--info); border-radius:99px; transform-origin:left; animation:m3k-ancho .8s ease .2s both; }}
-.m3k-sem {{ display:grid; grid-template-columns:repeat(6,1fr); gap:.5rem; align-items:end; }}
+.m3k-sem {{ display:grid; grid-template-columns:repeat(6,1fr); gap:.5rem; align-items:start; }}
 .m3k-sem .c {{ display:flex; flex-direction:column; align-items:center; gap:.25rem; min-width:0; }}
 .m3k-sem .barras {{ height:120px; width:100%; display:flex; align-items:flex-end; justify-content:center; gap:3px; border-bottom:1px solid var(--borde); }}
 .m3k-sem .barras i {{ display:block; width:36%; max-width:34px; border-radius:3px 3px 0 0; transform-origin:bottom; animation:m3k-alto .75s cubic-bezier(.2,.7,.2,1) both;
@@ -217,6 +217,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-cliente .monto {{ text-align:right; }} .m3k-cliente .monto b {{ display:block; font-size:1.05rem; }}
 .m3k-cliente .m3k-barra {{ margin-top:.35rem; }}
 @media (max-width: 760px) {{ .m3k-cliente {{ grid-template-columns:44px 1fr; }} .m3k-cliente .est, .m3k-cliente .monto {{ grid-column:1 / -1; text-align:left; }} }}
+
+.m3k-sem .val b {{ color:var(--texto); font-weight:600; }} .m3k-sem .val.f {{ color:#A8600A; font-weight:600; }} .m3k-sem .val.ok {{ color:var(--ok); font-weight:600; }}
+.m3k-aldia b {{ display:block; font-size:1.8rem; color:var(--ok); }} .m3k-aldia span {{ color:var(--suave); }} .m3k-aldia strong {{ color:var(--texto); }}
 
 /* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
    así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */
