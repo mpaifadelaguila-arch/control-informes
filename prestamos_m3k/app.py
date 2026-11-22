@@ -44,10 +44,11 @@ def acceso() -> bool:
             "(Streamlit Cloud: Settings → Secrets; en local: `.streamlit/secrets.toml`)."
         )
         return False
-    estilos.encabezado("M3K Préstamos Personales", "Ingresa tu clave para continuar.")
-    with st.form("acceso"):
-        ingresada = st.text_input("Clave", type="password", autocomplete="current-password")
-        enviar = st.form_submit_button("Entrar", type="primary")
+    estilos.acceso_cabecera()
+    with st.container(key="acceso_form"):
+        with st.form("acceso"):
+            ingresada = st.text_input("Clave", type="password", autocomplete="current-password")
+            enviar = st.form_submit_button("Entrar", type="primary", use_container_width=True)
     if enviar:
         if hmac.compare_digest(ingresada.encode(), str(clave).encode()):
             st.session_state["_acceso"] = True

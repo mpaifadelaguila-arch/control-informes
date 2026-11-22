@@ -96,6 +96,28 @@ def _paso(n: int, titulo: str) -> None:
     st.markdown(f'<div class="m3k-paso"><span>{n}</span><b>{titulo}</b></div>', unsafe_allow_html=True)
 
 
+def _tarjetas_modalidades(elegida: str, monto: float, tasa: float) -> str:
+    """Tarjetas con icono que explican cada modalidad, con un ejemplo calculado sobre el monto escrito."""
+    datos = {
+        "diario": ("📅", "Lunes a sábado", ["24 cuotas, una por día de trabajo", f"{tasa:g} % en total", "Los domingos no se cuentan"]),
+        "semanal": ("🗓️", "Cada 7 días", ["4 cuotas semanales", f"{tasa:g} % en total", "Cuotas iguales"]),
+        "mensual": ("🌙", "De 1 a 3 meses", [f"{tasa:g} % por mes", "Solo interés; el capital va en la última cuota", "Se elige al entregar"]),
+    }
+    tarjetas = []
+    for clave in calc.modalidades_ofrecidas():
+        icono, sub, puntos = datos[clave]
+        if clave == "mensual":
+            cuota = ui.soles(monto * tasa / 100)  # interés de un mes
+        else:
+            cuota = ui.soles(calc.generar_cronograma(monto, tasa, clave, calc.hoy())[0]["monto"])
+        ejemplo = f"{ui.soles(monto)} → <strong>{cuota}</strong> " + ("al mes" if clave == "mensual" else "por cuota")
+        lista = "".join(f"<li>{ui.esc(x)}</li>" for x in puntos)
+        sel = " sel" if clave == elegida else ""
+        tarjetas.append(f'<div class="m3k-modo{sel}"><div class="ico">{icono}</div><b>{ui.esc(calc.MODALIDADES[clave]["nombre"])}</b>'
+                        f'<div class="sub">{ui.esc(sub)}</div><ul>{lista}</ul><div class="ej">{ejemplo}</div></div>')
+    return f'<div class="m3k-modos">{"".join(tarjetas)}</div>'
+
+
 def _nuevo(db: dict, hoy, evals: dict) -> None:
     activos = [c for c in db["clientes"] if c["activo"]]
     if not activos:
@@ -140,7 +162,7 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
                                      etiquetas={k: calc.MODALIDADES[k]["nombre"] for k in calc.modalidades_ofrecidas()},
                                      iconos={"diario": ":material/today:", "semanal": ":material/date_range:", "mensual": ":material/calendar_month:"},
                                      ancho_completo=True)
-            st.caption(calc.MODALIDADES[modalidad]["texto"] + (". Los domingos no se cuentan." if modalidad == "diario" else "."))
+            st.markdown(_tarjetas_modalidades(modalidad, monto if monto > 0 else 1000.0, tasa), unsafe_allow_html=True)
             meses, fin_de_mes = None, False
             if modalidad == "mensual":
                 st.markdown("**¿Cuántos meses?**")
