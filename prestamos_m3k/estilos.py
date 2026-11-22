@@ -250,6 +250,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 
 .m3k-pagadas {{ background:#EAF4EE; border:1px solid #CFE3D6; color:#1B5A40; border-radius:8px; padding:.45rem .8rem; font-size:.85rem; margin:.2rem 0 .6rem; }}
 
+.m3k-paso {{ display:flex; align-items:center; gap:.65rem; margin:.1rem 0 .6rem; font-size:1.15rem; }}
+.m3k-paso span {{ width:30px; height:30px; border-radius:50%; background:var(--acento); color:#fff; font-weight:700; font-size:.95rem;
+  display:flex; align-items:center; justify-content:center; flex:none; box-shadow:0 2px 6px rgba(31,107,79,.3); }}
+.m3k-simula {{ background:linear-gradient(135deg,#EEF6F1,#fff 70%); border:1px dashed #9CC4AF; border-radius:12px; padding:1.6rem 1.4rem; }}
+.m3k-simula .gran {{ font-size:2.6rem; line-height:1; margin-bottom:.4rem; }}
+.m3k-simula b {{ font-size:1.15rem; }} .m3k-simula p {{ color:var(--suave); margin:.4rem 0 .3rem; }} .m3k-simula ul {{ margin:0; padding-left:1.1rem; line-height:1.9; }}
+
 /* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
    así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */
 :root {{ color-scheme: light; }}
