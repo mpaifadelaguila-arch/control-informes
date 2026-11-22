@@ -5,6 +5,7 @@ import streamlit as st
 import calculos as calc
 import datos
 import estilos as ui
+import navegacion as nav
 import operaciones as ops
 from vistas import comun
 
@@ -70,7 +71,7 @@ def mostrar() -> None:
     visibles = [k for k in filtros if k == "Todos" or conteo[k]]
     if st.session_state.get("filtro_cliente") not in visibles:
         st.session_state["filtro_cliente"] = "Todos"
-    filtro = st.radio("Mostrar", visibles, format_func=lambda k: f"{k} ({conteo[k]})", horizontal=True, key="filtro_cliente", label_visibility="collapsed")
+    filtro = nav.pestanas(visibles, "filtro_cliente", etiquetas={k: f"{k} ({conteo[k]})" for k in visibles})
     buscar = st.text_input("Buscar", placeholder="Buscar por nombre, DNI o teléfono", label_visibility="collapsed")
     q = buscar.strip().lower()
     lista = [c for c in db["clientes"] if filtros[filtro](c) and (not q or q in c["nombre"].lower() or q in c["dni"] or q in c.get("telefono", ""))]

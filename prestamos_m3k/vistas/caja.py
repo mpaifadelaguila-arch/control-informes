@@ -5,6 +5,7 @@ import streamlit as st
 import calculos as calc
 import datos
 import estilos as ui
+import navegacion as nav
 import graficos as g
 import operaciones as ops
 
@@ -61,7 +62,7 @@ def mostrar() -> None:
     historial = calc.movimientos_con_saldo(db)  # el saldo se calcula con todo el historial, antes de filtrar
     filtros = {"Todo": None, "Cobros": ("Cobro",), "Créditos": ("Desembolso",), "Aportes": ("Aporte de capital",),
                "Retiros y gastos": ("Retiro", "Gasto", "Pago de servicio")}
-    filtro = st.radio("Mostrar", list(filtros), horizontal=True, label_visibility="collapsed")
+    filtro = nav.pestanas(list(filtros), "filtro_caja")
     if filtros[filtro]:
         historial = [h for h in historial if h["tipo"] in filtros[filtro]]
     if not historial:

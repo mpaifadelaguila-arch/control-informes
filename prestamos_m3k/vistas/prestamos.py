@@ -5,6 +5,7 @@ import streamlit as st
 import calculos as calc
 import datos
 import estilos as ui
+import navegacion as nav
 import graficos as g
 import operaciones as ops
 from vistas import comun
@@ -21,7 +22,7 @@ def _cartera(db: dict, evals: dict) -> None:
     visibles = [k for k in FILTROS if k == "Todos" or conteo[k]]
     if st.session_state.get("filtro_prestamo") not in visibles:
         st.session_state["filtro_prestamo"] = "Todos"
-    filtro = st.radio("Estado", visibles, format_func=lambda k: f"{k} ({conteo[k]})", horizontal=True, key="filtro_prestamo", label_visibility="collapsed")
+    filtro = nav.pestanas(visibles, "filtro_prestamo", etiquetas={k: f"{k} ({conteo[k]})" for k in visibles})
     buscar = st.text_input("Buscar cliente", placeholder="Buscar por nombre del cliente", key="buscar_prestamo", label_visibility="collapsed").strip().lower()
 
     lista = []
@@ -195,9 +196,9 @@ def mostrar() -> None:
     destino = st.session_state.pop("_vista_prestamos", None)
     if destino:
         st.session_state["vista_prestamos"] = destino
-    with st.container(key="nav_principal"):
-        vista = st.radio("Vista", ["Cartera", "Nuevo crédito"], horizontal=True, key="vista_prestamos", label_visibility="collapsed",
-                         format_func=lambda v: {"Cartera": ":material/list_alt: Cartera", "Nuevo crédito": ":material/add_circle: Nuevo crédito"}[v])
+    vista = nav.pestanas(["Cartera", "Nuevo crédito"], "vista_prestamos",
+                         iconos={"Cartera": ":material/list_alt:", "Nuevo crédito": ":material/add_circle:"})
+    st.divider()
     if vista == "Cartera":
         _cartera(db, evals)
     else:
