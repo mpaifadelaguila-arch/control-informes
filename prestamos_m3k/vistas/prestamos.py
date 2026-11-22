@@ -177,8 +177,7 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
             f0 = st.date_input("Fecha de desembolso", value=hoy, format="DD/MM/YYYY", key="nc_fecha")
             st.markdown("**¿Cómo se entrega?**")
             entrega = nav.pestanas(list(calc.ENTREGAS), "nc_entrega",
-                                   iconos={"Efectivo": ":material/payments:", "Yape": ":material/smartphone:", "Plin": ":material/smartphone:",
-                                           "Transferencia": ":material/account_balance:"}, ancho_completo=True)
+                                   iconos={"Efectivo": ":material/payments:", "Transferencia": ":material/account_balance:"}, ancho_completo=True)
 
     # ---------------- derecha: resumen en vivo y confirmación ----------------
     with der:

@@ -77,6 +77,18 @@ _BANNER = _banner_uri()
 _BANNER_CONT = _banner_uri("banner_contabilidad.jpg")
 _BANNER_CTRL = _banner_uri("banner_control.jpg")
 _BANNER_APP = _banner_uri("banner_aplicacion.jpg")
+def _logo_uri(nombre: str) -> str:
+    """Logo (PNG pequeño) incrustado como imagen de fondo CSS; si falta el archivo no se muestra nada."""
+    import base64
+    from pathlib import Path
+    try:
+        datos = base64.b64encode((Path(__file__).parent / "assets" / "logos" / f"{nombre}.png").read_bytes()).decode()
+    except OSError:
+        return "none"
+    return f"url(data:image/png;base64,{datos})"
+
+
+_LOGO_YAPE, _LOGO_PLIN, _LOGO_WA = _logo_uri("yape"), _logo_uri("plin"), _logo_uri("whatsapp")
 SECCIONES_CONTABILIDAD = {"Resultados", "Cuentas por cobrar"}
 SECCIONES_CONTROL = {"Caja", "Recibos"}
 SECCIONES_APLICACION = {"Configuración"}
@@ -578,6 +590,10 @@ html body .stApp [data-testid="stRadio"] label[data-baseweb="radio"] p {{ font-s
 html body .stApp [data-testid="stLinkButton"] a, html body .stApp [data-testid="stLinkButton"] a:visited {{ background:#161617 !important; border:1px solid #38383C !important; color:#F4F4F2 !important; text-decoration:none !important; }}
 html body .stApp [data-testid="stLinkButton"] a *, html body .stApp [data-testid="stLinkButton"] a p {{ color:#F4F4F2 !important; background:transparent !important; }}
 html body .stApp [data-testid="stLinkButton"] a:hover {{ border-color:#B8F53A !important; background:#1F1F21 !important; }}
+/* logos de Yape, Plin y WhatsApp en los botones correspondientes */
+[class*="st-key-nc_entrega__1"] button p::before, [class*="st-key-mp_"][class*="__1"] button p::before {{ content:''; display:inline-block; width:22px; height:22px; margin-right:.5rem; vertical-align:-6px; background:{_LOGO_YAPE} center / contain no-repeat; }}
+[class*="st-key-nc_entrega__2"] button p::before, [class*="st-key-mp_"][class*="__2"] button p::before {{ content:''; display:inline-block; width:22px; height:22px; margin-right:.5rem; vertical-align:-6px; background:{_LOGO_PLIN} center / contain no-repeat; }}
+[class*="st-key-wa_chat"] p::before {{ content:''; display:inline-block; width:22px; height:22px; margin-right:.5rem; vertical-align:-6px; background:{_LOGO_WA} center / contain no-repeat; }}
 </style>
 """
 

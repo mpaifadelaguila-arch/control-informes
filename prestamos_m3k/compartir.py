@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import re
+from pathlib import Path
 from urllib.parse import quote
 
 
@@ -46,12 +47,17 @@ def enlace_chat(telefono: str | None, texto: str) -> str | None:
 def html_compartir(png: bytes, nombre_archivo: str, texto: str) -> str:
     """Botón que abre el menú de compartir del teléfono con la imagen adjunta (Web Share API)."""
     b64 = base64.b64encode(png).decode()
+    try:
+        logo = base64.b64encode((Path(__file__).parent / "assets" / "logos" / "whatsapp.png").read_bytes()).decode()
+    except OSError:
+        logo = ""
+    img = f'<img src="data:image/png;base64,{logo}" width="20" height="20" alt="">' if logo else ""
     return f"""
-<button id="b" type="button">Compartir imagen</button><div id="m"></div>
+<button id="b" type="button">{img}Compartir imagen</button><div id="m"></div>
 <style>
  body{{margin:0;font-family:Inter,system-ui,sans-serif}}
  button{{width:100%;box-sizing:border-box;height:44px;border-radius:999px;border:1px solid rgba(184,245,58,.5);
-   background:rgba(184,245,58,.14);color:#D6F58C;font:600 15px Inter,system-ui,sans-serif;cursor:pointer}}
+   background:rgba(184,245,58,.14);color:#D6F58C;font:600 15px Inter,system-ui,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}}
  button:hover{{background:rgba(184,245,58,.24);border-color:rgba(184,245,58,.8)}}
  #m{{color:#9A9AA0;font-size:12px;margin-top:6px}}
 </style>

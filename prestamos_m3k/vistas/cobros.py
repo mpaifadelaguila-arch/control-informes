@@ -5,6 +5,7 @@ import streamlit as st
 import calculos as calc
 import datos
 import estilos as ui
+import navegacion as nav
 import operaciones as ops
 from vistas import comun
 
@@ -109,9 +110,12 @@ def mostrar() -> None:
          "nota": f"Vence {ui.fecha_dia(prox['vence'])}" if prox else "Crédito cancelado"},
     ])
 
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1, 2])
     f_cobro = col1.date_input("Fecha del cobro", value=hoy, max_value=hoy, format="DD/MM/YYYY", key=f"fc_{sel}")
-    metodo = col2.selectbox("Medio de pago", calc.METODOS_COBRO, key=f"mp_{sel}")
+    with col2:
+        st.markdown('<div style="font-size:.875rem;margin-bottom:.3rem">Medio de pago</div>', unsafe_allow_html=True)
+        metodo = nav.pestanas(list(calc.METODOS_COBRO), f"mp_{sel}", ancho_completo=True,
+                              iconos={"Efectivo": ":material/payments:", "Transferencia": ":material/account_balance:"})
 
     pagos = [p for p in db["pagos"] if not p.get("anulado")]
     ev_f = calc.evaluar_prestamo(prestamo, pagos, f_cobro, float(db["config"].get("mora_diaria_pct", 0) or 0))
