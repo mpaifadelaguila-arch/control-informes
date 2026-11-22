@@ -256,6 +256,12 @@ div[data-baseweb="popover"] ul, div[data-baseweb="menu"], div[data-baseweb="popo
 div[data-baseweb="popover"] li:hover {{ background:#EEF4F0 !important; }}
 .stButton button, .stDownloadButton button, .stFormSubmitButton button {{ background:#FFFFFF; color:var(--texto); border:1px solid var(--borde); }}
 .stButton button[kind="primary"], .stFormSubmitButton button[kind="primary"] {{ background:var(--acento); color:#FFFFFF; border-color:var(--acento); }}
+.stButton button p, .stButton button span, .stDownloadButton button p, .stFormSubmitButton button p {{ color:inherit !important; }}
+.stButton button[kind="primary"], .stButton button[kind="primary"] *, .stFormSubmitButton button[kind="primary"], .stFormSubmitButton button[kind="primary"] *,
+button[data-testid="stBaseButton-primary"], button[data-testid="stBaseButton-primary"] *, button[data-testid="stBaseButton-primaryFormSubmit"], button[data-testid="stBaseButton-primaryFormSubmit"] * {{ color:#FFFFFF !important; }}
+.stButton button[kind="primary"], button[data-testid="stBaseButton-primary"] {{ background:var(--acento) !important; border-color:var(--acento) !important; font-weight:600; }}
+.stButton button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover {{ background:#17563F !important; }}
+.stButton button[kind="secondary"]:hover, button[data-testid="stBaseButton-secondary"]:hover {{ border-color:var(--acento) !important; background:#F3F8F5 !important; }}
 .stButton button:disabled {{ opacity:.5; }}
 [data-testid="stExpander"] {{ background:#FFFFFF; border:1px solid var(--borde); }}
 [data-testid="stExpander"] summary, [data-testid="stExpander"] summary * {{ color:var(--texto) !important; }}
