@@ -1,4 +1,5 @@
-"""Clientes: resumen, filtros, tarjeta por cliente con su deuda, alta, edición y activación."""
+"""Clientes: directorio con alta, edición y activación. Los montos y cuotas viven en Préstamos y Cuentas por cobrar:
+aquí solo se muestra una señal de situación (al día, con atraso o sin créditos) y atajos hacia esos apartados."""
 
 import streamlit as st
 
@@ -35,7 +36,8 @@ def _formulario(db: dict, cliente: dict | None, clave: str) -> None:
 def mostrar() -> None:
     db = datos.cargar()
     evals = calc.evaluar_cartera(db, calc.hoy())
-    ui.encabezado("Clientes", f"{len(db['clientes'])} registrado(s)")
+    activos_n = sum(1 for c in db["clientes"] if c["activo"])
+    ui.encabezado("Clientes", f"{len(db['clientes'])} registrado(s) · {activos_n} activo(s)")
 
     with st.expander("Nuevo cliente", expanded=not db["clientes"]):
         _formulario(db, None, "form_nuevo_cliente")
@@ -48,25 +50,10 @@ def mostrar() -> None:
     for c in db["clientes"]:
         suyos = [p for p in db["prestamos"] if p["cliente_id"] == c["id"]]
         activos = [p for p in suyos if evals[p["id"]]["estado"] in ("vigente", "vencido")]
-        resumen[c["id"]] = {
-            "suyos": suyos, "activos": activos,
-            "deuda": round(sum(evals[p["id"]]["saldo"] for p in activos), 2),
-            "vencido": round(sum(evals[p["id"]]["vencido"] for p in activos), 2),
-            "total": sum(p["total"] for p in activos), "cobrado": sum(evals[p["id"]]["pagado"] for p in activos),
-        }
-    con_deuda = [c for c in db["clientes"] if resumen[c["id"]]["activos"]]
-    atrasados = [c for c in db["clientes"] if resumen[c["id"]]["vencido"] > 0]
-    ui.kpis([
-        {"etiqueta": "Clientes", "valor": str(len(db["clientes"])), "nota": f"{sum(1 for c in db['clientes'] if c['activo'])} activo(s)"},
-        {"etiqueta": "Con crédito vigente", "valor": str(len(con_deuda)), "tono": "info",
-         "nota": f"Te deben {ui.soles(sum(resumen[c['id']]['deuda'] for c in con_deuda))}"},
-        {"etiqueta": "Con atraso", "valor": str(len(atrasados)), "tono": "malo" if atrasados else "ok",
-         "nota": f"{ui.soles(sum(resumen[c['id']]['vencido'] for c in atrasados))} vencido" if atrasados else "Nadie atrasado"},
-    ])
+        resumen[c["id"]] = {"suyos": suyos, "activos": activos, "vencido": round(sum(evals[p["id"]]["vencido"] for p in activos), 2)}
 
-    filtros = {"Todos": lambda c: True, "Con crédito vigente": lambda c: bool(resumen[c["id"]]["activos"]),
-               "Con atraso": lambda c: resumen[c["id"]]["vencido"] > 0, "Sin crédito vigente": lambda c: not resumen[c["id"]]["activos"],
-               "Inactivos": lambda c: not c["activo"]}
+    filtros = {"Todos": lambda c: True, "Activos": lambda c: c["activo"],
+               "Con atraso": lambda c: resumen[c["id"]]["vencido"] > 0, "Inactivos": lambda c: not c["activo"]}
     conteo = {k: sum(1 for c in db["clientes"] if f(c)) for k, f in filtros.items()}
     visibles = [k for k in filtros if k == "Todos" or conteo[k]]
     if st.session_state.get("filtro_cliente") not in visibles:
@@ -85,16 +72,19 @@ def mostrar() -> None:
         chips = str(ui.chip("Activo", "ok") if c["activo"] else ui.chip("Inactivo", "neutro"))
         if r["vencido"] > 0:
             chips += str(ui.chip("Con atraso", "malo"))
+        elif activos:
+            chips += str(ui.chip("Al día", "ok"))
+        else:
+            chips += str(ui.chip("Sin créditos vigentes", "neutro"))
         iniciales = "".join(w[0] for w in c["nombre"].split()[:2]).upper() or "?"
-        avance = (r["cobrado"] / r["total"]) if r["total"] else 0
+        contacto = f'DNI {ui.esc(c["dni"])} · {ui.esc(c.get("telefono") or "sin teléfono")}'
+        if c.get("direccion"):
+            contacto += f' · {ui.esc(c["direccion"])}'
         with st.container(border=True):
             st.markdown(
                 f'<div class="m3k-cliente"><div class="av">{ui.esc(iniciales)}</div>'
-                f'<div class="dat"><b>{ui.esc(c["nombre"])}</b><small>DNI {ui.esc(c["dni"])} · {ui.esc(c.get("telefono") or "sin teléfono")}</small></div>'
-                f'<div class="est">{chips}</div>'
-                f'<div class="monto"><b class="num">{ui.soles(r["deuda"]) if activos else "Sin deuda"}</b>'
-                f'<small>{len(activos)} crédito(s) vigente(s) · {len(suyos)} en total</small>'
-                f'{ui.barra(avance) if activos else ""}</div></div>',
+                f'<div class="dat"><b>{ui.esc(c["nombre"])}</b><small>{contacto}</small></div>'
+                f'<div class="est">{chips}</div></div>',
                 unsafe_allow_html=True,
             )
             b1, b2, b3 = st.columns(3)
@@ -102,7 +92,7 @@ def mostrar() -> None:
                 st.session_state["_vista_prestamos"] = "Nuevo crédito"
                 st.session_state["nuevo_credito_cliente"] = c["id"]
                 comun.ir_a("prestamos")
-            if b2.button("Ver sus créditos", key=f"vc_{c['id']}", disabled=not suyos, icon=":material/receipt_long:", use_container_width=True):
+            if b2.button(f"Ver sus créditos ({len(suyos)})", key=f"vc_{c['id']}", disabled=not suyos, icon=":material/receipt_long:", use_container_width=True):
                 st.session_state["_vista_prestamos"] = "Cartera"
                 st.session_state["filtro_prestamo"] = "Todos"
                 st.session_state["buscar_prestamo"] = c["nombre"]
