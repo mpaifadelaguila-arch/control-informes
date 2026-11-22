@@ -66,58 +66,62 @@ def mostrar() -> None:
         ui.vacio("Sin resultados", "Ningún cliente coincide. Prueba con otro filtro, nombre o DNI.", "🔍")
         return
 
-    for c in sorted(lista, key=lambda x: x["nombre"].lower()):
-        r = resumen[c["id"]]
-        suyos, activos = r["suyos"], r["activos"]
-        if not c["activo"]:
-            estado, clase = "Inactivo", "off"
-        elif r["vencido"] > 0:
-            estado, clase = "Con atraso", "mal"
-        elif activos:
-            estado, clase = "Al día", "ok"
-        else:
-            estado, clase = "Sin créditos", "off"
-        iniciales = "".join(w[0] for w in c["nombre"].split()[:2]).upper() or "?"
-        n = len(suyos)
-        sub = "Sin créditos registrados" if n == 0 else f"{n} crédito{'s' if n != 1 else ''} registrado{'s' if n != 1 else ''}"
-
-        def dato(icono, etq, val):
-            return (f'<div class="it"><i class="ic">{icono}</i><div><em>{etq}</em>'
-                    f'<b>{ui.esc(val) if val else "—"}</b></div></div>')
-        contacto = (dato("badge", "DNI", c["dni"]) + dato("call", "Teléfono", c.get("telefono"))
-                    + dato("location_on", "Dirección", c.get("direccion")))
-        activo_txt = "Activo" if c["activo"] else "Inactivo"
-        with st.container(key=f"ficha_{c['id']}"):
-            st.markdown(
-                f'<div class="f-notch"><span class="f-pill {clase}">{estado}</span></div>'
-                f'<div class="f-cab"><div class="av">{ui.esc(iniciales)}</div><span>Cliente</span></div>'
-                f'<div class="f-panel"><div class="f-est"><span>• {activo_txt.upper()}</span>'
-                f'<i class="ic">{"check_circle" if c["activo"] else "pause_circle"}</i></div>{contacto}</div>'
-                f'<div class="f-nom"><b>{ui.esc(c["nombre"])}</b><small>{sub}</small></div>',
-                unsafe_allow_html=True,
-            )
-            _, b1, b2, _ = st.columns([1, 2, 2, 1])
-            if b1.button("Créditos", key=f"vc_{c['id']}", disabled=not suyos, icon=":material/receipt_long:", use_container_width=True):
-                st.session_state["_vista_prestamos"] = "Cartera"
-                st.session_state["filtro_prestamo"] = "Todos"
-                st.session_state["buscar_prestamo"] = c["nombre"]
-                comun.ir_a("prestamos")
-            if b2.button("Nuevo crédito", key=f"nc_{c['id']}", disabled=not c["activo"], icon=":material/add:", use_container_width=True):
-                st.session_state["_vista_prestamos"] = "Nuevo crédito"
-                st.session_state["nuevo_credito_cliente"] = c["id"]
-                comun.ir_a("prestamos")
-            with st.expander("Editar datos u otras opciones"):
-                if st.button("Desactivar cliente" if c["activo"] else "Activar cliente", key=f"ac_{c['id']}"):
-                    ops.cambiar_estado_cliente(db, c["id"], not c["activo"])
-                    datos.guardar(db)
-                    st.rerun()
-                _formulario(db, c, f"form_{c['id']}")
-                if suyos:
-                    st.caption("Tiene créditos registrados, por eso solo se puede desactivar.")
+    orden = sorted(lista, key=lambda x: x["nombre"].lower())
+    for ini in range(0, len(orden), 2):
+        columnas = st.columns(2)
+        for columna, c in zip(columnas, orden[ini:ini + 2]):
+            with columna:
+                r = resumen[c["id"]]
+                suyos, activos = r["suyos"], r["activos"]
+                if not c["activo"]:
+                    estado, clase = "Inactivo", "off"
+                elif r["vencido"] > 0:
+                    estado, clase = "Con atraso", "mal"
+                elif activos:
+                    estado, clase = "Al día", "ok"
                 else:
-                    seguro = st.checkbox("Confirmo que quiero eliminar a este cliente", key=f"ok_del_{c['id']}")
-                    if st.button("Eliminar cliente", key=f"del_{c['id']}", disabled=not seguro):
-                        ops.eliminar_cliente(db, c["id"])
-                        datos.guardar(db)
-                        ui.avisar("ok", "Cliente eliminado.")
-                        st.rerun()
+                    estado, clase = "Sin créditos", "off"
+                iniciales = "".join(w[0] for w in c["nombre"].split()[:2]).upper() or "?"
+                n = len(suyos)
+                sub = "Sin créditos registrados" if n == 0 else f"{n} crédito{'s' if n != 1 else ''} registrado{'s' if n != 1 else ''}"
+
+                def dato(icono, etq, val):
+                    return (f'<div class="it"><i class="ic">{icono}</i><div><em>{etq}</em>'
+                            f'<b>{ui.esc(val) if val else "—"}</b></div></div>')
+                contacto = (dato("badge", "DNI", c["dni"]) + dato("call", "Teléfono", c.get("telefono"))
+                            + dato("location_on", "Dirección", c.get("direccion")))
+                activo_txt = "Activo" if c["activo"] else "Inactivo"
+                with st.container(key=f"ficha_{c['id']}"):
+                    st.markdown(
+                        f'<span class="f-pill {clase}">{estado}</span>'
+                        f'<div class="f-cab"><div class="av">{ui.esc(iniciales)}</div><span>Cliente</span></div>'
+                        f'<div class="f-panel"><div class="f-est"><span>• {activo_txt.upper()}</span>'
+                        f'<i class="ic">{"check_circle" if c["activo"] else "pause_circle"}</i></div>{contacto}</div>'
+                        f'<div class="f-nom"><b>{ui.esc(c["nombre"])}</b><small>{sub}</small></div>',
+                        unsafe_allow_html=True,
+                    )
+                    _, b1, b2, _ = st.columns([1, 2, 2, 1])
+                    if b1.button("Créditos", key=f"vc_{c['id']}", disabled=not suyos, icon=":material/receipt_long:", use_container_width=True):
+                        st.session_state["_vista_prestamos"] = "Cartera"
+                        st.session_state["filtro_prestamo"] = "Todos"
+                        st.session_state["buscar_prestamo"] = c["nombre"]
+                        comun.ir_a("prestamos")
+                    if b2.button("Nuevo crédito", key=f"nc_{c['id']}", disabled=not c["activo"], icon=":material/add:", use_container_width=True):
+                        st.session_state["_vista_prestamos"] = "Nuevo crédito"
+                        st.session_state["nuevo_credito_cliente"] = c["id"]
+                        comun.ir_a("prestamos")
+                    with st.expander("Editar datos u otras opciones"):
+                        if st.button("Desactivar cliente" if c["activo"] else "Activar cliente", key=f"ac_{c['id']}"):
+                            ops.cambiar_estado_cliente(db, c["id"], not c["activo"])
+                            datos.guardar(db)
+                            st.rerun()
+                        _formulario(db, c, f"form_{c['id']}")
+                        if suyos:
+                            st.caption("Tiene créditos registrados, por eso solo se puede desactivar.")
+                        else:
+                            seguro = st.checkbox("Confirmo que quiero eliminar a este cliente", key=f"ok_del_{c['id']}")
+                            if st.button("Eliminar cliente", key=f"del_{c['id']}", disabled=not seguro):
+                                ops.eliminar_cliente(db, c["id"])
+                                datos.guardar(db)
+                                ui.avisar("ok", "Cliente eliminado.")
+                                st.rerun()
