@@ -314,6 +314,65 @@ code {{ background:#16301A !important; color:#D9FB8C !important; }}
 
 .stApp .m3k-recibo, .stApp .m3k-recibo * {{ color:#0A1A05; }} .stApp .m3k-recibo .anul {{ color:#B3261E; }} .stApp .m3k-recibo small {{ color:#3E5A2A !important; }}
 
+/* ---- Correcciones de visibilidad: todo control con fondo oscuro y texto claro ---- */
+div[data-baseweb="select"], div[data-baseweb="select"] * {{ background-color:#0C1C10 !important; color:#F2FBE8 !important; border-color:#2A4A2C !important; }}
+div[data-baseweb="select"] svg {{ fill:#B8F53A !important; }}
+div[data-baseweb="select"] > div:hover {{ border-color:#B8F53A !important; }}
+[data-testid="stDateInput"] *, [data-testid="stDateInputField"], [data-baseweb="datepicker"] * {{ background-color:#0C1C10 !important; color:#F2FBE8 !important; border-color:#2A4A2C !important; }}
+[data-testid="stDateInput"] svg {{ fill:#B8F53A !important; }}
+[data-testid="stDateInput"] input::placeholder {{ color:#9DB58A !important; }}
+[data-baseweb="popover"], [data-baseweb="popover"] > div, [data-baseweb="popover"] ul, [data-baseweb="popover"] li, [data-baseweb="calendar"], [data-baseweb="calendar"] * {{ background-color:#0C1C10 !important; color:#F2FBE8 !important; }}
+[data-baseweb="popover"] {{ border:1px solid #2A4A2C; border-radius:10px; }}
+[data-baseweb="popover"] li:hover, [data-baseweb="popover"] li[aria-selected="true"] {{ background-color:#16301A !important; color:#B8F53A !important; }}
+[data-baseweb="calendar"] [aria-selected="true"], [data-baseweb="calendar"] [aria-selected="true"] * {{ background-color:#B8F53A !important; color:#0A1A05 !important; }}
+[data-testid="stFileUploaderDropzone"], [data-testid="stFileUploaderDropzone"] * {{ background-color:#0C1C10 !important; color:#CFE8B8 !important; }}
+[data-testid="stFileUploaderDropzone"] {{ border:1.5px dashed #2F5A33 !important; border-radius:12px; transition:border-color .2s ease, box-shadow .2s ease; }}
+[data-testid="stFileUploaderDropzone"]:hover {{ border-color:#B8F53A !important; box-shadow:0 0 18px rgba(184,245,58,.12); }}
+[data-testid="stFileUploaderDropzone"] button {{ background-color:#B8F53A !important; color:#0A1A05 !important; }}
+[data-testid="stFileUploaderDropzone"] button * {{ background-color:transparent !important; color:#0A1A05 !important; }}
+[data-testid="stAlert"], [data-testid="stAlertContainer"], [data-baseweb="notification"], [role="alert"] {{ background-color:#0F2412 !important; color:#F2FBE8 !important; border:1px solid #2F5A33 !important; border-left:4px solid #B8F53A !important; border-radius:10px; }}
+[data-testid="stAlert"] *, [data-baseweb="notification"] * {{ background-color:transparent !important; color:#F2FBE8 !important; }}
+[data-testid="stAlert"] svg {{ fill:#B8F53A !important; }}
+[data-testid="stException"], [data-testid="stNotification"] {{ background:#0F2412 !important; }}
+
+/* Iconos: fichas claras para que se vean sobre fondo oscuro */
+.m3k-cab .ico {{ background:#B8F53A !important; box-shadow:0 0 0 4px rgba(184,245,58,.14), 0 0 22px rgba(184,245,58,.25) !important; }}
+.m3k-kpi .ic {{ background:#DDF7A8 !important; box-shadow:0 0 0 3px rgba(184,245,58,.14); }}
+.m3k-modo .ico {{ background:#DDF7A8 !important; }} .m3k-modo.sel .ico {{ background:#B8F53A !important; }}
+.m3k-cliente .av {{ background:#B8F53A !important; color:#0A1A05 !important; }}
+.m3k-simula .gran {{ display:inline-flex; width:64px; height:64px; border-radius:18px; background:#DDF7A8; align-items:center; justify-content:center; font-size:2rem; }}
+
+/* Barras y pistas: más contraste sobre las tarjetas */
+.m3k-barra, .m3k-avance .pista, .m3k-dia .nivel, .m3k-cascada .pista, .m3k-reparto .barra {{ background:#2F5A33 !important; }}
+.m3k-sem i.esp, .leyenda i.esp {{ background:#5E9B4A !important; }}
+.m3k-sem .barras {{ border-bottom:1px solid #4A7A44 !important; }}
+.m3k-dona circle[stroke="#1E3A1F"] {{ stroke:#2F5A33; }}
+.m3k-panel svg line {{ stroke:#2F5A33 !important; }}
+
+/* Botones y pestañas: el texto se parte en dos líneas en vez de cortarse con «…» */
+.stButton button p, .stDownloadButton button p, .stFormSubmitButton button p {{ white-space:normal !important; overflow:visible !important; text-overflow:clip !important; line-height:1.25; }}
+.stButton button, .stDownloadButton button {{ height:auto; min-height:44px; padding-top:.4rem; padding-bottom:.4rem; }}
+.stButton button > div, .stButton button [data-testid="stMarkdownContainer"] {{ overflow:visible !important; }}
+
+/* Transiciones y movimiento */
+@keyframes m3k-entra {{ from {{ opacity:0; transform:translateY(12px); }} to {{ opacity:1; transform:none; }} }}
+@keyframes m3k-brillo {{ 0%,100% {{ box-shadow:0 0 0 0 rgba(184,245,58,.0); }} 50% {{ box-shadow:0 0 22px 2px rgba(184,245,58,.22); }} }}
+.block-container {{ animation:m3k-entra .5s cubic-bezier(.2,.7,.2,1) both; }}
+.stButton button, .stDownloadButton button, .stFormSubmitButton button {{ transition:transform .15s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease; }}
+.stButton button:hover, .stDownloadButton button:hover, .stFormSubmitButton button:hover {{ transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.45); }}
+.stButton button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover {{ box-shadow:0 0 22px rgba(184,245,58,.45); }}
+.stButton button:active {{ transform:scale(.98); }}
+[data-testid="stSidebar"] [data-testid="stSidebarNavLink"] {{ transition:background-color .2s ease, padding-left .2s ease; }}
+[data-testid="stSidebar"] [data-testid="stSidebarNavLink"]:hover {{ padding-left:1.1rem; }}
+.m3k-cab {{ animation:m3k-entra .55s cubic-bezier(.2,.7,.2,1) both; }}
+.m3k-kpi.heroe {{ animation:m3k-subir .5s cubic-bezier(.2,.7,.2,1) both, m3k-brillo 3.5s ease-in-out 1s infinite; }}
+.m3k-modo {{ transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease; }}
+.m3k-modo:hover {{ transform:translateY(-3px); border-color:#B8F53A; box-shadow:0 8px 22px rgba(0,0,0,.45); }}
+.m3k-tabla tbody tr {{ transition:background-color .15s ease; }}
+[data-testid="stExpander"] {{ transition:border-color .2s ease; }} [data-testid="stExpander"]:hover {{ border-color:#2F5A33; }}
+[data-testid="stVerticalBlockBorderWrapper"] {{ transition:border-color .2s ease, box-shadow .2s ease; }}
+[data-testid="stVerticalBlockBorderWrapper"]:hover {{ box-shadow:0 0 24px rgba(184,245,58,.06); }}
+
 /* Acceso: tarjeta central con marca y tres razones para entrar */
 .m3k-login {{ max-width:460px; margin:1.2rem auto .8rem; text-align:center; position:relative; }}
 .m3k-login::before {{ content:''; position:absolute; left:50%; top:-60px; width:520px; height:360px; transform:translateX(-50%); z-index:-1;
