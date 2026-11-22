@@ -599,6 +599,29 @@ html body .stApp [class*="st-key-nc_entrega__"] button, html body .stApp [class*
 html body .stApp [class*="st-key-nc_entrega__"] button p, html body .stApp [class*="st-key-mp_"][class*="__"] button p {{ white-space:nowrap !important; word-break:normal !important; overflow-wrap:normal !important; hyphens:none !important; font-size:.8rem !important; }}
 html body .stApp [class*="st-key-nc_entrega__"] button [data-testid="stIconMaterial"], html body .stApp [class*="st-key-mp_"][class*="__"] button [data-testid="stIconMaterial"] {{ font-size:1.05rem !important; margin-right:.1rem; }}
 html body .stApp [class*="st-key-nc_entrega__"] button > div, html body .stApp [class*="st-key-mp_"][class*="__"] button > div {{ gap:.25rem; flex-wrap:nowrap; }}
+/* móvil: encabezado más bajo, botones de opciones en una sola fila y sin columnas vacías */
+@media (max-width: 640px) {{
+  html body .stApp .m3k-cab {{ min-height:108px; padding:.7rem .8rem; gap:.7rem; }}
+  html body .stApp .m3k-cab .ico {{ width:42px; height:42px; font-size:1.3rem; border-radius:12px; }}
+  html body .stApp .m3k-cab .marca {{ font-size:.62rem; letter-spacing:.08em; }}
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-nc_entrega"]),
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-nc_modalidad"]),
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-nc_meses"]),
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-nc_cuando"]),
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-mp_"]),
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-ficha_"]) {{ flex-direction:row !important; flex-wrap:nowrap !important; gap:.4rem !important; }}
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-nc_entrega"]) > [data-testid="stColumn"],
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-nc_modalidad"]) > [data-testid="stColumn"],
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-nc_meses"]) > [data-testid="stColumn"],
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-nc_cuando"]) > [data-testid="stColumn"],
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-mp_"]) > [data-testid="stColumn"],
+  html body .stApp [data-testid="stHorizontalBlock"]:has([class*="st-key-ficha_"]) > [data-testid="stColumn"] {{ min-width:0 !important; width:auto !important; flex:1 1 0 !important; }}
+  html body .stApp [class*="st-key-ficha_"] [data-testid="stColumn"]:not(:has(button)) {{ display:none !important; }}
+  html body .stApp [class*="st-key-nc_"] button p, html body .stApp [class*="st-key-mp_"] button p {{ font-size:.8rem !important; white-space:normal; }}
+  html body .stApp [class*="st-key-ficha_"] {{ margin-bottom:.8rem; }}
+  html body .stApp .f-panel b {{ font-size:.9rem; word-break:break-word; }}
+  html body .stApp .f-nom b {{ font-size:1rem; }}
+}}
 </style>
 """
 
