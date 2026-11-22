@@ -521,14 +521,12 @@ html body .stApp [data-testid="stSidebar"] .stButton button {{ width:100%; backg
 html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-color:#B8F53A !important; color:#B8F53A !important; }}
 
 /* Encabezado con foto de billetes difuminada a la derecha, que se desvanece hacia el texto */
-.m3k-cab {{ position:relative; overflow:hidden; }}
-.m3k-cab::before {{ content:''; position:absolute; top:0; right:0; bottom:0; width:62%; background-image:{_BANNER}; background-size:cover; background-position:right center;
-  opacity:1; pointer-events:none; z-index:0;
-  -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 35%, #000 100%); mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 35%, #000 100%); }}
-.m3k-cab > * {{ position:relative; z-index:1; }}
-.m3k-cab.cont {{ min-height:158px; align-items:center; }}
-.m3k-cab.cont::before {{ background-image:{_BANNER_CONT}; background-size:100% 100%; background-position:center; left:auto; width:auto; height:100%; aspect-ratio:962 / 317;
+.m3k-cab {{ position:relative; overflow:hidden; min-height:158px; align-items:center; }}
+.m3k-cab::before {{ content:''; position:absolute; top:0; right:0; bottom:0; left:auto; width:auto; height:100%; aspect-ratio:962 / 317;
+  background-image:{_BANNER}; background-size:100% 100%; background-position:center; pointer-events:none; z-index:0;
   -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 14%, #000 32%); mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 14%, #000 32%); }}
+.m3k-cab > * {{ position:relative; z-index:1; }}
+.m3k-cab.cont::before {{ background-image:{_BANNER_CONT}; }}
 @media (max-width:640px) {{ .m3k-cab::before {{ width:100%; opacity:.35; }} }}
 </style>
 """
