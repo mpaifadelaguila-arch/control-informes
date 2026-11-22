@@ -556,6 +556,19 @@ html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-colo
 .m3k-cab.ctrl::before {{ background-image:{_BANNER_CTRL}; }}
 .m3k-cab.app::before {{ background-image:{_BANNER_APP}; }}
 @media (max-width:640px) {{ .m3k-cab::before {{ width:100%; opacity:.35; }} }}
+/* lima suavizado: relleno translúcido, borde fino y texto claro (menos intensidad que el lima sólido) */
+html body .stApp .stButton button[kind="primary"], html body .stApp button[data-testid="stBaseButton-primary"], html body .stApp [data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"], html body .stApp [data-testid="stFormSubmitButton"] button[data-testid="stBaseButton-primaryFormSubmit"],
+html body .stApp [class*="st-key-nc_"] button:not(:disabled), html body .stApp [data-testid="stFileUploaderDropzone"] button {{ background:rgba(184,245,58,.14) !important; border:1px solid rgba(184,245,58,.5) !important; color:#D6F58C !important; font-weight:600; }}
+html body .stApp .stButton button[kind="primary"] *, html body .stApp button[data-testid="stBaseButton-primary"] *, html body .stApp [data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"] *, html body .stApp [class*="st-key-nc_"] button:not(:disabled) *, html body .stApp [data-testid="stFileUploaderDropzone"] button * {{ color:#D6F58C !important; background:transparent !important; }}
+html body .stApp .stButton button[kind="primary"]:hover, html body .stApp button[data-testid="stBaseButton-primary"]:hover, html body .stApp [data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"]:hover, html body .stApp [class*="st-key-nc_"] button:not(:disabled):hover {{ background:rgba(184,245,58,.24) !important; border-color:rgba(184,245,58,.8) !important; }}
+html body .stApp [data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {{ background:rgba(184,245,58,.14) !important; border-color:rgba(184,245,58,.5) !important; box-shadow:none !important; }}
+html body .stApp [data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked), html body .stApp [data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) * {{ color:#D6F58C !important; }}
+html body .stApp [data-testid="stNumberInputContainer"] button {{ background:rgba(184,245,58,.14) !important; color:#D6F58C !important; }}
+html body .stApp [data-testid="stNumberInputContainer"] button * {{ color:#D6F58C !important; fill:#D6F58C !important; background:transparent !important; }}
+html body .stApp [data-baseweb="select"] > div > div:last-child {{ background:rgba(184,245,58,.14) !important; }}
+html body .stApp [data-baseweb="select"] svg {{ fill:#D6F58C !important; color:#D6F58C !important; }}
+html body .stApp .m3k-paso span {{ background:rgba(184,245,58,.14) !important; border:1px solid rgba(184,245,58,.55); color:#D6F58C !important; box-shadow:none; }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"] [data-testid="stIconMaterial"] {{ font-weight:400 !important; font-variation-settings:'FILL' 0, 'wght' 400 !important; }}
 </style>
 """
 
