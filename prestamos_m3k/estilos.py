@@ -469,6 +469,37 @@ html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid=
 .m3k-modo ul {{ list-style:none; margin:0; padding:0; font-size:.84rem; color:#CFE8B8; line-height:1.7; }}
 .m3k-modo .ej {{ margin-top:.5rem; padding-top:.45rem; border-top:1px dashed var(--borde); font-size:.8rem; color:var(--suave); }}
 .m3k-modo .ej strong {{ color:#B8F53A; }}
+
+/* Barra lateral: panel con marca arriba, secciones en mayúsculas, iconos en fichas y la página activa como tarjeta con acento lima */
+html body .stApp [data-testid="stSidebar"], html body .stApp [data-testid="stSidebarContent"] {{ background:linear-gradient(180deg,#0A1A0E 0%,#06100A 100%) !important;
+  border-right:1px solid #1E3A1F !important; }}
+html body .stApp [data-testid="stSidebarHeader"] {{ display:flex; align-items:center; gap:.7rem; padding:1.1rem 1rem .9rem !important; border-bottom:1px solid #1E3A1F; margin-bottom:.4rem; }}
+html body .stApp [data-testid="stSidebarHeader"] img {{ height:42px !important; width:auto !important; max-width:none; }}
+html body .stApp [data-testid="stSidebarHeader"]::after {{ content:"M3K Préstamos"; order:1; flex:1; font-weight:700; font-size:1.02rem; color:#F2FBE8; letter-spacing:.01em; }}
+html body .stApp [data-testid="stSidebarCollapseButton"] {{ order:2; }}
+html body .stApp [data-testid="stSidebarNav"] [data-testid="stNavSectionHeader"], html body .stApp [data-testid="stSidebarNav"] [data-testid="stNavSectionHeader"] span, html body .stApp [data-testid="stSidebarNav"] ul li > div > span {{
+  text-transform:uppercase; letter-spacing:.14em; font-size:.68rem !important; font-weight:700; color:#6F8F5E !important; padding:.9rem .9rem .25rem; }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"] {{ border-radius:12px !important; margin:3px 10px !important; padding:.42rem .6rem !important;
+  gap:.7rem !important; border:1px solid transparent; color:#CFE8B8 !important; background:transparent !important;
+  transition:background-color .2s ease, border-color .2s ease, transform .2s ease !important; }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"]:hover {{ background:#102414 !important; border-color:#1E3A1F; padding-left:.6rem !important; transform:translateX(2px); }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"] [data-testid="stIconMaterial"] {{ width:32px; height:32px; border-radius:50%;
+  display:inline-flex !important; align-items:center; justify-content:center; font-size:1.1rem !important; flex:none;
+  background:rgba(184,245,58,.09); color:#B8F53A !important; }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] {{
+  background:linear-gradient(135deg, rgba(184,245,58,.20), rgba(184,245,58,.05) 70%) !important; border-color:rgba(184,245,58,.40);
+  box-shadow:inset 3px 0 0 #B8F53A, 0 0 18px rgba(184,245,58,.10); font-weight:700; }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"], html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] span {{ color:#F2FBE8 !important; }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] [data-testid="stIconMaterial"] {{ background:#B8F53A; color:#0A1A05 !important; }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"]::after {{ content:"›"; margin-left:auto; font-size:1.3rem; line-height:1; color:#B8F53A; }}
+.m3k-liq {{ background:linear-gradient(135deg, rgba(184,245,58,.12), #0C1C10 65%); border:1px solid #1E3A1F; border-radius:14px; padding:.85rem .95rem; margin:.4rem 0 .7rem; }}
+.m3k-liq .et {{ font-size:.66rem; letter-spacing:.14em; text-transform:uppercase; color:#6F8F5E; font-weight:700; }}
+.m3k-liq .val {{ font-size:1.5rem; font-weight:700; color:#B8F53A; margin:.15rem 0 .35rem; }}
+.m3k-liq .est {{ display:flex; align-items:center; gap:.45rem; font-size:.76rem; color:#9DB58A; }}
+.m3k-liq .pt {{ width:8px; height:8px; border-radius:50%; background:#7EDC6A; box-shadow:0 0 8px #7EDC6A; flex:none; }}
+.m3k-liq .pt.off {{ background:#F2B84B; box-shadow:0 0 8px #F2B84B; }}
+html body .stApp [data-testid="stSidebar"] .stButton button {{ width:100%; background:transparent !important; border:1px solid #2A4A2C !important; color:#CFE8B8 !important; border-radius:12px; }}
+html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-color:#B8F53A !important; color:#B8F53A !important; }}
 </style>
 """
 
@@ -628,6 +659,13 @@ def acceso_cabecera() -> None:
                 '<h1>Tu <span>cartera</span>, clara y al día</h1><p>Ingresa tu clave para continuar.</p>'
                 '<div class="pasos"><div><span>💵</span>Cobros del día</div><div><span>📒</span>Cartera y clientes</div>'
                 '<div><span>🧾</span>Recibos</div></div></div>', unsafe_allow_html=True)
+
+
+def tarjeta_caja(liquidez: float, respaldo: bool) -> None:
+    """Tarjeta de liquidez al pie de la barra lateral, con el estado del respaldo."""
+    estado = "Respaldo en Google Drive activo" if respaldo else "Sin respaldo: datos solo en este equipo"
+    st.markdown(f'<div class="m3k-liq"><div class="et">Liquidez en caja</div><div class="val num">{soles(liquidez)}</div>'
+                f'<div class="est"><span class="pt{"" if respaldo else " off"}"></span>{estado}</div></div>', unsafe_allow_html=True)
 
 
 def ocultar_barra_lateral() -> None:

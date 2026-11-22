@@ -8,6 +8,7 @@ Clave:     secreto `app_password` (en local, .streamlit/secrets.toml). Solo para
 import hmac
 import os
 import time
+from pathlib import Path
 
 import streamlit as st
 
@@ -75,6 +76,10 @@ paginas = {
 }
 st.session_state["_paginas"] = paginas  # las vistas lo usan para saltar de una a otra
 
+_logo = Path(__file__).parent / "assets" / "logo_m3k.png"
+if _logo.exists() and hasattr(st, "logo"):
+    st.logo(str(_logo), size="large")
+
 navegacion = st.navigation({
     "Operación": [paginas[k] for k in ("inicio", "cobros", "prestamos", "clientes")],
     "Contabilidad": [paginas[k] for k in ("resumen", "cxc")],
@@ -84,14 +89,7 @@ navegacion = st.navigation({
 
 db = datos.cargar()
 with st.sidebar:
-    caja_ = calc.resumen_caja(db)
-    st.caption("Liquidez en caja")
-    st.markdown(f'<div class="num" style="font-size:1.35rem;font-weight:700">{estilos.soles(caja_["liquidez"])}</div>',
-                unsafe_allow_html=True)
-    if drive_json.configurado():
-        st.caption("Respaldo en Google Drive activo")
-    else:
-        st.caption("Sin respaldo en Drive: los datos solo están en este equipo")
+    estilos.tarjeta_caja(calc.resumen_caja(db)["liquidez"], drive_json.configurado())
     if st.button("Cerrar sesión", icon=":material/logout:"):
         st.session_state.clear()
         st.rerun()
