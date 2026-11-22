@@ -475,7 +475,7 @@ html body .stApp [data-testid="stSidebar"], html body .stApp [data-testid="stSid
   border-right:1px solid #2A2A2D !important; }}
 html body .stApp [data-testid="stSidebarHeader"] {{ display:flex; align-items:center; gap:.7rem; padding:1.1rem 1rem .9rem !important; border-bottom:1px solid #2A2A2D; margin-bottom:.4rem; }}
 html body .stApp [data-testid="stSidebarHeader"] img {{ height:42px !important; width:auto !important; max-width:none; }}
-html body .stApp [data-testid="stSidebarHeader"]::after {{ content:"M3K Préstamos"; order:1; flex:1; font-weight:700; font-size:1.02rem; color:#F4F4F2; letter-spacing:.01em; }}
+html body .stApp [data-testid="stSidebarHeader"]::after {{ content:"Préstamos"; order:1; flex:1; font-weight:700; font-size:1.02rem; color:#F4F4F2; letter-spacing:.01em; }}
 html body .stApp [data-testid="stSidebarCollapseButton"] {{ order:2; }}
 html body .stApp [data-testid="stSidebarNav"] [data-testid="stNavSectionHeader"], html body .stApp [data-testid="stSidebarNav"] [data-testid="stNavSectionHeader"] span, html body .stApp [data-testid="stSidebarNav"] ul li > div > span {{
   text-transform:uppercase; letter-spacing:.14em; font-size:.68rem !important; font-weight:700; color:#77777C !important; padding:.9rem .9rem .25rem; }}
@@ -488,12 +488,12 @@ html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"] [dat
   background:linear-gradient(180deg,#2A2A2D,#1E1E20); border:1px solid #333336; color:#A8A8AD !important; }}
 html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"] {{ position:relative; }}
 html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] {{
-  background:linear-gradient(180deg,#34352F 0%,#222322 55%,#1B1B1C 100%) !important; border-color:rgba(184,245,58,.38);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08), 0 6px 16px rgba(0,0,0,.45); font-weight:700; }}
+  background:linear-gradient(100deg, rgba(184,245,58,.30) 0%, rgba(86,92,70,.95) 30%, #38383A 100%) !important; border-color:rgba(184,245,58,.55);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 6px 16px rgba(0,0,0,.45); font-weight:700; }}
 html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"]::before {{ content:''; position:absolute; left:-10px; top:50%; transform:translateY(-50%);
   width:5px; height:62%; background:#B8F53A; border-radius:0 5px 5px 0; box-shadow:0 0 12px rgba(184,245,58,.7); }}
-html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"], html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] span {{ color:#F4F4F2 !important; }}
-html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] [data-testid="stIconMaterial"] {{ background:linear-gradient(180deg,#3A3C33,#26271F); border-color:rgba(184,245,58,.45); color:#B8F53A !important; }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"], html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] * {{ color:#FFFFFF !important; text-shadow:0 1px 2px rgba(0,0,0,.5); }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] [data-testid="stIconMaterial"], html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] [data-testid="stIconMaterial"] * {{ background:linear-gradient(180deg,#3A3C33,#26271F); border-color:rgba(184,245,58,.5); color:#B8F53A !important; text-shadow:none; }}
 html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"]::after {{ content:"›"; margin-left:auto; font-size:1.3rem; line-height:1; color:#D4D4D8; }}
 .m3k-liq {{ background:linear-gradient(180deg,#242426,#171718); border:1px solid #2A2A2D; border-radius:14px; padding:.85rem .95rem; margin:.4rem 0 .7rem; }}
 .m3k-liq .et {{ font-size:.66rem; letter-spacing:.14em; text-transform:uppercase; color:#77777C; font-weight:700; }}
