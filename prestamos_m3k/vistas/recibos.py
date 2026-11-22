@@ -3,8 +3,11 @@
 import html
 
 import streamlit as st
+import streamlit.components.v1 as componentes
 
 import calculos as calc
+import compartir
+import recibo_imagen
 import datos
 import estilos as ui
 import operaciones as ops
@@ -152,8 +155,23 @@ def mostrar() -> None:
     reg = por_id[sel]
     datos_recibo = _datos_recibo(db, reg["tipo"], reg["r"])
     st.markdown(f'<div class="m3k-recibo">{_html_recibo(datos_recibo)}</div>', unsafe_allow_html=True)
-    st.download_button("Descargar recibo (PDF)", _pdf_recibo(datos_recibo), file_name=f"{reg['folio']}.pdf", mime="application/pdf",
-                       icon=":material/picture_as_pdf:")
+    png = recibo_imagen.generar(datos_recibo)
+    pr_sel = ops.buscar(db["prestamos"], reg["r"]["prestamo_id"] if reg["tipo"] == "pago" else reg["r"]["id"]) or {}
+    cli_sel = ops.buscar(db["clientes"], pr_sel.get("cliente_id", "")) or {}
+    texto_wa = compartir.mensaje(datos_recibo, cli_sel.get("nombre", ""))
+    enlace = compartir.enlace_chat(cli_sel.get("telefono"), texto_wa)
+    b1, b2, b3, b4 = st.columns(4)
+    b1.download_button("Descargar imagen", png, file_name=f"{reg['folio']}.png", mime="image/png", icon=":material/image:", use_container_width=True)
+    b2.download_button("Descargar PDF", _pdf_recibo(datos_recibo), file_name=f"{reg['folio']}.pdf", mime="application/pdf",
+                       icon=":material/picture_as_pdf:", use_container_width=True)
+    with b3:
+        componentes.html(compartir.html_compartir(png, f"{reg['folio']}.png", texto_wa), height=70)
+    if enlace:
+        b4.link_button("Abrir chat de WhatsApp", enlace, icon=":material/chat:", use_container_width=True)
+    else:
+        b4.button("Abrir chat de WhatsApp", disabled=True, icon=":material/chat:", use_container_width=True,
+                  help="Este cliente no tiene un teléfono válido. Agrégalo en Clientes.")
+    st.caption("En el celular, «Compartir imagen» abre WhatsApp con el recibo listo. En la computadora, descarga la imagen, abre el chat y adjúntala.")
 
     if reg["tipo"] == "pago" and not reg["anulado"]:
         with st.expander("Anular este cobro"):
