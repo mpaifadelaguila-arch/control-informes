@@ -12,7 +12,7 @@ from pathlib import Path
 
 import streamlit as st
 
-st.set_page_config(page_title="M3K Préstamos", page_icon=":material/payments:", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="M3K Préstamos", page_icon=":material/payments:", layout="wide", initial_sidebar_state="auto")
 
 import calculos as calc  # noqa: E402
 import datos  # noqa: E402
