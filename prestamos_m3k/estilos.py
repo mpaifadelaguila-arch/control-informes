@@ -594,6 +594,11 @@ html body .stApp [data-testid="stLinkButton"] a:hover {{ border-color:#B8F53A !i
 [class*="st-key-nc_entrega__1"] button p::before, [class*="st-key-mp_"][class*="__1"] button p::before {{ content:''; display:inline-block; width:22px; height:22px; margin-right:.5rem; vertical-align:-6px; background:{_LOGO_YAPE} center / contain no-repeat; }}
 [class*="st-key-nc_entrega__2"] button p::before, [class*="st-key-mp_"][class*="__2"] button p::before {{ content:''; display:inline-block; width:22px; height:22px; margin-right:.5rem; vertical-align:-6px; background:{_LOGO_PLIN} center / contain no-repeat; }}
 [class*="st-key-wa_chat"] p::before {{ content:''; display:inline-block; width:22px; height:22px; margin-right:.5rem; vertical-align:-6px; background:{_LOGO_WA} center / contain no-repeat; }}
+/* botones de método (Efectivo, Yape, Plin, Transferencia): el texto no se parte por la mitad */
+html body .stApp [class*="st-key-nc_entrega__"] button, html body .stApp [class*="st-key-mp_"][class*="__"] button {{ padding-left:.25rem !important; padding-right:.25rem !important; }}
+html body .stApp [class*="st-key-nc_entrega__"] button p, html body .stApp [class*="st-key-mp_"][class*="__"] button p {{ white-space:nowrap !important; word-break:normal !important; overflow-wrap:normal !important; hyphens:none !important; font-size:.8rem !important; }}
+html body .stApp [class*="st-key-nc_entrega__"] button [data-testid="stIconMaterial"], html body .stApp [class*="st-key-mp_"][class*="__"] button [data-testid="stIconMaterial"] {{ font-size:1.05rem !important; margin-right:.1rem; }}
+html body .stApp [class*="st-key-nc_entrega__"] button > div, html body .stApp [class*="st-key-mp_"][class*="__"] button > div {{ gap:.25rem; flex-wrap:nowrap; }}
 </style>
 """
 
