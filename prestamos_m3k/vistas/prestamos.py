@@ -92,6 +92,10 @@ def _poner_monto(valor: float) -> None:
     st.session_state["nc_monto"] = float(valor)
 
 
+def _paso(n: int, titulo: str) -> None:
+    st.markdown(f'<div class="m3k-paso"><span>{n}</span><b>{titulo}</b></div>', unsafe_allow_html=True)
+
+
 def _nuevo(db: dict, hoy, evals: dict) -> None:
     activos = [c for c in db["clientes"] if c["activo"]]
     if not activos:
@@ -115,41 +119,49 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
 
     # ---------------- izquierda: los datos del crédito ----------------
     with izq:
-        st.subheader("1 · Cliente y monto", anchor=False)
-        nombres = {c["id"]: f"{c['nombre']} · DNI {c['dni']}" for c in activos}
-        cliente_id = st.selectbox("Cliente", ids, format_func=nombres.get, key="nc_cliente")
-        vigentes = [p for p in db["prestamos"] if p["cliente_id"] == cliente_id and evals[p["id"]]["estado"] in ("vigente", "vencido")]
-        if vigentes:
-            deuda = sum(evals[p["id"]]["saldo"] for p in vigentes)
-            atraso = any(evals[p["id"]]["estado"] == "vencido" for p in vigentes)
-            (st.warning if atraso else st.info)(
-                f"Este cliente ya tiene {len(vigentes)} crédito(s) vigente(s) y debe {ui.soles(deuda)}" + (", con cuotas vencidas." if atraso else "."))
-        monto = st.number_input("Monto del crédito (S/)", min_value=0.0, step=50.0, format="%.2f", key="nc_monto")
-        atajos = st.columns(len(MONTOS_RAPIDOS))
-        for col, v in zip(atajos, MONTOS_RAPIDOS):
-            col.button(f"{v:,}", key=f"nc_rapido_{v}", on_click=_poner_monto, args=(v,), use_container_width=True)
-        tasa = st.number_input("Interés total del periodo (%)", min_value=0.0, max_value=100.0, step=1.0, key="nc_tasa")
+        with st.container(border=True):
+            _paso(1, "Cliente y monto")
+            nombres = {c["id"]: f"{c['nombre']} · DNI {c['dni']}" for c in activos}
+            cliente_id = st.selectbox("Cliente", ids, format_func=nombres.get, key="nc_cliente")
+            vigentes = [p for p in db["prestamos"] if p["cliente_id"] == cliente_id and evals[p["id"]]["estado"] in ("vigente", "vencido")]
+            if vigentes:
+                deuda = sum(evals[p["id"]]["saldo"] for p in vigentes)
+                atraso = any(evals[p["id"]]["estado"] == "vencido" for p in vigentes)
+                (st.warning if atraso else st.info)(
+                    f"Este cliente ya tiene {len(vigentes)} crédito(s) vigente(s) y debe {ui.soles(deuda)}" + (", con cuotas vencidas." if atraso else "."))
+            monto = st.number_input("Monto del crédito (S/)", min_value=0.0, step=50.0, format="%.2f", key="nc_monto")
+            atajos = st.columns(len(MONTOS_RAPIDOS))
+            for col, v in zip(atajos, MONTOS_RAPIDOS):
+                col.button(f"S/ {v:,}", key=f"nc_rapido_{v}", on_click=_poner_monto, args=(v,), use_container_width=True)
+            tasa = st.number_input("Interés total del periodo (%)", min_value=0.0, max_value=100.0, step=1.0, key="nc_tasa")
 
-        st.subheader("2 · ¿Cómo se paga?", anchor=False)
-        modalidad = st.radio("Modalidad", list(calc.MODALIDADES), horizontal=True, key="nc_modalidad",
-                             format_func=lambda k: calc.MODALIDADES[k]["nombre"])
-        st.caption(calc.MODALIDADES[modalidad]["texto"] + ". Los domingos no se cuentan.")
-        n_cuotas = None
-        if modalidad == "semanal":
-            n_cuotas = int(st.radio("Número de cuotas semanales", list(calc.CUOTAS_SEMANALES[1]), horizontal=True, key="nc_ncuotas",
-                                    format_func=lambda n: str(n)))
+        with st.container(border=True):
+            _paso(2, "¿Cómo se paga?")
+            modalidad = nav.pestanas(list(calc.MODALIDADES), "nc_modalidad",
+                                     etiquetas={"diario": "Diario", "semanal": "Semanal", "final": "Pago único"},
+                                     iconos={"diario": ":material/today:", "semanal": ":material/date_range:", "final": ":material/event_available:"})
+            st.caption(calc.MODALIDADES[modalidad]["texto"] + ". Los domingos no se cuentan.")
+            n_cuotas = None
+            if modalidad == "semanal":
+                st.markdown("**¿En cuántas cuotas semanales?**")
+                n_cuotas = int(nav.pestanas(list(calc.CUOTAS_SEMANALES[1]), "nc_ncuotas"))
 
-        st.subheader("3 · Entrega", anchor=False)
-        c3, c4 = st.columns(2)
-        f0 = c3.date_input("Fecha de desembolso", value=hoy, format="DD/MM/YYYY", key="nc_fecha")
-        entrega = c4.selectbox("Forma de entrega", calc.ENTREGAS, key="nc_entrega")
+        with st.container(border=True):
+            _paso(3, "Entrega del dinero")
+            f0 = st.date_input("Fecha de desembolso", value=hoy, format="DD/MM/YYYY", key="nc_fecha")
+            st.markdown("**¿Cómo se entrega?**")
+            entrega = nav.pestanas(list(calc.ENTREGAS), "nc_entrega",
+                                   iconos={"Efectivo": ":material/payments:", "Yape": ":material/smartphone:", "Plin": ":material/smartphone:",
+                                           "Transferencia": ":material/account_balance:"})
 
     # ---------------- derecha: resumen en vivo y confirmación ----------------
     with der:
-        st.subheader("Resumen del crédito", anchor=False)
+        _paso(4, "Resumen del crédito")
         if monto <= 0:
-            st.markdown(g.panel("Aquí verás la simulación", '<div class="m3k-aldia"><span>Escribe el monto, o elige uno de los atajos, '
-                                'para ver la cuota, el total a pagar y las fechas de cobro antes de confirmar.</span></div>'), unsafe_allow_html=True)
+            st.markdown('<div class="m3k-simula"><div class="gran">🧮</div><b>Aquí verás la simulación</b>'
+                        '<p>Escribe el monto, o elige uno de los atajos, y verás al instante:</p>'
+                        '<ul><li>💵 cuánto paga el cliente en cada cuota</li><li>🧾 el total a pagar y el interés</li>'
+                        '<li>📅 las fechas de cobro, antes de confirmar</li></ul></div>', unsafe_allow_html=True)
             return
 
         plan = calc.generar_cronograma(monto, tasa, modalidad, f0, n_cuotas)
