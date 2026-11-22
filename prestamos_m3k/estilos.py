@@ -438,6 +438,17 @@ html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid=
 .m3k-login .pasos {{ display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin:0 0 1rem; }}
 .m3k-login .pasos div {{ background:#0C1C10; border:1px solid var(--borde); border-radius:12px; padding:.7rem .4rem; font-size:.78rem; color:#CFE8B8; }}
 .m3k-login .pasos span {{ display:block; font-size:1.4rem; margin-bottom:.2rem; }}
+@keyframes m3k-logo-in {{ from {{ opacity:0; transform:translateY(10px) scale(.92); }} to {{ opacity:1; transform:none; }} }}
+@keyframes m3k-glow-in {{ from {{ opacity:0; transform:translateX(-50%) scale(.6); }} to {{ opacity:1; transform:translateX(-50%) scale(1); }} }}
+.m3k-login::before {{ animation:m3k-glow-in 1.1s cubic-bezier(.2,.8,.2,1) both; }}
+.m3k-login .logo-img {{ animation:m3k-logo-in .7s cubic-bezier(.2,.8,.2,1) both; }}
+.m3k-login .marca {{ animation:m3k-entra .6s .3s cubic-bezier(.2,.8,.2,1) both; }}
+.m3k-login h1 {{ animation:m3k-entra .6s .4s cubic-bezier(.2,.8,.2,1) both; }}
+.m3k-login p {{ animation:m3k-entra .6s .5s cubic-bezier(.2,.8,.2,1) both; }}
+.m3k-login .pasos div:nth-child(1) {{ animation:m3k-entra .6s .6s cubic-bezier(.2,.8,.2,1) both; }}
+.m3k-login .pasos div:nth-child(2) {{ animation:m3k-entra .6s .72s cubic-bezier(.2,.8,.2,1) both; }}
+.m3k-login .pasos div:nth-child(3) {{ animation:m3k-entra .6s .84s cubic-bezier(.2,.8,.2,1) both; }}
+@media (prefers-reduced-motion: reduce) {{ .m3k-login *, .m3k-login::before {{ animation:none !important; }} }}
 .st-key-acceso_form {{ max-width:460px; margin:0 auto; }}
 
 /* Modalidades: tarjetas con icono y ejemplo */
