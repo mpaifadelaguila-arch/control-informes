@@ -123,7 +123,7 @@ def mostrar() -> None:
                           "cliente": comun.nombre_cliente(db, pr["cliente_id"]), "monto": pr["monto"], "anulado": pr.get("anulado", False), "r": pr,
                           "detalle": f"Préstamo {pr['numero']:04d}"})
     if not registros:
-        ui.vacio("Aún no hay recibos", "Se generan solos al registrar un desembolso o un cobro.")
+        ui.vacio("Aún no hay recibos", "Se generan solos al registrar un desembolso o un cobro.", "🧾")
         return
 
     c1, c2 = st.columns([1, 2])
@@ -134,7 +134,7 @@ def mostrar() -> None:
              and (not buscar or buscar in r["cliente"].lower() or buscar in r["folio"].lower())]
     lista.sort(key=lambda r: (r["fecha"], r["folio"]))  # el más antiguo primero
     if not lista:
-        ui.vacio("Sin resultados", "Cambia el tipo o la búsqueda.")
+        ui.vacio("Sin resultados", "Cambia el tipo o la búsqueda.", "🔍")
         return
 
     ui.tabla(["Folio", "Fecha", "Cliente", "Crédito", "Monto", "Estado"],

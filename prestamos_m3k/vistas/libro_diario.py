@@ -23,7 +23,7 @@ def _csv_diario(asientos: list[dict]) -> bytes:
 def _diario(lib: list[dict], desde) -> None:
     sel = [a for a in lib if a["fecha"] >= desde]
     if not sel:
-        ui.vacio("Sin asientos en este periodo", "Los desembolsos, cobros, movimientos de caja y devengos generan asientos automáticamente.")
+        ui.vacio("Sin asientos en este periodo", "Los desembolsos, cobros, movimientos de caja y devengos generan asientos automáticamente.", "📒")
         return
     mostrados = sel[-MAX_ASIENTOS:]
     st.caption("Cada bloque gris es un asiento: arriba se explica qué pasó y debajo van las cuentas que se mueven. "
@@ -48,7 +48,7 @@ def _mayor(lib: list[dict], desde) -> None:
     periodo = [f for f in todas if f["fecha"] >= desde]
     saldo_ini = previas[-1]["saldo"] if previas else 0.0
     if not periodo and not previas:
-        ui.vacio("Sin movimientos en esta cuenta", "Elige otra cuenta u otro periodo.")
+        ui.vacio("Sin movimientos en esta cuenta", "Elige otra cuenta u otro periodo.", "📒")
         return
     filas = [{"celdas": ["", "", "Saldo anterior", "", "", ui.monto(saldo_ini)], "clase": "sub"}]
     filas += [[ui.fecha_txt(f["fecha"]), f["numero"], f"{f['glosa']} · {f['ref']}", ui.monto(f["debe"]), ui.monto(f["haber"]), ui.monto(f["saldo"])]

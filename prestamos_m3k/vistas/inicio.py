@@ -23,7 +23,7 @@ def mostrar() -> None:
 
     if not db["clientes"]:
         ui.vacio("Aún no hay clientes",
-                 "Empieza registrando tu primer cliente.")
+                 "Empieza registrando tu primer cliente.", "👥")
         c1, c2 = st.columns(2)
         if c1.button("Registrar el primer cliente", type="primary", icon=":material/person_add:"):
             comun.ir_a("clientes")
@@ -45,7 +45,7 @@ def mostrar() -> None:
     st.subheader("Cobranza", anchor=False)
     cola = calc.cola_cobranza(db, evals, hoy)
     if not cola:
-        ui.vacio("Todo al día", "No hay cuotas vencidas ni cobros pendientes para hoy.")
+        ui.vacio("Todo al día", "No hay cuotas vencidas ni cobros pendientes para hoy.", "✅")
     for i, fila in enumerate(cola[:10]):
         pr = fila["prestamo"]
         detalle = []

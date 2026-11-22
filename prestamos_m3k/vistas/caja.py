@@ -66,7 +66,7 @@ def mostrar() -> None:
     if filtros[filtro]:
         historial = [h for h in historial if h["tipo"] in filtros[filtro]]
     if not historial:
-        ui.vacio("Sin movimientos", "Los desembolsos, cobros y movimientos manuales aparecerán aquí.")
+        ui.vacio("Sin movimientos", "Los desembolsos, cobros y movimientos manuales aparecerán aquí.", "🏦")
     else:
         ui.tabla(["Fecha", "Tipo", "Detalle", "Folio", "Monto", "Saldo"],
                  [[ui.fecha_txt(h["fecha"]), ui.chip(h["tipo"], TONO_TIPO.get(h["tipo"], "neutro")), h["detalle"], h["folio"] or "—",

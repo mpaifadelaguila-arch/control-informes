@@ -41,7 +41,7 @@ def mostrar() -> None:
         _formulario(db, None, "form_nuevo_cliente")
 
     if not db["clientes"]:
-        ui.vacio("Todavía no hay clientes", "Completa el formulario de arriba para registrar el primero.")
+        ui.vacio("Todavía no hay clientes", "Completa el formulario de arriba para registrar el primero.", "👥")
         return
 
     resumen = {}
@@ -76,7 +76,7 @@ def mostrar() -> None:
     q = buscar.strip().lower()
     lista = [c for c in db["clientes"] if filtros[filtro](c) and (not q or q in c["nombre"].lower() or q in c["dni"] or q in c.get("telefono", ""))]
     if not lista:
-        ui.vacio("Sin resultados", "Ningún cliente coincide. Prueba con otro filtro, nombre o DNI.")
+        ui.vacio("Sin resultados", "Ningún cliente coincide. Prueba con otro filtro, nombre o DNI.", "🔍")
         return
 
     for c in sorted(lista, key=lambda x: x["nombre"].lower()):

@@ -53,7 +53,7 @@ def mostrar() -> None:
 
     st.subheader("Auditoría", anchor=False)
     if not db["auditoria"]:
-        ui.vacio("Sin cambios registrados", "Cada alta, cobro, anulación o cambio de capital base queda anotado aquí.")
+        ui.vacio("Sin cambios registrados", "Cada alta, cobro, anulación o cambio de capital base queda anotado aquí.", "📝")
     else:
         ui.tabla(["Fecha y hora", "Acción", "Detalle"],
                  [[a["ts"].replace("T", " ")[:16], a["accion"], a["detalle"]] for a in reversed(db["auditoria"][-100:])],

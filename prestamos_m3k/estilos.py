@@ -346,6 +346,18 @@ html body .stApp [data-testid="stSelectbox"] svg, html body .stApp [data-baseweb
 html body [data-baseweb="popover"] [role="listbox"], html body [data-baseweb="popover"] [role="option"], html body [data-baseweb="popover"] [role="option"] *, html body [data-baseweb="menu"], html body [data-baseweb="menu"] * {{ background:#0C1C10 !important; color:#F2FBE8 !important; -webkit-text-fill-color:#F2FBE8 !important; }}
 html body [data-baseweb="popover"] [role="option"]:hover, html body [data-baseweb="popover"] [role="option"]:hover *, html body [data-baseweb="popover"] [aria-selected="true"], html body [data-baseweb="popover"] [aria-selected="true"] * {{ background:#16301A !important; color:#B8F53A !important; -webkit-text-fill-color:#B8F53A !important; }}
 
+/* Tarjeta destacada: lima sólido con letras oscuras, como en las referencias */
+.m3k-kpi.heroe {{ background:linear-gradient(135deg,#C9FB4E,#B8F53A 60%,#9BE02A) !important; border:1px solid #D9FB8C !important; border-left:4px solid #0A1A05 !important; }}
+.m3k-kpi.heroe .e, .m3k-kpi.heroe .nota {{ color:#2B4A0C !important; font-weight:600; }}
+.m3k-kpi.heroe .v {{ color:#0A1A05 !important; font-size:1.8rem; }}
+.m3k-kpi.heroe .ic {{ background:#0A1A05 !important; box-shadow:none !important; }}
+.m3k-kpi.heroe:hover {{ box-shadow:0 0 30px rgba(184,245,58,.35); }}
+.m3k-vacio {{ background:radial-gradient(ellipse at 50% 0%, rgba(184,245,58,.10), transparent 70%), var(--fondo); border:1.5px dashed #2F5A33; padding:1.6rem 1.3rem; }}
+.m3k-vacio .gran {{ display:inline-flex; width:68px; height:68px; border-radius:20px; background:#DDF7A8; align-items:center; justify-content:center; font-size:2.1rem;
+  margin-bottom:.7rem; box-shadow:0 0 0 6px rgba(184,245,58,.12); animation:m3k-subir .5s ease both; }}
+.m3k-vacio b {{ font-size:1.1rem; }}
+.m3k-login h1 span {{ color:#B8F53A; }}
+
 /* Iconos: fichas claras para que se vean sobre fondo oscuro */
 .m3k-cab .ico {{ background:#B8F53A !important; box-shadow:0 0 0 4px rgba(184,245,58,.14), 0 0 22px rgba(184,245,58,.25) !important; }}
 .m3k-kpi .ic {{ background:#DDF7A8 !important; box-shadow:0 0 0 3px rgba(184,245,58,.14); }}
@@ -521,8 +533,8 @@ def barra(avance: float) -> Raw:
     return Raw(f'<div class="m3k-barra" role="img" aria-label="{ancho} % cobrado"><i style="width:{ancho}%"></i></div>')
 
 
-def vacio(titulo: str, ayuda: str) -> None:
-    st.markdown(f'<div class="m3k-vacio"><b>{esc(titulo)}</b>{esc(ayuda)}</div>', unsafe_allow_html=True)
+def vacio(titulo: str, ayuda: str, icono: str = "📭") -> None:
+    st.markdown(f'<div class="m3k-vacio"><div class="gran">{icono}</div><b>{esc(titulo)}</b>{esc(ayuda)}</div>', unsafe_allow_html=True)
 
 
 def verificaciones(items: list[tuple[str, bool, str]]) -> None:
@@ -552,6 +564,6 @@ def hoy_txt(hoy_: date) -> str:
 def acceso_cabecera() -> None:
     """Marca y razones para entrar, sobre el formulario de la clave."""
     st.markdown('<div class="m3k-login"><div class="logo">💰</div><div class="marca">M3K · PRÉSTAMOS</div>'
-                '<h1>Tu cartera, clara y al día</h1><p>Ingresa tu clave para continuar.</p>'
+                '<h1>Tu <span>cartera</span>, clara y al día</h1><p>Ingresa tu clave para continuar.</p>'
                 '<div class="pasos"><div><span>💵</span>Cobros del día</div><div><span>📒</span>Cartera y clientes</div>'
                 '<div><span>🧾</span>Recibos</div></div></div>', unsafe_allow_html=True)
