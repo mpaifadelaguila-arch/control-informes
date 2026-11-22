@@ -7,14 +7,15 @@ def _elegir(key, opcion):
     st.session_state[key] = opcion
 
 
-def pestanas(opciones, key, etiquetas=None, iconos=None):
+def pestanas(opciones, key, etiquetas=None, iconos=None, ancho_completo=False):
     """Muestra una fila de botones y devuelve la opción elegida. `etiquetas` y `iconos` son dicts opcionales por opción."""
     opciones = list(opciones)
     if st.session_state.get(key) not in opciones:
         st.session_state[key] = opciones[0]
     actual = st.session_state[key]
     n = len(opciones)
-    columnas = st.columns([1] * n + [max(1, 7 - n)])
+    # ancho_completo: los botones se reparten todo el ancho (para columnas angostas, donde el texto se cortaría)
+    columnas = st.columns([1] * n if ancho_completo else [1] * n + [max(1, 7 - n)])
     for i, op in enumerate(opciones):
         texto = (etiquetas or {}).get(op, op)
         with columnas[i]:
