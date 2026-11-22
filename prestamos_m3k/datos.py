@@ -142,9 +142,9 @@ def ejemplo(hoy_=None) -> dict:
         if calc.fecha(q["vence"]) < hoy_:
             ops.registrar_pago(db, p2["id"], q["vence"], q["monto"], "Efectivo", hoy_=hoy_)
 
-    # Pago único, desembolsado hace 30 días: ya cancelado.
-    f3 = hoy_ - timedelta(days=30)
-    p3 = ops.crear_prestamo(db, rosa["id"], 500, 20, "final", f3, hoy_=hoy_)
+    # Mensual de 1 mes, desembolsado hace 35 días: ya cancelado.
+    f3 = hoy_ - timedelta(days=35)
+    p3 = ops.crear_prestamo(db, rosa["id"], 500, 20, "mensual", f3, hoy_=hoy_)
     ops.registrar_pago(db, p3["id"], p3["cuotas"][0]["vence"], p3["total"], "Transferencia", hoy_=hoy_)
 
     ops.registrar_movimiento(db, "aporte", 800, hoy_ - timedelta(days=20), "Aporte de capital", hoy_=hoy_)

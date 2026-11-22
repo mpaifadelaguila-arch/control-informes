@@ -44,7 +44,7 @@ def _cartera(db: dict, evals: dict) -> None:
     ui.tabla(
         ["N.º", "Cliente", "Modalidad", "Desembolso", "Capital", "Próxima cuota", "Cobrado", "Saldo", "Estado"],
         [[f"{p['numero']:04d}", comun.nombre_cliente(db, p["cliente_id"]),
-          f"{comun.nombre_modalidad(p['modalidad'])} · {len(p['cuotas'])} cuota(s)", ui.fecha_txt(p["fecha_desembolso"]),
+          comun.descripcion_credito(p), ui.fecha_txt(p["fecha_desembolso"]),
           ui.soles(p["monto"]), _proxima(evals[p["id"]]), ui.barra(evals[p["id"]]["avance"]), ui.soles(evals[p["id"]]["saldo"]),
           ui.chip_prestamo(evals[p["id"]]["estado"])] for p in lista],
         numericas=(4, 7), sin_corte=(0, 1, 3, 5), etiqueta="Cartera de créditos",
@@ -61,7 +61,8 @@ def _cartera(db: dict, evals: dict) -> None:
     st.markdown(g.panel(f"Préstamo {p['numero']:04d} · {comun.nombre_cliente(db, p['cliente_id'])}",
                         g.avance(ev["pagado"], p["total"], detalle="del total a pagar" + (f" · {ui.soles(ev['vencido'])} vencido" if ev["vencido"] else "")),
                         f"Entregado el {ui.fecha_txt(p['fecha_desembolso'])} en {p['entrega']} · folio {p['folio_desembolso']} · "
-                        f"interés {p['tasa']:g} % = {ui.soles(p['total'] - p['monto'])}"), unsafe_allow_html=True)
+                        + (f"interés {p['tasa']:g} % por mes × {p['meses']} meses = {ui.soles(p['total'] - p['monto'])}" if p.get("meses", 1) > 1
+                         else f"interés {p['tasa']:g} % = {ui.soles(p['total'] - p['monto'])}")), unsafe_allow_html=True)
     st.markdown(g.cuotas(ev["cuotas"]), unsafe_allow_html=True)
     st.markdown('<div style="height:.6rem"></div>', unsafe_allow_html=True)
 
@@ -85,7 +86,7 @@ def _cartera(db: dict, evals: dict) -> None:
 
 
 MONTOS_RAPIDOS = (100, 200, 300, 500, 1000)
-CLAVES_NUEVO = ("nc_monto", "nc_tasa", "nc_modalidad", "nc_ncuotas", "nc_fecha", "nc_entrega", "nc_forzar")
+CLAVES_NUEVO = ("nc_monto", "nc_tasa", "nc_modalidad", "nc_meses", "nc_fecha", "nc_entrega", "nc_forzar")
 
 
 def _poner_monto(valor: float) -> None:
@@ -113,7 +114,6 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
     # valores iniciales en el estado de la sesión (así los atajos de monto pueden cambiarlos)
     st.session_state.setdefault("nc_monto", 0.0)
     st.session_state.setdefault("nc_tasa", float(db["config"].get("tasa_default", 20.0)))
-    st.session_state.setdefault("nc_ncuotas", calc.CUOTAS_SEMANALES[0])
 
     izq, der = st.columns([5, 6], gap="large")
 
@@ -133,18 +133,20 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
             atajos = st.columns(len(MONTOS_RAPIDOS))
             for col, v in zip(atajos, MONTOS_RAPIDOS):
                 col.button(f"S/ {v:,}", key=f"nc_rapido_{v}", on_click=_poner_monto, args=(v,), use_container_width=True)
-            tasa = st.number_input("Interés total del periodo (%)", min_value=0.0, max_value=100.0, step=1.0, key="nc_tasa")
+            tasa = st.number_input("Interés (%): total del periodo, o por mes si es mensual", min_value=0.0, max_value=100.0, step=1.0, key="nc_tasa")
 
         with st.container(border=True):
             _paso(2, "¿Cómo se paga?")
-            modalidad = nav.pestanas(list(calc.MODALIDADES), "nc_modalidad",
-                                     etiquetas={"diario": "Diario", "semanal": "Semanal", "final": "Pago único"},
-                                     iconos={"diario": ":material/today:", "semanal": ":material/date_range:", "final": ":material/event_available:"}, ancho_completo=True)
-            st.caption(calc.MODALIDADES[modalidad]["texto"] + ". Los domingos no se cuentan.")
-            n_cuotas = None
-            if modalidad == "semanal":
-                st.markdown("**¿En cuántas cuotas semanales?**")
-                n_cuotas = int(nav.pestanas(list(calc.CUOTAS_SEMANALES[1]), "nc_ncuotas", ancho_completo=True))
+            modalidad = nav.pestanas(calc.modalidades_ofrecidas(), "nc_modalidad",
+                                     etiquetas={k: calc.MODALIDADES[k]["nombre"] for k in calc.modalidades_ofrecidas()},
+                                     iconos={"diario": ":material/today:", "semanal": ":material/date_range:", "mensual": ":material/calendar_month:"},
+                                     ancho_completo=True)
+            st.caption(calc.MODALIDADES[modalidad]["texto"] + (". Los domingos no se cuentan." if modalidad == "diario" else "."))
+            meses = None
+            if modalidad == "mensual":
+                st.markdown("**¿Cuántos meses?**")
+                meses = int(nav.pestanas(list(calc.MESES_MENSUAL), "nc_meses", etiquetas={m: f"{m} {'mes' if m == 1 else 'meses'}" for m in calc.MESES_MENSUAL},
+                                         ancho_completo=True))
 
         with st.container(border=True):
             _paso(3, "Entrega del dinero")
@@ -164,16 +166,23 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
                         '<li>📅 las fechas de cobro, antes de confirmar</li></ul></div>', unsafe_allow_html=True)
             return
 
-        plan = calc.generar_cronograma(monto, tasa, modalidad, f0, n_cuotas)
-        total = calc.total_a_pagar(monto, tasa)
-        iguales = len({q["monto"] for q in plan[:-1]}) <= 1
+        plan = calc.generar_cronograma(monto, tasa, modalidad, f0, None, meses)
+        total = calc.total_a_pagar(monto, tasa, meses or 1)
+        if modalidad == "mensual":
+            nota_cuota = (f"{len(plan)} cuota(s): solo interés, y en la última el capital" if len(plan) > 1 else "1 cuota: interés y capital")
+            nota_interes = f"{tasa:g} % por mes" + (f" × {meses} meses" if meses > 1 else "")
+            pie = "Cada cuota vence el mismo día de cada mes; si cae domingo, pasa al lunes."
+        else:
+            iguales = len({q["monto"] for q in plan[:-1]}) <= 1
+            nota_cuota = f"{len(plan)} cuota(s)" + ("" if iguales else " · la última ajusta céntimos")
+            nota_interes = f"{tasa:g} % sobre el capital"
+            pie = "Los domingos no se cuentan: el plazo son 24 días de trabajo (lunes a sábado)."
         ui.kpis([
-            {"etiqueta": "Cuota", "valor": ui.soles(plan[0]["monto"]), "heroe": True, "nota": f"{len(plan)} cuota(s)" + ("" if iguales else " · la última ajusta céntimos")},
+            {"etiqueta": "Cuota" if modalidad != "mensual" or len(plan) == 1 else "Cuota mensual", "valor": ui.soles(plan[0]["monto"]), "heroe": True, "nota": nota_cuota},
             {"etiqueta": "Total a pagar", "valor": ui.soles(total), "tono": "info", "nota": f"Hasta el {ui.fecha_txt(plan[-1]['vence'])}"},
-            {"etiqueta": "Interés", "valor": ui.soles(total - monto), "tono": "ok", "nota": f"{tasa:g} % sobre el capital"},
+            {"etiqueta": "Interés", "valor": ui.soles(total - monto), "tono": "ok", "nota": nota_interes},
         ])
-        tarjetas = g.panel("Cuándo se cobra", g.cuotas([{**q, "pagado": 0.0, "estado": "pendiente", "atraso": 0} for q in plan]),
-                           "Los domingos no se cuentan: el plazo son 24 días de trabajo (lunes a sábado).")
+        tarjetas = g.panel("Cuándo se cobra", g.cuotas([{**q, "pagado": 0.0, "estado": "pendiente", "atraso": 0} for q in plan]), pie)
         if len(plan) > 8:  # 24 tarjetas seguidas cansan: se resumen y se pueden desplegar
             st.markdown(f"**{len(plan)} cuotas de {ui.soles(plan[0]['monto'])}**, de lunes a sábado: del {ui.fecha_dia(plan[0]['vence'])} al {ui.fecha_dia(plan[-1]['vence'])}.")
             with st.expander("Ver todas las fechas de cobro"):
@@ -191,7 +200,7 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
             st.caption(f"Caja ahora {ui.soles(liquidez)}. Después de entregar quedará {ui.soles(quedara)}.")
         if st.button(f"Confirmar y entregar {ui.soles(monto)}", type="primary", disabled=not forzar, icon=":material/check_circle:", use_container_width=True):
             try:
-                p = ops.crear_prestamo(db, cliente_id, monto, tasa, modalidad, f0, entrega, n_cuotas)
+                p = ops.crear_prestamo(db, cliente_id, monto, tasa, modalidad, f0, entrega, meses=meses)
             except ValueError as e:
                 st.error(str(e))
             else:
