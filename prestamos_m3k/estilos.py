@@ -440,8 +440,10 @@ html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid=
 .m3k-login .pasos span {{ display:block; font-size:1.4rem; margin-bottom:.2rem; }}
 @keyframes m3k-logo-in {{ from {{ opacity:0; transform:translateY(10px) scale(.92); }} to {{ opacity:1; transform:none; }} }}
 @keyframes m3k-glow-in {{ from {{ opacity:0; transform:translateX(-50%) scale(.6); }} to {{ opacity:1; transform:translateX(-50%) scale(1); }} }}
-.m3k-login::before {{ animation:m3k-glow-in 1.1s cubic-bezier(.2,.8,.2,1) both; }}
-.m3k-login .logo-img {{ animation:m3k-logo-in .7s cubic-bezier(.2,.8,.2,1) both; }}
+@keyframes m3k-respira {{ 0%,100% {{ opacity:.62; transform:translateX(-50%) scale(.94); }} 50% {{ opacity:1; transform:translateX(-50%) scale(1.07); }} }}
+@keyframes m3k-logo-luz {{ 0%,100% {{ filter:drop-shadow(0 0 6px rgba(214,165,40,.22)); }} 50% {{ filter:drop-shadow(0 0 20px rgba(232,184,58,.55)); }} }}
+.m3k-login::before {{ animation:m3k-glow-in 1.1s cubic-bezier(.2,.8,.2,1) both, m3k-respira 4.5s 1.1s ease-in-out infinite; }}
+.m3k-login .logo-img {{ animation:m3k-logo-in .7s cubic-bezier(.2,.8,.2,1) both, m3k-logo-luz 4.5s .8s ease-in-out infinite; }}
 .m3k-login .marca {{ animation:m3k-entra .6s .3s cubic-bezier(.2,.8,.2,1) both; }}
 .m3k-login h1 {{ animation:m3k-entra .6s .4s cubic-bezier(.2,.8,.2,1) both; }}
 .m3k-login p {{ animation:m3k-entra .6s .5s cubic-bezier(.2,.8,.2,1) both; }}
