@@ -139,12 +139,12 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
             _paso(2, "¿Cómo se paga?")
             modalidad = nav.pestanas(list(calc.MODALIDADES), "nc_modalidad",
                                      etiquetas={"diario": "Diario", "semanal": "Semanal", "final": "Pago único"},
-                                     iconos={"diario": ":material/today:", "semanal": ":material/date_range:", "final": ":material/event_available:"})
+                                     iconos={"diario": ":material/today:", "semanal": ":material/date_range:", "final": ":material/event_available:"}, ancho_completo=True)
             st.caption(calc.MODALIDADES[modalidad]["texto"] + ". Los domingos no se cuentan.")
             n_cuotas = None
             if modalidad == "semanal":
                 st.markdown("**¿En cuántas cuotas semanales?**")
-                n_cuotas = int(nav.pestanas(list(calc.CUOTAS_SEMANALES[1]), "nc_ncuotas"))
+                n_cuotas = int(nav.pestanas(list(calc.CUOTAS_SEMANALES[1]), "nc_ncuotas", ancho_completo=True))
 
         with st.container(border=True):
             _paso(3, "Entrega del dinero")
@@ -152,7 +152,7 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
             st.markdown("**¿Cómo se entrega?**")
             entrega = nav.pestanas(list(calc.ENTREGAS), "nc_entrega",
                                    iconos={"Efectivo": ":material/payments:", "Yape": ":material/smartphone:", "Plin": ":material/smartphone:",
-                                           "Transferencia": ":material/account_balance:"})
+                                           "Transferencia": ":material/account_balance:"}, ancho_completo=True)
 
     # ---------------- derecha: resumen en vivo y confirmación ----------------
     with der:
