@@ -241,9 +241,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-dias.cuotas .m3k-dia {{ padding:.5rem .65rem; }} .m3k-dias.cuotas .m {{ font-size:1rem; }}
 [class*="st-key-ficha_"] {{ position:relative; background:#161617; border:1px solid #2A2A2D; border-radius:22px; padding:0 0 1rem; overflow:hidden; gap:0 !important; margin-bottom:1rem; }}
 [class*="st-key-ficha_"] > div {{ padding-left:0; }}
-.f-notch {{ position:absolute; top:-1px; right:-1px; padding:9px 10px 11px 14px; background:#0B0B0C; border-bottom-left-radius:22px; z-index:2; }}
-.f-notch::before {{ content:''; position:absolute; top:1px; left:-22px; width:22px; height:22px; background:radial-gradient(circle at 0 100%, transparent 22px, #0B0B0C 22.5px); }}
-.f-pill {{ display:block; font-size:.78rem; font-weight:600; padding:6px 16px; border-radius:99px; background:#B8F53A; color:#0A1A05; }}
+.f-pill {{ position:absolute; top:14px; right:14px; z-index:2; display:block; font-size:.78rem; font-weight:600; padding:6px 16px; border-radius:99px; background:#B8F53A; color:#0A1A05; }}
 .f-pill.mal {{ background:#F0997B; color:#3A1408; }} .f-pill.off {{ background:#2A2A2D; color:#C9C9CE; }}
 .f-cab {{ display:flex; align-items:center; gap:.65rem; padding:.9rem 1.1rem .8rem; color:var(--texto); font-weight:600; font-size:.85rem; }}
 .f-cab .av {{ width:36px; height:36px; border-radius:50%; background:#B8F53A; color:#0A1A05; font-weight:700; font-size:.8rem; display:flex; align-items:center; justify-content:center; }}
@@ -255,12 +253,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .f-panel .it .ic {{ font-size:19px; width:34px; height:34px; border-radius:10px; background:#222224; color:#B8F53A; display:flex; align-items:center; justify-content:center; flex:none; }}
 .f-panel em {{ display:block; font-style:normal; font-size:.66rem; letter-spacing:.05em; text-transform:uppercase; color:var(--suave); }}
 .f-panel b {{ display:block; color:#B8F53A; font-weight:600; font-size:.95rem; }}
-.f-nom {{ text-align:center; padding:.9rem 1rem .4rem; }} .f-nom b {{ display:block; color:var(--texto); font-size:1.1rem; }} .f-nom small {{ color:var(--suave); }}
-[class*="st-key-ficha_"] [data-testid="stHorizontalBlock"] {{ padding:0 .8rem; }}
+.f-nom {{ text-align:center; padding:1rem 1rem 1rem; }} .f-nom b {{ display:block; color:var(--texto); font-size:1.1rem; }} .f-nom small {{ color:var(--suave); }}
+[class*="st-key-ficha_"] [data-testid="stHorizontalBlock"] {{ padding:0 .8rem; margin-top:.2rem; }}
 [class*="st-key-ficha_"] [data-testid="stHorizontalBlock"] button {{ border-radius:999px; }}
-[class*="st-key-nc_"] button {{ background:#B8F53A !important; border-color:#B8F53A !important; }}
-[class*="st-key-nc_"] button, [class*="st-key-nc_"] button * {{ color:#0A1A05 !important; font-weight:600; }}
-[class*="st-key-nc_"] button:hover {{ background:#CBFA66 !important; }}
+html body .stApp [class*="st-key-nc_"] button:not(:disabled) {{ background:#B8F53A !important; border-color:#B8F53A !important; }}
+html body .stApp [class*="st-key-nc_"] button:not(:disabled), html body .stApp [class*="st-key-nc_"] button:not(:disabled) * {{ color:#0A1A05 !important; font-weight:600; }}
+html body .stApp [class*="st-key-nc_"] button:not(:disabled):hover {{ background:#CBFA66 !important; }}
 [class*="st-key-nc_"] button:disabled {{ background:#222224 !important; border-color:#2A2A2D !important; }}
 [class*="st-key-nc_"] button:disabled, [class*="st-key-nc_"] button:disabled * {{ color:#6A6A70 !important; }}
 [class*="st-key-ficha_"] [data-testid="stExpander"] {{ margin:.6rem .8rem 0; }}
