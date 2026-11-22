@@ -248,6 +248,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
   background:color-mix(in srgb, var(--tono, #9aa79f) 16%, #fff); display:flex; align-items:center; justify-content:center; }}
 [data-testid="stSidebar"] {{ background:linear-gradient(180deg, #F1F6F3 0%, #E4EEE8 100%) !important; }}
 
+.m3k-pagadas {{ background:#EAF4EE; border:1px solid #CFE3D6; color:#1B5A40; border-radius:8px; padding:.45rem .8rem; font-size:.85rem; margin:.2rem 0 .6rem; }}
+
 /* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
    así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */
 :root {{ color-scheme: light; }}
