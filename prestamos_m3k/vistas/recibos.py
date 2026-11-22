@@ -32,7 +32,7 @@ def _datos_recibo(db: dict, tipo: str, r: dict) -> dict:
     cli = ops.buscar(db["clientes"], r["cliente_id"]) or {}
     bloque1 = [("Fecha", ui.fecha_dia(r["fecha_desembolso"])), ("Cliente", cli.get("nombre", "—")), ("DNI", cli.get("dni", "—")),
                ("Crédito", f"Préstamo {r['numero']:04d}"), ("Forma de entrega", r["entrega"])]
-    bloque2 = [("Capital entregado", ui.soles(r["monto"]), True), ("Interés total", (f"{r['tasa']:g} % por mes × {r['meses']} meses = {ui.soles(r['total'] - r['monto'])}" if r.get("meses", 1) > 1 else f"{r['tasa']:g} % = {ui.soles(r['total'] - r['monto'])}"), False),
+    bloque2 = [("Capital entregado", ui.soles(r["monto"]), True), ("Interés total", comun.texto_interes(r), False),
                ("Total a pagar", ui.soles(r["total"]), False),
                ("Modalidad", f"{comun.nombre_modalidad(r['modalidad'])} · {len(r['cuotas'])} cuota(s)", False)]
     return {"titulo": "Recibo de desembolso", "folio": r["folio_desembolso"], "anulado": r.get("anulado", False), "motivo": r.get("motivo_anulacion", ""),

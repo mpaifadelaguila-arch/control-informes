@@ -259,3 +259,37 @@ def test_mensual_cuadra_en_contabilidad():
     assert cont.balance_general(lib, date(2026, 12, 20))["cuadra"]
     lib = cont.asientos(db, hoy, hoy)
     assert cont.balance_general(lib, hoy)["cuadra"]
+
+
+def test_mensual_a_fin_de_mes_prorratea_el_primer_tramo():
+    # S/ 1,000 al 20 % por mes, entregados el 21/11/2026: 9 días hasta el 30/11 = 9 × 20/30 = 6 % = S/ 60
+    c = calc.generar_cronograma(1000, 20, "mensual", date(2026, 11, 21), meses=3, fin_de_mes=True)
+    assert [q["monto"] for q in c] == [60.0, 200.0, 200.0, 1200.0]
+    assert [q["capital"] for q in c] == [0.0, 0.0, 0.0, 1000.0] and c[0]["dias"] == 9
+    # 31/01/2027 y 28/02/2027 son domingo: pasan al lunes
+    assert [calc.fecha(q["vence"]) for q in c] == [date(2026, 11, 30), date(2026, 12, 31), date(2027, 2, 1), date(2027, 3, 1)]
+    for meses, interes in ((1, 260.0), (2, 460.0), (3, 660.0)):
+        c = calc.generar_cronograma(1000, 20, "mensual", date(2026, 11, 21), meses=meses, fin_de_mes=True)
+        assert sum(q["monto"] for q in c) == 1000 + interes and len(c) == meses + 1
+    # entregado el último día del mes: no hay tramo corto
+    c = calc.generar_cronograma(1000, 20, "mensual", date(2026, 11, 30), meses=2, fin_de_mes=True)
+    assert [q["monto"] for q in c] == [200.0, 1200.0]
+    # 10/12: 21 días = 14 %
+    assert calc.generar_cronograma(1000, 20, "mensual", date(2026, 12, 10), meses=1, fin_de_mes=True)[0]["monto"] == 140.0
+
+
+def test_mensual_a_fin_de_mes_se_cobra_y_cuadra():
+    import contabilidad as cont
+    db = datos.vacio()
+    db["config"]["capital_base"] = 3000.0
+    c = ops.crear_cliente(db, "Ana Torres Quispe", "00000001")
+    hoy = date(2027, 3, 5)
+    pr = ops.crear_prestamo(db, c["id"], 1000, 20, "mensual", date(2026, 11, 21), hoy_=date(2026, 11, 21), meses=2, fin_de_mes=True)
+    assert pr["fin_de_mes"] and pr["total"] == 1460.0 and len(pr["cuotas"]) == 3
+    ops.registrar_pago(db, pr["id"], date(2026, 11, 30), 60, hoy_=hoy)
+    ops.registrar_pago(db, pr["id"], date(2026, 12, 31), 200, hoy_=hoy)
+    e = calc.evaluar_prestamo(pr, db["pagos"], hoy)
+    assert e["capital_recuperado"] == 0 and e["interes_cobrado"] == 260 and e["saldo"] == 1200
+    ops.registrar_pago(db, pr["id"], date(2027, 2, 1), 1200, hoy_=hoy)
+    assert calc.evaluar_prestamo(pr, db["pagos"], hoy)["estado"] == "cancelado"
+    assert cont.balance_general(cont.asientos(db, hoy, hoy), hoy)["cuadra"]
