@@ -358,6 +358,12 @@ html body [data-baseweb="popover"] [role="option"]:hover, html body [data-basewe
 .m3k-vacio b {{ font-size:1.1rem; }}
 .m3k-login h1 span {{ color:#B8F53A; }}
 
+/* Autocompletado del navegador (la clave guardada pinta el campo de azul claro) */
+input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, textarea:-webkit-autofill {{
+  -webkit-box-shadow:0 0 0 1000px #0C1C10 inset !important; box-shadow:0 0 0 1000px #0C1C10 inset !important;
+  -webkit-text-fill-color:#F2FBE8 !important; caret-color:#B8F53A; transition:background-color 9999s ease-in-out 0s; }}
+[data-testid="stTextInput"] button, [data-testid="stTextInput"] button * {{ background-color:#12281A !important; color:#B8F53A !important; fill:#B8F53A !important; }}
+
 /* Iconos: fichas claras para que se vean sobre fondo oscuro */
 .m3k-cab .ico {{ background:#B8F53A !important; box-shadow:0 0 0 4px rgba(184,245,58,.14), 0 0 22px rgba(184,245,58,.25) !important; }}
 .m3k-kpi .ic {{ background:#DDF7A8 !important; box-shadow:0 0 0 3px rgba(184,245,58,.14); }}
@@ -567,3 +573,9 @@ def acceso_cabecera() -> None:
                 '<h1>Tu <span>cartera</span>, clara y al día</h1><p>Ingresa tu clave para continuar.</p>'
                 '<div class="pasos"><div><span>💵</span>Cobros del día</div><div><span>📒</span>Cartera y clientes</div>'
                 '<div><span>🧾</span>Recibos</div></div></div>', unsafe_allow_html=True)
+
+
+def ocultar_barra_lateral() -> None:
+    """Sin sesión no se muestra el menú: Streamlit conserva en pantalla el de la sesión anterior si la app se detiene antes de definirlo."""
+    st.markdown("<style>[data-testid='stSidebar'], [data-testid='stSidebarCollapsedControl'], [data-testid='collapsedControl'], "
+                "[data-testid='stSidebarNav'] {display:none !important;}</style>", unsafe_allow_html=True)

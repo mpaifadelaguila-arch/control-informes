@@ -35,9 +35,10 @@ def acceso() -> bool:
     if st.session_state.get("_acceso"):
         return True
     clave = _clave_configurada()
+    if not clave and os.environ.get("PRESTAMOS_SIN_CLAVE") == "1":
+        return True
+    estilos.ocultar_barra_lateral()
     if not clave:
-        if os.environ.get("PRESTAMOS_SIN_CLAVE") == "1":
-            return True
         estilos.encabezado("Acceso protegido", "Falta configurar la clave de la aplicación.")
         st.error(
             "No hay clave configurada. Agrega `app_password = \"tu clave\"` en los secretos de la app "
