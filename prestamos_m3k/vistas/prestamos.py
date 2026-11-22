@@ -65,10 +65,6 @@ def _cartera(db: dict, evals: dict) -> None:
     st.markdown(g.cuotas(ev["cuotas"]), unsafe_allow_html=True)
     st.markdown('<div style="height:.6rem"></div>', unsafe_allow_html=True)
 
-    if ev["estado"] in ("vigente", "vencido"):
-        if st.button("Cobrar este crédito", type="primary", icon=":material/payments:"):
-            st.session_state["cobro_prestamo"] = sel
-            comun.ir_a("cobros")
     if ev["estado"] != "anulado":
         with st.expander("Anular este crédito"):
             st.caption("Solo se puede anular si no tiene cobros vigentes. El dinero vuelve a la caja y el folio queda registrado.")
