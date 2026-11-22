@@ -77,7 +77,8 @@ def mostrar() -> None:
     if not (db["prestamos"] or db["movimientos"] or db["config"]["capital_base"]):
         ui.vacio("Aún no hay asientos", "Registra un crédito, un cobro o un aporte de capital y aparecerán aquí.")
         return
-    vista = st.radio("Vista", ["Libro diario", "Libro mayor", "Balance de comprobación"], horizontal=True, label_visibility="collapsed", key="vista_libro")
+    with st.container(key="nav_principal"):
+        vista = st.radio("Vista", ["Libro diario", "Libro mayor", "Balance de comprobación"], horizontal=True, label_visibility="collapsed", key="vista_libro")
     periodo, desde, hasta = comun.selector_periodo(db, hoy, "periodo_libro")
     lib = cont.asientos(db, hasta, hoy)
     if vista == "Libro diario":

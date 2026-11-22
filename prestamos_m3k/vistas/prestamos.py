@@ -195,7 +195,9 @@ def mostrar() -> None:
     destino = st.session_state.pop("_vista_prestamos", None)
     if destino:
         st.session_state["vista_prestamos"] = destino
-    vista = st.radio("Vista", ["Cartera", "Nuevo crédito"], horizontal=True, key="vista_prestamos", label_visibility="collapsed")
+    with st.container(key="nav_principal"):
+        vista = st.radio("Vista", ["Cartera", "Nuevo crédito"], horizontal=True, key="vista_prestamos", label_visibility="collapsed",
+                         format_func=lambda v: {"Cartera": ":material/list_alt: Cartera", "Nuevo crédito": ":material/add_circle: Nuevo crédito"}[v])
     if vista == "Cartera":
         _cartera(db, evals)
     else:

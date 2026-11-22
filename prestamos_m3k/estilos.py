@@ -221,6 +221,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-sem .val b {{ color:var(--texto); font-weight:600; }} .m3k-sem .val.f {{ color:#A8600A; font-weight:600; }} .m3k-sem .val.ok {{ color:var(--ok); font-weight:600; }}
 .m3k-aldia b {{ display:block; font-size:1.8rem; color:var(--ok); }} .m3k-aldia span {{ color:var(--suave); }} .m3k-aldia strong {{ color:var(--texto); }}
 
+/* Selectores horizontales (st.radio) con aspecto de navegación: píldoras, la opción activa en verde.
+   Si Streamlit cambia su estructura interna, estas reglas simplemente dejan de aplicarse y quedan los botones de opción normales. */
+[data-testid="stRadio"] [role="radiogroup"] {{ gap:.45rem; flex-wrap:wrap; }}
+[data-testid="stRadio"] label[data-baseweb="radio"] {{ background:#fff; border:1px solid var(--borde); border-radius:999px; padding:.28rem .95rem; margin:0;
+  cursor:pointer; transition:background .15s ease, border-color .15s ease, box-shadow .15s ease; }}
+[data-testid="stRadio"] label[data-baseweb="radio"] > div:first-child:not(:has(p)) {{ display:none; }}
+[data-testid="stRadio"] label[data-baseweb="radio"]:hover {{ border-color:var(--acento); background:#F3F8F5; }}
+[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) {{ background:var(--acento); border-color:var(--acento); box-shadow:0 2px 8px rgba(31,107,79,.25); }}
+[data-testid="stRadio"] label[data-baseweb="radio"]:has(input:checked) p {{ color:#fff !important; font-weight:600; }}
+[data-testid="stRadio"] label[data-baseweb="radio"] p {{ font-size:.9rem; margin:0; }}
+/* selector principal de cada pantalla (st.container(key="nav_principal")): más grande, con una línea que lo separa del contenido */
+.st-key-nav_principal {{ border-bottom:1px solid var(--borde); padding-bottom:.7rem; margin-bottom:.3rem; }}
+.st-key-nav_principal [data-testid="stRadio"] label[data-baseweb="radio"] {{ padding:.5rem 1.25rem; border-radius:10px; }}
+.st-key-nav_principal [data-testid="stRadio"] label[data-baseweb="radio"] p {{ font-size:1rem; }}
+
 /* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
    así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */
 :root {{ color-scheme: light; }}
