@@ -241,8 +241,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-dias.cuotas .m3k-dia {{ padding:.5rem .65rem; }} .m3k-dias.cuotas .m {{ font-size:1rem; }}
 [class*="st-key-ficha_"] {{ position:relative; background:#161617; border:1px solid #2A2A2D; border-radius:22px; padding:0 0 1rem; overflow:hidden; gap:0 !important; margin-bottom:1rem; }}
 [class*="st-key-ficha_"] > div {{ padding-left:0; }}
-.f-pill {{ position:absolute; top:14px; right:14px; z-index:2; display:block; font-size:.78rem; font-weight:600; padding:6px 16px; border-radius:99px; background:#B8F53A; color:#0A1A05; }}
-.f-pill.mal {{ background:#F0997B; color:#3A1408; }} .f-pill.off {{ background:#2A2A2D; color:#C9C9CE; }}
+.f-notch {{ position:absolute; top:-1px; right:-1px; z-index:2; padding:9px 10px 11px 12px; background:#0B0B0C; border-bottom-left-radius:22px; box-shadow:-1px 1px 0 #2A2A2D; }}
+.f-notch::before {{ content:''; position:absolute; top:1px; left:-22px; width:22px; height:22px; background:radial-gradient(circle at 0 100%, transparent 21.5px, #0B0B0C 22px); }}
+.f-notch .f-pill, .f-notch .f-pill * {{ color:#0A1A05 !important; }}
+.f-notch .f-pill {{ display:block; font-size:.78rem; font-weight:700; line-height:1.2; padding:6px 16px; border-radius:99px; background:#B8F53A; }}
+.f-notch .f-pill.mal, .f-notch .f-pill.mal * {{ color:#3A1408 !important; }} .f-notch .f-pill.mal {{ background:#F0997B; }}
+.f-notch .f-pill.off, .f-notch .f-pill.off * {{ color:#E4E4E8 !important; }} .f-notch .f-pill.off {{ background:#2A2A2D; }}
 .f-cab {{ display:flex; align-items:center; gap:.65rem; padding:.9rem 1.1rem .8rem; color:var(--texto); font-weight:600; font-size:.85rem; }}
 .f-cab .av {{ width:36px; height:36px; border-radius:50%; background:#B8F53A; color:#0A1A05; font-weight:700; font-size:.8rem; display:flex; align-items:center; justify-content:center; }}
 .f-panel {{ margin:.2rem .8rem 0; background:#0F0F10; border:1px solid #2A2A2D; border-radius:16px; padding:.8rem 1rem; display:flex; flex-direction:column; gap:.7rem; }}
@@ -261,7 +265,7 @@ html body .stApp [class*="st-key-nc_"] button:not(:disabled), html body .stApp [
 html body .stApp [class*="st-key-nc_"] button:not(:disabled):hover {{ background:#CBFA66 !important; }}
 [class*="st-key-nc_"] button:disabled {{ background:#222224 !important; border-color:#2A2A2D !important; }}
 [class*="st-key-nc_"] button:disabled, [class*="st-key-nc_"] button:disabled * {{ color:#6A6A70 !important; }}
-[class*="st-key-ficha_"] [data-testid="stExpander"] {{ margin:.6rem .8rem 0; }}
+[class*="st-key-ficha_"] [data-testid="stExpander"] {{ margin:.6rem .8rem 0; width:calc(100% - 1.6rem) !important; box-sizing:border-box; }}
 
 .m3k-sem .val b {{ color:var(--texto); font-weight:600; }} .m3k-sem .val.f {{ color:var(--aviso); font-weight:600; }} .m3k-sem .val.ok {{ color:var(--ok); font-weight:600; }}
 .m3k-aldia b {{ display:block; font-size:1.8rem; color:var(--ok); }} .m3k-aldia span {{ color:var(--suave); }} .m3k-aldia strong {{ color:var(--texto); }}
