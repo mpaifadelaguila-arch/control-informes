@@ -75,7 +75,9 @@ def _banner_uri(nombre: str = "banner_billetes.jpg") -> str:
 
 _BANNER = _banner_uri()
 _BANNER_CONT = _banner_uri("banner_contabilidad.jpg")
+_BANNER_CTRL = _banner_uri("banner_control.jpg")
 SECCIONES_CONTABILIDAD = {"Resultados", "Cuentas por cobrar"}
+SECCIONES_CONTROL = {"Caja", "Recibos"}
 
 
 CSS = f"""
@@ -527,6 +529,7 @@ html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-colo
   -webkit-mask-image:linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.03) 10%, rgba(0,0,0,.10) 20%, rgba(0,0,0,.22) 30%, rgba(0,0,0,.38) 40%, rgba(0,0,0,.56) 50%, rgba(0,0,0,.74) 60%, rgba(0,0,0,.88) 70%, rgba(0,0,0,.96) 80%, #000 92%); mask-image:linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.03) 10%, rgba(0,0,0,.10) 20%, rgba(0,0,0,.22) 30%, rgba(0,0,0,.38) 40%, rgba(0,0,0,.56) 50%, rgba(0,0,0,.74) 60%, rgba(0,0,0,.88) 70%, rgba(0,0,0,.96) 80%, #000 92%); }}
 .m3k-cab > * {{ position:relative; z-index:1; }}
 .m3k-cab.cont::before {{ background-image:{_BANNER_CONT}; }}
+.m3k-cab.ctrl::before {{ background-image:{_BANNER_CTRL}; }}
 @media (max-width:640px) {{ .m3k-cab::before {{ width:100%; opacity:.35; }} }}
 </style>
 """
@@ -547,7 +550,7 @@ SECCIONES = {
 def encabezado(titulo: str, subtitulo: str = "") -> None:
     sub = f"<p>{esc(subtitulo)}</p>" if subtitulo else ""
     icono, color = SECCIONES.get(titulo, ("💼", ACENTO))
-    clase = "m3k-cab cont" if titulo in SECCIONES_CONTABILIDAD else "m3k-cab"
+    clase = "m3k-cab cont" if titulo in SECCIONES_CONTABILIDAD else "m3k-cab ctrl" if titulo in SECCIONES_CONTROL else "m3k-cab"
     st.markdown(f'<div class="{clase}" style="--sec:{color}"><div class="ico">{icono}</div><div><div class="marca">M3K · Préstamos personales</div>'
                 f"<h1>{esc(titulo)}</h1>{sub}</div></div>", unsafe_allow_html=True)
 
