@@ -335,6 +335,17 @@ div[data-baseweb="select"] > div:hover {{ border-color:#B8F53A !important; }}
 [data-testid="stAlert"] svg {{ fill:#B8F53A !important; }}
 [data-testid="stException"], [data-testid="stNotification"] {{ background:#0F2412 !important; }}
 
+/* Selectores (selectbox / multiselect): se cubren todos los envoltorios posibles con más especificidad */
+html body .stApp [data-testid="stSelectbox"], html body .stApp [data-testid="stSelectbox"] *, html body .stApp [data-testid="stMultiSelect"] *,
+html body .stApp div:has(> [data-baseweb="select"]), html body .stApp [data-baseweb="select"], html body .stApp [data-baseweb="select"] *,
+html body .stApp [data-baseweb="select"] > div, html body .stApp [data-baseweb="select"] > div > div {{ background:#0C1C10 !important; background-color:#0C1C10 !important; color:#F2FBE8 !important; -webkit-text-fill-color:#F2FBE8 !important; }}
+html body .stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div {{ border:1px solid #2A4A2C !important; border-radius:8px !important; box-shadow:none !important; }}
+html body .stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div:hover, html body .stApp [data-testid="stSelectbox"] [data-baseweb="select"] > div:focus-within {{ border-color:#B8F53A !important; }}
+html body .stApp [data-testid="stSelectbox"] label, html body .stApp [data-testid="stSelectbox"] label * {{ background:transparent !important; }}
+html body .stApp [data-testid="stSelectbox"] svg, html body .stApp [data-baseweb="select"] svg {{ fill:#B8F53A !important; color:#B8F53A !important; }}
+html body [data-baseweb="popover"] [role="listbox"], html body [data-baseweb="popover"] [role="option"], html body [data-baseweb="popover"] [role="option"] *, html body [data-baseweb="menu"], html body [data-baseweb="menu"] * {{ background:#0C1C10 !important; color:#F2FBE8 !important; -webkit-text-fill-color:#F2FBE8 !important; }}
+html body [data-baseweb="popover"] [role="option"]:hover, html body [data-baseweb="popover"] [role="option"]:hover *, html body [data-baseweb="popover"] [aria-selected="true"], html body [data-baseweb="popover"] [aria-selected="true"] * {{ background:#16301A !important; color:#B8F53A !important; -webkit-text-fill-color:#B8F53A !important; }}
+
 /* Iconos: fichas claras para que se vean sobre fondo oscuro */
 .m3k-cab .ico {{ background:#B8F53A !important; box-shadow:0 0 0 4px rgba(184,245,58,.14), 0 0 22px rgba(184,245,58,.25) !important; }}
 .m3k-kpi .ic {{ background:#DDF7A8 !important; box-shadow:0 0 0 3px rgba(184,245,58,.14); }}
