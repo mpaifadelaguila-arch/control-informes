@@ -166,11 +166,12 @@ def mostrar() -> None:
                        icon=":material/picture_as_pdf:", use_container_width=True)
     with b3:
         componentes.html(compartir.html_compartir(png, f"{reg['folio']}.png", texto_wa), height=70)
-    if enlace:
-        b4.link_button("Abrir chat de WhatsApp", enlace, icon=":material/chat:", use_container_width=True)
-    else:
-        b4.button("Abrir chat de WhatsApp", disabled=True, icon=":material/chat:", use_container_width=True,
-                  help="Este cliente no tiene un teléfono válido. Agrégalo en Clientes.")
+    with b4.container(key="wa_chat"):
+        if enlace:
+            st.link_button("Abrir chat de WhatsApp", enlace, use_container_width=True)
+        else:
+            st.button("Abrir chat de WhatsApp", disabled=True, use_container_width=True, key="wa_chat_off",
+                      help="Este cliente no tiene un teléfono válido. Agrégalo en Clientes.")
     st.caption("En el celular, «Compartir imagen» abre WhatsApp con el recibo listo. En la computadora, descarga la imagen, abre el chat y adjúntala.")
 
     if reg["tipo"] == "pago" and not reg["anulado"]:
