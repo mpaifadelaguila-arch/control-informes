@@ -86,7 +86,7 @@ def cuerpo(db: dict, hoy: date) -> None:
         izq.markdown(g.panel("Cobrado por semana", g.columnas(semanas), "Cada columna es una semana (de lunes a sábado), con su fecha de inicio."
                              + (" Se muestran las últimas 12." if len(semanal) > 12 else "")), unsafe_allow_html=True)
         por_medio = (df["cuota"] + df["mora"]).groupby(df["medio"]).sum().sort_values(ascending=False)
-        paleta = [ui.TONOS["info"], ui.TONOS["ok"], ui.TONOS["aviso"], "#7A5AA6", ui.TONOS["neutro"]]
+        paleta = [ui.TONOS["info"], ui.TONOS["ok"], ui.TONOS["aviso"], "#B79CFF", ui.TONOS["neutro"]]
         der.markdown(g.panel("Cobrado por medio de pago", g.dona(
             [{"nombre": m, "monto": round(float(v), 2), "color": paleta[i % len(paleta)], "etiqueta": m} for i, (m, v) in enumerate(por_medio.items())],
             f"S/ {cobrado:,.0f}", "cobrado")), unsafe_allow_html=True)
