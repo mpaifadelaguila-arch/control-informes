@@ -3,6 +3,10 @@ Guardan la opción elegida en st.session_state[key], igual que un selector norma
 import streamlit as st
 
 
+def _elegir(key, opcion):
+    st.session_state[key] = opcion
+
+
 def pestanas(opciones, key, etiquetas=None, iconos=None):
     """Muestra una fila de botones y devuelve la opción elegida. `etiquetas` y `iconos` son dicts opcionales por opción."""
     opciones = list(opciones)
@@ -14,8 +18,7 @@ def pestanas(opciones, key, etiquetas=None, iconos=None):
     for i, op in enumerate(opciones):
         texto = (etiquetas or {}).get(op, op)
         with columnas[i]:
-            if st.button(texto, key=f"{key}__{i}", type="primary" if op == actual else "secondary",
-                         icon=(iconos or {}).get(op), use_container_width=True):
-                st.session_state[key] = op
-                st.rerun()
+            # on_click cambia la opción ANTES de redibujar la pantalla; así no hace falta st.rerun() ni se queda un clic "pegado"
+            st.button(texto, key=f"{key}__{i}", type="primary" if op == actual else "secondary",
+                      icon=(iconos or {}).get(op), use_container_width=True, on_click=_elegir, args=(key, op))
     return st.session_state[key]
