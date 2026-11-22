@@ -520,7 +520,7 @@ html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-colo
 
 /* Encabezado con foto de billetes difuminada a la derecha, que se desvanece hacia el texto */
 .m3k-cab {{ position:relative; overflow:hidden; }}
-.m3k-cab::before {{ content:''; position:absolute; top:0; right:0; bottom:0; width:62%; background-image:{_BANNER}; background-size:cover; background-position:center;
+.m3k-cab::before {{ content:''; position:absolute; top:0; right:0; bottom:0; width:62%; background-image:{_BANNER}; background-size:cover; background-position:right center;
   opacity:1; pointer-events:none; z-index:0;
   -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 35%, #000 100%); mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 35%, #000 100%); }}
 .m3k-cab > * {{ position:relative; z-index:1; }}
