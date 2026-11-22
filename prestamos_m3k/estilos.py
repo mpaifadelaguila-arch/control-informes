@@ -375,6 +375,15 @@ html body .stApp [data-testid="stTextInput"] button svg, html body .stApp [data-
 html body .stApp [data-testid="stTextInput"] button:hover svg * {{ fill:#D9FB8C !important; }}
 html body .stApp [data-testid="stTextInput"] button:hover {{ transform:none; box-shadow:none; }}
 
+/* Campo de clave: cualquier elemento dentro del campo es oscuro, sea cual sea la estructura interna de Streamlit */
+html body .stApp [data-testid="stTextInput"] *:not(svg):not(path):not(circle):not(g), html body .stApp [data-testid="stTextInputRootElement"],
+html body .stApp [data-testid="stTextInputRootElement"] * {{ background:#0C1C10 !important; background-color:#0C1C10 !important; border-color:#2A4A2C !important; color:#F2FBE8 !important; }}
+html body .stApp [data-testid="stTextInput"] > div > div, html body .stApp [data-testid="stTextInputRootElement"] {{ border:1px solid #2A4A2C !important; border-radius:8px !important; overflow:hidden; }}
+html body .stApp [data-testid="stTextInput"] input {{ border:0 !important; }}
+html body .stApp [data-testid="stTextInputRootElement"]:focus-within {{ border-color:#B8F53A !important; box-shadow:0 0 0 2px rgba(184,245,58,.18) !important; }}
+html body .stApp [data-testid="stTextInput"] button {{ border:0 !important; border-radius:0 !important; box-shadow:none !important; outline:none; }}
+html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid="stTextInput"] svg * {{ fill:#B8F53A !important; stroke:none !important; background:transparent !important; }}
+
 /* Iconos: fichas claras para que se vean sobre fondo oscuro */
 .m3k-cab .ico {{ background:#B8F53A !important; box-shadow:0 0 0 4px rgba(184,245,58,.14), 0 0 22px rgba(184,245,58,.25) !important; }}
 .m3k-kpi .ic {{ background:#DDF7A8 !important; box-shadow:0 0 0 3px rgba(184,245,58,.14); }}
