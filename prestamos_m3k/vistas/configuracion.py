@@ -1,4 +1,4 @@
-"""Configuración: parámetros del negocio, respaldo, datos de ejemplo y auditoría."""
+"""Configuración: parámetros del negocio, respaldo y auditoría."""
 
 import streamlit as st
 
@@ -50,15 +50,6 @@ def mostrar() -> None:
                 datos.reemplazar(nueva)
                 ui.avisar("ok", "Respaldo restaurado.")
                 st.rerun()
-
-    st.subheader("Datos de ejemplo", anchor=False)
-    st.caption("Carga una cartera ficticia para probar la app. Reemplaza los datos actuales: descarga un respaldo antes si tienes información real.")
-    hay_datos = bool(db["clientes"] or db["prestamos"])
-    ok = st.checkbox("Reemplazar los datos actuales", key="ok_ejemplo") if hay_datos else True
-    if st.button("Cargar datos de ejemplo", disabled=not ok):
-        datos.reemplazar(datos.ejemplo())
-        ui.avisar("ok", "Datos de ejemplo cargados.")
-        st.rerun()
 
     st.subheader("Auditoría", anchor=False)
     if not db["auditoria"]:

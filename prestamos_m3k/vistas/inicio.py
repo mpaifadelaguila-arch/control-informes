@@ -23,7 +23,7 @@ def mostrar() -> None:
 
     if not db["clientes"]:
         ui.vacio("Aún no hay clientes",
-                 "Empieza registrando un cliente en «Clientes», o carga datos de ejemplo en «Configuración».")
+                 "Empieza registrando tu primer cliente.")
         c1, c2 = st.columns(2)
         if c1.button("Registrar el primer cliente", type="primary", icon=":material/person_add:"):
             comun.ir_a("clientes")
@@ -31,22 +31,16 @@ def mostrar() -> None:
             comun.ir_a("config")
         return
 
-    sobre_vencido = ind["vencido"] > 0
     ui.kpis([
-        {"etiqueta": "Liquidez en caja", "valor": ui.soles(caja["liquidez"]), "heroe": True, "tono": "ok" if caja["liquidez"] >= 0 else "malo",
-         "nota": f"Capital base {ui.soles(caja['capital_base'])}"},
-        {"etiqueta": "Capital en calle", "valor": ui.soles(ind["capital_en_calle"]), "tono": "info",
-         "nota": f"{ind['prestamos_activos']} préstamo(s) activo(s) · sin contar lo ya recuperado"},
-        {"etiqueta": "Por cobrar", "valor": ui.soles(ind["por_cobrar"]), "tono": "aviso",
-         "nota": f"{ui.soles(ind['vencido'])} vencido" if sobre_vencido else "Nada vencido"},
-        {"etiqueta": "Para cobrar hoy", "valor": ui.soles(ind["cobros_hoy_monto"]), "tono": "info",
+        {"etiqueta": "Para cobrar hoy", "valor": ui.soles(ind["cobros_hoy_monto"]), "heroe": True, "tono": "info",
          "nota": f"{ind['cobros_hoy_n']} cuota(s) vencen hoy"},
+        {"etiqueta": "Vencido", "valor": ui.soles(ind["vencido"]), "tono": "malo" if ind["vencido"] > 0 else "ok",
+         "nota": "Cuotas atrasadas" if ind["vencido"] > 0 else "Nadie atrasado"},
+        {"etiqueta": "Prestado en la calle", "valor": ui.soles(ind["capital_en_calle"]), "tono": "aviso",
+         "nota": f"{ind['prestamos_activos']} préstamo(s) · te deben {ui.soles(ind['por_cobrar'])} con interés"},
+        {"etiqueta": "Dinero en caja", "valor": ui.soles(caja["liquidez"]), "tono": "ok" if caja["liquidez"] >= 0 else "malo",
+         "nota": "Disponible para prestar"},
     ])
-
-    mes = calc.avance_mes(db, evals, hoy)
-    if mes["esperado"]:
-        nombre_mes = cont.nombre_mes(cont.periodo_de(hoy)).split()[0].lower()
-        st.markdown(g.panel("Avance de la cobranza del mes", g.avance(mes["cobrado"], mes["esperado"], nombre_mes)), unsafe_allow_html=True)
 
     st.subheader("Cobranza", anchor=False)
     cola = calc.cola_cobranza(db, evals, hoy)
@@ -80,6 +74,11 @@ def mostrar() -> None:
         st.markdown(g.panel("Lo que vence desde mañana", g.proximos_dias(proximos, hoy), "Lo de hoy está arriba, en Cobranza. No se cuentan los domingos."), unsafe_allow_html=True)
     else:
         st.caption("No hay cuotas que venzan en los próximos días.")
+
+    mes = calc.avance_mes(db, evals, hoy)
+    if mes["esperado"]:
+        nombre_mes = cont.nombre_mes(cont.periodo_de(hoy)).split()[0].lower()
+        st.markdown(g.panel("Avance de la cobranza del mes", g.avance(mes["cobrado"], mes["esperado"], nombre_mes)), unsafe_allow_html=True)
 
     semanas = calc.cuotas_por_semana(db, evals, hoy)
     composicion = calc.composicion_cartera(db, evals)

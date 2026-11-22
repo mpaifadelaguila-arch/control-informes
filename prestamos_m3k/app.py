@@ -18,7 +18,7 @@ import datos  # noqa: E402
 import drive_json  # noqa: E402
 import estilos  # noqa: E402
 from vistas import (caja, clientes, cobros, configuracion, cuentas_por_cobrar, inicio,  # noqa: E402
-                    libro_diario, prestamos, recibos, reportes, resumen)  # noqa: E402
+                    libro_diario, prestamos, recibos, resumen)  # noqa: E402
 
 estilos.aplicar()
 
@@ -66,11 +66,10 @@ paginas = {
     "prestamos": st.Page(prestamos.mostrar, title="Préstamos", icon=":material/request_quote:", url_path="prestamos"),
     "clientes": st.Page(clientes.mostrar, title="Clientes", icon=":material/group:", url_path="clientes"),
     "caja": st.Page(caja.mostrar, title="Caja", icon=":material/account_balance_wallet:", url_path="caja"),
-    "reportes": st.Page(reportes.mostrar, title="Reportes", icon=":material/bar_chart:", url_path="reportes"),
     "recibos": st.Page(recibos.mostrar, title="Recibos", icon=":material/receipt_long:", url_path="recibos"),
     "libro": st.Page(libro_diario.mostrar, title="Libros contables", icon=":material/menu_book:", url_path="libro"),
     "cxc": st.Page(cuentas_por_cobrar.mostrar, title="Cuentas por cobrar", icon=":material/account_balance:", url_path="cxc"),
-    "resumen": st.Page(resumen.mostrar, title="Resumen contable", icon=":material/finance:", url_path="resumen"),
+    "resumen": st.Page(resumen.mostrar, title="Resultados", icon=":material/finance:", url_path="resumen"),
     "config": st.Page(configuracion.mostrar, title="Configuración", icon=":material/settings:", url_path="configuracion"),
 }
 st.session_state["_paginas"] = paginas  # las vistas lo usan para saltar de una a otra
@@ -78,7 +77,7 @@ st.session_state["_paginas"] = paginas  # las vistas lo usan para saltar de una 
 navegacion = st.navigation({
     "Operación": [paginas[k] for k in ("inicio", "cobros", "prestamos", "clientes")],
     "Contabilidad": [paginas[k] for k in ("resumen", "cxc", "libro")],
-    "Control": [paginas[k] for k in ("caja", "reportes", "recibos")],
+    "Control": [paginas[k] for k in ("caja", "recibos")],
     "Aplicación": [paginas["config"]],
 })
 

@@ -32,11 +32,8 @@ def _rango(nombre: str, hoy: date) -> tuple[date, date]:
     return c1.date_input("Desde", value=primero, format="DD/MM/YYYY"), c2.date_input("Hasta", value=hoy, format="DD/MM/YYYY")
 
 
-def mostrar() -> None:
-    db = datos.cargar()
-    hoy = calc.hoy()
-    ui.encabezado("Reporte financiero", "Resultados de cobranza y estado de la cartera")
-    periodo = st.selectbox("Periodo", PERIODOS)
+def cuerpo(db: dict, hoy: date) -> None:
+    periodo = st.selectbox("Periodo", PERIODOS, key="periodo_cobranza")
     desde, hasta = _rango(periodo, hoy)
     if desde > hasta:
         st.error("La fecha «Desde» no puede ser posterior a «Hasta».")
