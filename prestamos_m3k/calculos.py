@@ -9,6 +9,7 @@ redondeo.
 
 from __future__ import annotations
 
+from calendar import monthrange
 from datetime import date, datetime, timedelta, timezone
 from decimal import ROUND_HALF_UP, Decimal
 
@@ -18,13 +19,17 @@ LIMA = timezone(timedelta(hours=-5))
 PLAZO_DIAS = 24
 
 # Los domingos no se trabaja ni se cobra: el plazo de 24 días son 24 días de trabajo (lunes a sábado).
-# En la modalidad semanal el número de cuotas lo elige quien presta (de 1 a 8; por defecto 4) y vencen
-# cada 7 días.
-CUOTAS_SEMANALES = (4, range(1, 9))  # (por defecto, permitidas)
+# Semanal: siempre 4 cuotas iguales, una cada 7 días.
+# Mensual: de 1 a 3 meses; el interés (la tasa) es POR MES. Los primeros meses se paga solo el interés y en el último
+# mes el interés más todo el capital. Cada cuota vence el mismo día de cada mes.
+CUOTAS_SEMANALES = (4, range(4, 5))  # (por defecto, permitidas)
+MESES_MENSUAL = (1, 2, 3)
 MODALIDADES = {
     "diario": {"nombre": "Diario", "texto": "24 cuotas, una por día de trabajo (lunes a sábado)"},
-    "semanal": {"nombre": "Semanal", "texto": "Cuotas iguales cada 7 días (eliges de 1 a 8)"},
-    "final": {"nombre": "Pago único", "texto": "1 solo pago al día de trabajo 24"},
+    "semanal": {"nombre": "Semanal", "texto": "4 cuotas iguales, una cada 7 días"},
+    "mensual": {"nombre": "Mensual", "texto": "Cada mes se paga solo el interés; en el último mes, el interés y todo el capital"},
+    # «Pago único» ya no se ofrece, pero los créditos antiguos con esa modalidad se siguen mostrando y cobrando.
+    "final": {"nombre": "Pago único", "texto": "1 solo pago al día de trabajo 24", "oculta": True},
 }
 ENTREGAS = ("Efectivo", "Yape", "Plin", "Transferencia")
 METODOS_COBRO = ("Efectivo", "Yape", "Plin", "Transferencia")
@@ -66,9 +71,13 @@ def de_centimos(centimos: int) -> float:
     return round(centimos / 100, 2)
 
 
-def total_a_pagar(monto, tasa_pct) -> float:
-    """Capital más interés total (tasa plana sobre el periodo, sin importar la modalidad)."""
-    total = Decimal(str(monto)) * (Decimal(100) + Decimal(str(tasa_pct))) / 100
+def modalidades_ofrecidas() -> list[str]:
+    return [k for k, v in MODALIDADES.items() if not v.get("oculta")]
+
+
+def total_a_pagar(monto, tasa_pct, meses: int = 1) -> float:
+    """Capital más interés total. La tasa es plana sobre el periodo; en la modalidad mensual se cobra por cada mes."""
+    total = Decimal(str(monto)) * (Decimal(100) + Decimal(str(tasa_pct)) * int(meses)) / 100
     return float(total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
@@ -87,8 +96,20 @@ def sumar_habiles(desde: date, n: int) -> date:
     return d
 
 
-def fechas_vencimiento(modalidad: str, fecha_desembolso, n_cuotas: int | None = None) -> list[date]:
+def sumar_meses(desde: date, n: int) -> date:
+    """El mismo día n meses después; si ese mes no tiene el día (31, 29...), el último día del mes."""
+    indice = desde.year * 12 + (desde.month - 1) + n
+    anio, mes = divmod(indice, 12)
+    return date(anio, mes + 1, min(desde.day, monthrange(anio, mes + 1)[1]))
+
+
+def fechas_vencimiento(modalidad: str, fecha_desembolso, n_cuotas: int | None = None, meses: int | None = None) -> list[date]:
     f0 = fecha(fecha_desembolso)
+    if modalidad == "mensual":
+        m = MESES_MENSUAL[0] if meses is None else meses
+        if m not in MESES_MENSUAL:
+            raise ValueError("La modalidad mensual admite de 1 a 3 meses.")
+        return [trasladar_domingo(sumar_meses(f0, i)) for i in range(1, m + 1)]
     if modalidad == "diario":
         return [sumar_habiles(f0, i) for i in range(1, PLAZO_DIAS + 1)]
     if modalidad == "final":
@@ -96,15 +117,26 @@ def fechas_vencimiento(modalidad: str, fecha_desembolso, n_cuotas: int | None = 
     if modalidad == "semanal":
         n = n_cuotas or CUOTAS_SEMANALES[0]
         if n not in CUOTAS_SEMANALES[1]:
-            raise ValueError("La modalidad semanal admite de 1 a 8 cuotas.")
+            raise ValueError("La modalidad semanal es de 4 cuotas.")
         return [trasladar_domingo(f0 + timedelta(days=7 * i)) for i in range(1, n + 1)]
     raise ValueError("Modalidad no válida.")
 
 
 # ───────────────────────── cronograma y costo ─────────────────────────
 
-def generar_cronograma(monto, tasa_pct, modalidad: str, fecha_desembolso, n_cuotas: int | None = None) -> list[dict]:
-    vencimientos = fechas_vencimiento(modalidad, fecha_desembolso, n_cuotas)
+def generar_cronograma(monto, tasa_pct, modalidad: str, fecha_desembolso, n_cuotas: int | None = None,
+                       meses: int | None = None) -> list[dict]:
+    vencimientos = fechas_vencimiento(modalidad, fecha_desembolso, n_cuotas, meses)
+    if modalidad == "mensual":
+        m = len(vencimientos)
+        capital_c = a_centimos(monto)
+        interes_mes_c = a_centimos(total_a_pagar(monto, tasa_pct, 1)) - capital_c
+        total_m_c = a_centimos(total_a_pagar(monto, tasa_pct, m))
+        cuotas = [{"n": i, "vence": v.isoformat(), "monto": de_centimos(interes_mes_c), "capital": 0.0}
+                  for i, v in enumerate(vencimientos[:-1], start=1)]
+        cuotas.append({"n": m, "vence": vencimientos[-1].isoformat(), "monto": de_centimos(total_m_c - interes_mes_c * (m - 1)),
+                       "capital": de_centimos(capital_c)})
+        return cuotas
     total_c = a_centimos(total_a_pagar(monto, tasa_pct))
     n = len(vencimientos)
     base = total_c // n
@@ -113,6 +145,37 @@ def generar_cronograma(monto, tasa_pct, modalidad: str, fecha_desembolso, n_cuot
         {"n": i, "vence": v.isoformat(), "monto": de_centimos(base + (resto if i == n else 0))}
         for i, v in enumerate(vencimientos, start=1)
     ]
+
+
+def capital_recuperado_c(prestamo: dict, pagado_c: int) -> int:
+    """Parte del capital que ya volvió con lo cobrado (en céntimos). En el mensual, las cuotas de solo interés no devuelven capital;
+    en los demás créditos cada cobro devuelve capital e interés en la misma proporción que el total."""
+    cuotas = prestamo["cuotas"]
+    if all("capital" in q for q in cuotas):
+        restante, capital = pagado_c, 0.0
+        for q in cuotas:
+            monto_c = a_centimos(q["monto"])
+            aplicado = min(restante, monto_c)
+            restante -= aplicado
+            if monto_c:
+                capital += aplicado * a_centimos(q["capital"]) / monto_c
+        return round(capital)
+    total_c, monto_c = a_centimos(prestamo["total"]), a_centimos(prestamo["monto"])
+    return round(pagado_c * monto_c / total_c) if total_c else 0
+
+
+def capital_por_pago(db: dict) -> dict[str, float]:
+    """Capital que devolvió cada cobro vigente (el resto de la cuota es interés), aplicando los cobros de más antiguo a más nuevo."""
+    resultado: dict[str, float] = {}
+    for pr in db["prestamos"]:
+        acumulado_c, capital_previo_c = 0, 0
+        for p in sorted((p for p in db["pagos"] if p["prestamo_id"] == pr["id"] and not p.get("anulado")),
+                        key=lambda p: (p["fecha"], p["folio"])):
+            acumulado_c += a_centimos(p["monto_cuota"])
+            capital_c = capital_recuperado_c(pr, acumulado_c)
+            resultado[p["id"]] = de_centimos(capital_c - capital_previo_c)
+            capital_previo_c = capital_c
+    return resultado
 
 
 def costo_efectivo(monto, cuotas: list[dict], fecha_desembolso) -> dict:
@@ -187,7 +250,7 @@ def evaluar_prestamo(prestamo: dict, pagos: list[dict], al_dia, mora_diaria_pct:
     monto_c = a_centimos(prestamo["monto"])
     saldo_c = sum(a_centimos(c["saldo"]) for c in cuotas)
     vencido_c = sum(a_centimos(c["saldo"]) for c in cuotas if c["estado"] == "vencida")
-    capital_rec_c = round(pagado_c * monto_c / total_c) if total_c else 0
+    capital_rec_c = capital_recuperado_c(prestamo, pagado_c)
     mora_pendiente = max(0.0, round(mora_acumulada - mora_pagada_c / 100, 2))
     vencidas = [c for c in cuotas if c["estado"] == "vencida"]
 

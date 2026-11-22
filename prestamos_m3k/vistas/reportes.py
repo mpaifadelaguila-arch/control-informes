@@ -41,6 +41,7 @@ def cuerpo(db: dict, hoy: date) -> None:
 
     prestamos = {p["id"]: p for p in db["prestamos"]}
     filas = []
+    capitales = calc.capital_por_pago(db)
     for p in db["pagos"]:
         f = calc.fecha(p["fecha"])
         if p.get("anulado") or not (desde <= f <= hasta):
@@ -48,7 +49,7 @@ def cuerpo(db: dict, hoy: date) -> None:
         pr = prestamos.get(p["prestamo_id"])
         if not pr:
             continue
-        capital = p["monto_cuota"] * pr["monto"] / pr["total"]
+        capital = capitales.get(p["id"], 0.0)
         filas.append({"fecha": f, "folio": p["folio"], "cliente": comun.nombre_cliente(db, pr["cliente_id"]),
                       "prestamo": pr["numero"], "modalidad": pr["modalidad"], "medio": p["metodo"],
                       "cuota": p["monto_cuota"], "mora": p.get("monto_mora", 0.0),
@@ -92,7 +93,8 @@ def cuerpo(db: dict, hoy: date) -> None:
 
     st.subheader("Rendimiento por modalidad", anchor=False)
     tarjetas = []
-    for i, (clave, datos_m) in enumerate(calc.MODALIDADES.items()):
+    en_uso = {p["modalidad"] for p in db["prestamos"]}
+    for i, (clave, datos_m) in enumerate((k, v) for k, v in calc.MODALIDADES.items() if not v.get("oculta") or k in en_uso):
         nuevos = [p for p in desembolsos if p["modalidad"] == clave]
         sub = df[df["modalidad"] == clave]
         tarjetas.append(

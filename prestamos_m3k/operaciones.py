@@ -105,7 +105,7 @@ def eliminar_cliente(db: dict, cliente_id: str) -> None:
 # ───────────────────────── préstamos ─────────────────────────
 
 def crear_prestamo(db: dict, cliente_id: str, monto: float, tasa_pct: float, modalidad: str,
-                   fecha_desembolso, entrega: str = "Efectivo", n_cuotas: int | None = None, hoy_=None) -> dict:
+                   fecha_desembolso, entrega: str = "Efectivo", n_cuotas: int | None = None, hoy_=None, meses: int | None = None) -> dict:
     cliente = buscar(db["clientes"], cliente_id)
     if not cliente or not cliente.get("activo", True):
         raise ValueError("Elige un cliente activo.")
@@ -118,7 +118,8 @@ def crear_prestamo(db: dict, cliente_id: str, monto: float, tasa_pct: float, mod
     f0 = calc.fecha(fecha_desembolso)
     verificar_no_futura(f0, hoy_, "La fecha de desembolso")
     verificar_abierto(db, f0)
-    cuotas = calc.generar_cronograma(monto, tasa_pct, modalidad, f0, n_cuotas)  # valida n_cuotas
+    cuotas = calc.generar_cronograma(monto, tasa_pct, modalidad, f0, n_cuotas, meses)  # valida cuotas y meses
+    meses_credito = (calc.MESES_MENSUAL[0] if meses is None else meses) if modalidad == "mensual" else 1
     prestamo = {
         "id": _nuevo_id(),
         "numero": db["contadores"].get("prestamo", 0) + 1,
@@ -128,7 +129,8 @@ def crear_prestamo(db: dict, cliente_id: str, monto: float, tasa_pct: float, mod
         "modalidad": modalidad,
         "fecha_desembolso": f0.isoformat(),
         "entrega": entrega,
-        "total": calc.total_a_pagar(monto, tasa_pct),
+        "meses": meses_credito,
+        "total": calc.total_a_pagar(monto, tasa_pct, meses_credito),
         "cuotas": cuotas,
         "anulado": False,
         "creado": calc.ahora(),

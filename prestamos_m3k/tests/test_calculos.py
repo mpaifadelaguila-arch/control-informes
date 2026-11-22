@@ -47,8 +47,8 @@ def test_los_domingos_no_cuentan_como_dia_de_cobro():
     # Pago único: día de trabajo 24, igual que la última cuota diaria.
     assert calc.fecha(calc.generar_cronograma(1000, 20, "final", date(2026, 11, 1))[0]["vence"]) == fechas[-1]
     # Semanal desembolsado un domingo: cada vencimiento cae en domingo y pasa al lunes.
-    sem = calc.generar_cronograma(400, 20, "semanal", date(2026, 11, 15), 2)
-    assert [calc.fecha(q["vence"]) for q in sem] == [date(2026, 11, 23), date(2026, 11, 30)]
+    sem = calc.generar_cronograma(400, 20, "semanal", date(2026, 11, 15))
+    assert [calc.fecha(q["vence"]) for q in sem] == [date(2026, 11, 23), date(2026, 11, 30), date(2026, 12, 7), date(2026, 12, 14)]
 
 
 def test_cuadre_de_caja_y_cartera_de_las_capturas():
@@ -199,16 +199,63 @@ def test_datos_de_ejemplo_son_coherentes():
     assert calc.cola_cobranza(db, evals, HOY)
 
 
-def test_semanal_con_numero_de_cuotas_variable_como_en_el_excel():
-    """Clientes del Excel: 400/4, 250/3, 300/4 y 200/2 cuotas, todos al 20 %."""
-    casos = [(400, 4, 120.0, 480.0), (250, 3, 100.0, 300.0), (300, 4, 90.0, 360.0), (200, 2, 120.0, 240.0)]
-    tea = []
-    for monto, n, cuota, total in casos:
-        cuotas = calc.generar_cronograma(monto, 20, "semanal", date(2026, 11, 16), n)
-        assert len(cuotas) == n and all(q["monto"] == cuota for q in cuotas)
-        assert sum(q["monto"] for q in cuotas) == total
-        tea.append(calc.costo_efectivo(monto, cuotas, date(2026, 11, 16))["tea"])
-    assert tea[3] > tea[1] > tea[0]  # menos cuotas con el mismo 20 %: más caro
-    assert calc.fecha(calc.generar_cronograma(200, 20, "semanal", date(2026, 11, 16), 2)[-1]["vence"]) == date(2026, 11, 30)
-    with pytest.raises(ValueError, match="1 a 8"):
-        calc.generar_cronograma(200, 20, "semanal", date(2026, 11, 16), 9)
+def test_semanal_es_siempre_de_4_cuotas():
+    cuotas = calc.generar_cronograma(400, 20, "semanal", date(2026, 11, 16))
+    assert len(cuotas) == 4 and all(q["monto"] == 120.0 for q in cuotas) and sum(q["monto"] for q in cuotas) == 480.0
+    assert calc.fecha(cuotas[-1]["vence"]) == date(2026, 12, 14)
+    for n in (1, 2, 3, 5, 8):
+        with pytest.raises(ValueError, match="4 cuotas"):
+            calc.generar_cronograma(200, 20, "semanal", date(2026, 11, 16), n)
+
+
+def test_mensual_paga_solo_interes_y_el_capital_al_final():
+    # S/ 500 al 20 % por mes
+    for meses, esperado in ((1, [600.0]), (2, [100.0, 600.0]), (3, [100.0, 100.0, 600.0])):
+        c = calc.generar_cronograma(500, 20, "mensual", date(2026, 11, 3), meses=meses)
+        assert [q["monto"] for q in c] == esperado
+        assert sum(q["monto"] for q in c) == calc.total_a_pagar(500, 20, meses) == 500 + 100 * meses
+        assert [q["capital"] for q in c] == [0.0] * (meses - 1) + [500.0]
+    c = calc.generar_cronograma(500, 20, "mensual", date(2026, 11, 3), meses=3)
+    assert [calc.fecha(q["vence"]) for q in c] == [date(2026, 12, 3), date(2027, 1, 4), date(2027, 2, 3)]  # 3/1/2027 es domingo: pasa al lunes
+    for m in (0, 4):
+        with pytest.raises(ValueError, match="1 a 3"):
+            calc.generar_cronograma(500, 20, "mensual", date(2026, 11, 3), meses=m)
+
+
+def test_mensual_el_dia_31_y_los_domingos():
+    c = calc.generar_cronograma(500, 20, "mensual", date(2026, 1, 31), meses=3)
+    assert [calc.fecha(q["vence"]) for q in c] == [date(2026, 2, 28), date(2026, 3, 31), date(2026, 4, 30)]  # el mes corto cae en su último día
+    d = calc.generar_cronograma(500, 20, "mensual", date(2026, 10, 15))  # 15/11/2026 es domingo
+    assert calc.fecha(d[0]["vence"]) == date(2026, 11, 16)
+
+
+def test_mensual_el_capital_solo_vuelve_con_la_ultima_cuota():
+    db = datos.vacio()
+    db["config"]["capital_base"] = 2000.0
+    c = ops.crear_cliente(db, "Ana Torres Quispe", "00000001")
+    hoy = date(2027, 3, 1)
+    pr = ops.crear_prestamo(db, c["id"], 500, 20, "mensual", date(2026, 11, 3), hoy_=date(2026, 11, 3), meses=3)
+    assert pr["total"] == 800.0 and pr["meses"] == 3 and len(pr["cuotas"]) == 3
+    ops.registrar_pago(db, pr["id"], date(2026, 12, 3), 100, hoy_=hoy)
+    ops.registrar_pago(db, pr["id"], date(2027, 1, 3), 100, hoy_=hoy)
+    e = calc.evaluar_prestamo(pr, db["pagos"], hoy)
+    assert e["capital_recuperado"] == 0 and e["interes_cobrado"] == 200 and e["capital_pendiente"] == 500
+    assert calc.indicadores(db, {pr["id"]: e}, hoy)["capital_en_calle"] == 500
+    ops.registrar_pago(db, pr["id"], date(2027, 2, 3), 600, hoy_=hoy)
+    e = calc.evaluar_prestamo(pr, db["pagos"], hoy)
+    assert e["estado"] == "cancelado" and e["capital_recuperado"] == 500 and e["interes_cobrado"] == 300
+    assert sorted(calc.capital_por_pago(db).values()) == [0.0, 0.0, 500.0]
+
+
+def test_mensual_cuadra_en_contabilidad():
+    import contabilidad as cont
+    db = datos.vacio()
+    db["config"]["capital_base"] = 2000.0
+    c = ops.crear_cliente(db, "Ana Torres Quispe", "00000001")
+    hoy = date(2027, 3, 1)
+    pr = ops.crear_prestamo(db, c["id"], 500, 20, "mensual", date(2026, 11, 3), hoy_=date(2026, 11, 3), meses=2)
+    ops.registrar_pago(db, pr["id"], date(2026, 12, 3), 100, hoy_=hoy)
+    lib = cont.asientos(db, date(2026, 12, 20), date(2026, 12, 20))
+    assert cont.balance_general(lib, date(2026, 12, 20))["cuadra"]
+    lib = cont.asientos(db, hoy, hoy)
+    assert cont.balance_general(lib, hoy)["cuadra"]

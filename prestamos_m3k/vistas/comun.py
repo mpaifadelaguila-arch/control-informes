@@ -19,6 +19,16 @@ def etiqueta_prestamo(db: dict, prestamo: dict) -> str:
     return f"Préstamo {prestamo['numero']:04d} · {nombre_cliente(db, prestamo['cliente_id'])}"
 
 
+def descripcion_credito(p: dict) -> str:
+    """«Semanal · 4 cuotas», «Mensual · 3 meses»..."""
+    nombre = nombre_modalidad(p["modalidad"])
+    if p["modalidad"] == "mensual":
+        m = p.get("meses", len(p["cuotas"]))
+        return f"{nombre} · {m} {'mes' if m == 1 else 'meses'}"
+    n = len(p["cuotas"])
+    return f"{nombre} · {n} cuota{'s' if n != 1 else ''}"
+
+
 def nombre_modalidad(clave: str) -> str:
     return calc.MODALIDADES.get(clave, {}).get("nombre", clave)
 
