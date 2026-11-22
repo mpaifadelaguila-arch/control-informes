@@ -265,6 +265,11 @@ button[data-testid="stBaseButton-primary"], button[data-testid="stBaseButton-pri
 button[data-testid^="stBaseButton-secondary"], [data-testid="stFormSubmitButton"] button, [data-testid="stDownloadButton"] button {{ background:#FFFFFF !important; color:var(--texto) !important; border:1px solid var(--borde) !important; }}
 button[data-testid^="stBaseButton-secondary"] *, [data-testid="stFormSubmitButton"] button *, [data-testid="stDownloadButton"] button * {{ color:var(--texto) !important; }}
 button[data-testid^="stBaseButton-secondary"]:hover, [data-testid="stFormSubmitButton"] button:hover {{ border-color:var(--acento) !important; background:#F3F8F5 !important; }}
+/* los botones principales de formulario (Guardar...) también van verdes con texto blanco; van al final para ganar a las reglas anteriores */
+[data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"], [data-testid="stFormSubmitButton"] button[data-testid="stBaseButton-primaryFormSubmit"],
+.stFormSubmitButton button[kind="primary"], [data-testid="stFormSubmitButton"] button[kind="primary"] {{ background:var(--acento) !important; border-color:var(--acento) !important; color:#FFFFFF !important; font-weight:600; }}
+[data-testid="stFormSubmitButton"] button[kind="primaryFormSubmit"] *, [data-testid="stFormSubmitButton"] button[data-testid="stBaseButton-primaryFormSubmit"] *,
+.stFormSubmitButton button[kind="primary"] *, [data-testid="stFormSubmitButton"] button[kind="primary"] * {{ color:#FFFFFF !important; }}
 .stButton button:disabled {{ opacity:.5; }}
 [data-testid="stExpander"] {{ background:#FFFFFF; border:1px solid var(--borde); }}
 [data-testid="stExpander"] summary, [data-testid="stExpander"] summary * {{ color:var(--texto) !important; }}
