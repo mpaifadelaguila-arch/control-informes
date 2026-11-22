@@ -428,7 +428,8 @@ html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid=
 /* Acceso: tarjeta central con marca y tres razones para entrar */
 .m3k-login {{ max-width:460px; margin:1.2rem auto .8rem; text-align:center; position:relative; }}
 .m3k-login::before {{ content:''; position:absolute; left:50%; top:-60px; width:520px; height:360px; transform:translateX(-50%); z-index:-1;
-  background:radial-gradient(ellipse at center, rgba(184,245,58,.28), transparent 65%); pointer-events:none; }}
+  background:radial-gradient(ellipse at center, rgba(214,165,40,.34), rgba(184,245,58,.10) 48%, transparent 68%); pointer-events:none; }}
+.m3k-login .logo-img {{ width:170px; height:170px; display:block; margin:0 auto .6rem; position:relative; }}
 .m3k-login .logo {{ width:76px; height:76px; border-radius:22px; background:#B8F53A; color:#0A1A05; font-size:2.3rem;
   display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; box-shadow:0 0 0 8px rgba(184,245,58,.12); }}
 .m3k-login .marca {{ font-size:.74rem; letter-spacing:.16em; color:#B8F53A; font-weight:700; }}
@@ -590,9 +591,21 @@ def hoy_txt(hoy_: date) -> str:
     return f"{dias[hoy_.weekday()].capitalize()} {hoy_.strftime('%d/%m/%Y')}"
 
 
+def _logo_html() -> str:
+    """Logo M3K con los bordes difuminados para que se funda con el fondo; si falta el archivo se usa la ficha con el icono."""
+    import base64
+    from pathlib import Path
+    ruta = Path(__file__).parent / "assets" / "logo_m3k.png"
+    try:
+        datos = base64.b64encode(ruta.read_bytes()).decode()
+    except OSError:
+        return '<div class="logo">💰</div>'
+    return f'<img class="logo-img" alt="M3K" src="data:image/png;base64,{datos}">'
+
+
 def acceso_cabecera() -> None:
     """Marca y razones para entrar, sobre el formulario de la clave."""
-    st.markdown('<div class="m3k-login"><div class="logo">💰</div><div class="marca">M3K · PRÉSTAMOS</div>'
+    st.markdown(f'<div class="m3k-login">{_logo_html()}<div class="marca">M3K · PRÉSTAMOS</div>'
                 '<h1>Tu <span>cartera</span>, clara y al día</h1><p>Ingresa tu clave para continuar.</p>'
                 '<div class="pasos"><div><span>💵</span>Cobros del día</div><div><span>📒</span>Cartera y clientes</div>'
                 '<div><span>🧾</span>Recibos</div></div></div>', unsafe_allow_html=True)
