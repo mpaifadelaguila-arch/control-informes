@@ -62,6 +62,20 @@ def pct(valor: float, decimales: int = 1) -> str:
     return f"{valor * 100:,.{decimales}f} %"
 
 
+def _banner_uri() -> str:
+    """Foto de billetes ya difuminada para el encabezado; si falta el archivo, el encabezado queda sin imagen."""
+    import base64
+    from pathlib import Path
+    try:
+        datos = base64.b64encode((Path(__file__).parent / "assets" / "banner_billetes.jpg").read_bytes()).decode()
+    except OSError:
+        return "none"
+    return f"url(data:image/jpeg;base64,{datos})"
+
+
+_BANNER = _banner_uri()
+
+
 CSS = f"""
 <style>
 :root {{ --fondo:{FONDO}; --papel:{PAPEL}; --borde:{BORDE}; --texto:{TEXTO}; --suave:{TEXTO_SUAVE}; --acento:{ACENTO};
@@ -503,6 +517,14 @@ html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria
 .m3k-liq .pt.off {{ background:#F2B84B; box-shadow:0 0 8px #F2B84B; }}
 html body .stApp [data-testid="stSidebar"] .stButton button {{ width:100%; background:transparent !important; border:1px solid #38383C !important; color:#D4D4D8 !important; border-radius:12px; }}
 html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-color:#B8F53A !important; color:#B8F53A !important; }}
+
+/* Encabezado con foto de billetes difuminada a la derecha, que se desvanece hacia el texto */
+.m3k-cab {{ position:relative; overflow:hidden; }}
+.m3k-cab::before {{ content:''; position:absolute; top:0; right:0; bottom:0; width:62%; background-image:{_BANNER}; background-size:cover; background-position:center;
+  opacity:1; pointer-events:none; z-index:0;
+  -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 35%, #000 100%); mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 35%, #000 100%); }}
+.m3k-cab > * {{ position:relative; z-index:1; }}
+@media (max-width:640px) {{ .m3k-cab::before {{ width:100%; opacity:.35; }} }}
 </style>
 """
 
