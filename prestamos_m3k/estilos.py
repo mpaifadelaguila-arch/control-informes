@@ -536,9 +536,6 @@ html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-colo
 .m3k-cab.ctrl::before {{ background-image:{_BANNER_CTRL}; }}
 .m3k-cab.app::before {{ background-image:{_BANNER_APP}; }}
 @media (max-width:640px) {{ .m3k-cab::before {{ width:100%; opacity:.35; }} }}
-[class*="st-key-nc_"] button {{ background:#B8F53A !important; color:#0A1A05 !important; border-color:#B8F53A !important; font-weight:600; }}
-[class*="st-key-nc_"] button:hover {{ background:#CBFA66 !important; }}
-[class*="st-key-nc_"] button:disabled {{ background:#222224 !important; color:#6A6A70 !important; border-color:#2A2A2D !important; }}
 </style>
 """
 
