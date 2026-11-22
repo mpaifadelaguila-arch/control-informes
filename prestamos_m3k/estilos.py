@@ -76,8 +76,10 @@ def _banner_uri(nombre: str = "banner_billetes.jpg") -> str:
 _BANNER = _banner_uri()
 _BANNER_CONT = _banner_uri("banner_contabilidad.jpg")
 _BANNER_CTRL = _banner_uri("banner_control.jpg")
+_BANNER_APP = _banner_uri("banner_aplicacion.jpg")
 SECCIONES_CONTABILIDAD = {"Resultados", "Cuentas por cobrar"}
 SECCIONES_CONTROL = {"Caja", "Recibos"}
+SECCIONES_APLICACION = {"Configuración"}
 
 
 CSS = f"""
@@ -530,6 +532,7 @@ html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-colo
 .m3k-cab > * {{ position:relative; z-index:1; }}
 .m3k-cab.cont::before {{ background-image:{_BANNER_CONT}; }}
 .m3k-cab.ctrl::before {{ background-image:{_BANNER_CTRL}; }}
+.m3k-cab.app::before {{ background-image:{_BANNER_APP}; }}
 @media (max-width:640px) {{ .m3k-cab::before {{ width:100%; opacity:.35; }} }}
 </style>
 """
@@ -550,7 +553,7 @@ SECCIONES = {
 def encabezado(titulo: str, subtitulo: str = "") -> None:
     sub = f"<p>{esc(subtitulo)}</p>" if subtitulo else ""
     icono, color = SECCIONES.get(titulo, ("💼", ACENTO))
-    clase = "m3k-cab cont" if titulo in SECCIONES_CONTABILIDAD else "m3k-cab ctrl" if titulo in SECCIONES_CONTROL else "m3k-cab"
+    clase = "m3k-cab cont" if titulo in SECCIONES_CONTABILIDAD else "m3k-cab ctrl" if titulo in SECCIONES_CONTROL else "m3k-cab app" if titulo in SECCIONES_APLICACION else "m3k-cab"
     st.markdown(f'<div class="{clase}" style="--sec:{color}"><div class="ico">{icono}</div><div><div class="marca">M3K · Préstamos personales</div>'
                 f"<h1>{esc(titulo)}</h1>{sub}</div></div>", unsafe_allow_html=True)
 
