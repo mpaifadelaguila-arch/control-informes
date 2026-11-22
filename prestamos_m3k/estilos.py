@@ -239,15 +239,31 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 
 .m3k-dias.cuotas {{ grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:.5rem; }}
 .m3k-dias.cuotas .m3k-dia {{ padding:.5rem .65rem; }} .m3k-dias.cuotas .m {{ font-size:1rem; }}
-.m3k-cliente {{ display:grid; grid-template-columns:48px minmax(160px,1fr) auto; gap:.9rem; align-items:center; }}
-.m3k-contacto {{ display:flex; flex-wrap:wrap; gap:.8rem 2rem; margin:.8rem 0 .9rem; padding-top:.8rem; border-top:1px solid #2A2A2D; font-size:.9rem; }}
-.m3k-contacto .it {{ display:flex; align-items:center; gap:.6rem; color:var(--texto); }}
-.m3k-contacto .ic {{ font-family:'Material Symbols Rounded'; font-style:normal; font-size:20px; line-height:1; width:36px; height:36px; border-radius:10px; background:#222224; color:#B8F53A; display:flex; align-items:center; justify-content:center; font-feature-settings:'liga'; -webkit-font-feature-settings:'liga'; }}
-.m3k-contacto em {{ display:block; font-style:normal; font-size:.72rem; color:var(--suave); text-transform:uppercase; letter-spacing:.04em; }}
-.m3k-cliente .est {{ display:flex; gap:.35rem; justify-content:flex-end; flex-wrap:wrap; }}
-.m3k-cliente .av {{ width:46px; height:46px; border-radius:50%; background:#252527; color:var(--acento); font-weight:700; display:flex; align-items:center; justify-content:center; }}
-.m3k-cliente .dat b {{ display:block; }} .m3k-cliente small {{ color:var(--suave); }}
-@media (max-width: 760px) {{ .m3k-cliente {{ grid-template-columns:44px 1fr; }} .m3k-cliente .est {{ grid-column:1 / -1; justify-content:flex-start; }} }}
+[class*="st-key-ficha_"] {{ position:relative; background:#161617; border:1px solid #2A2A2D; border-radius:22px; padding:0 0 1rem; overflow:hidden; gap:0 !important; margin-bottom:1rem; }}
+[class*="st-key-ficha_"] > div {{ padding-left:0; }}
+.f-notch {{ position:absolute; top:-1px; right:-1px; padding:9px 10px 11px 14px; background:#0B0B0C; border-bottom-left-radius:22px; z-index:2; }}
+.f-notch::before {{ content:''; position:absolute; top:1px; left:-22px; width:22px; height:22px; background:radial-gradient(circle at 0 100%, transparent 22px, #0B0B0C 22.5px); }}
+.f-pill {{ display:block; font-size:.78rem; font-weight:600; padding:6px 16px; border-radius:99px; background:#B8F53A; color:#0A1A05; }}
+.f-pill.mal {{ background:#F0997B; color:#3A1408; }} .f-pill.off {{ background:#2A2A2D; color:#C9C9CE; }}
+.f-cab {{ display:flex; align-items:center; gap:.65rem; padding:.9rem 1.1rem .8rem; color:var(--texto); font-weight:600; font-size:.85rem; }}
+.f-cab .av {{ width:36px; height:36px; border-radius:50%; background:#B8F53A; color:#0A1A05; font-weight:700; font-size:.8rem; display:flex; align-items:center; justify-content:center; }}
+.f-panel {{ margin:.2rem .8rem 0; background:#0F0F10; border:1px solid #2A2A2D; border-radius:16px; padding:.8rem 1rem; display:flex; flex-direction:column; gap:.7rem; }}
+.f-est {{ display:flex; justify-content:space-between; align-items:center; color:var(--texto); font-size:.7rem; letter-spacing:.06em; }}
+.f-est .ic, .f-panel .ic {{ font-family:'Material Symbols Rounded'; font-style:normal; line-height:1; font-feature-settings:'liga'; -webkit-font-feature-settings:'liga'; }}
+.f-est .ic {{ color:#B8F53A; font-size:20px; }}
+.f-panel .it {{ display:flex; align-items:center; gap:.7rem; }}
+.f-panel .it .ic {{ font-size:19px; width:34px; height:34px; border-radius:10px; background:#222224; color:#B8F53A; display:flex; align-items:center; justify-content:center; flex:none; }}
+.f-panel em {{ display:block; font-style:normal; font-size:.66rem; letter-spacing:.05em; text-transform:uppercase; color:var(--suave); }}
+.f-panel b {{ display:block; color:#B8F53A; font-weight:600; font-size:.95rem; }}
+.f-nom {{ text-align:center; padding:.9rem 1rem .4rem; }} .f-nom b {{ display:block; color:var(--texto); font-size:1.1rem; }} .f-nom small {{ color:var(--suave); }}
+[class*="st-key-ficha_"] [data-testid="stHorizontalBlock"] {{ padding:0 .8rem; }}
+[class*="st-key-ficha_"] [data-testid="stHorizontalBlock"] button {{ border-radius:999px; }}
+[class*="st-key-nc_"] button {{ background:#B8F53A !important; border-color:#B8F53A !important; }}
+[class*="st-key-nc_"] button, [class*="st-key-nc_"] button * {{ color:#0A1A05 !important; font-weight:600; }}
+[class*="st-key-nc_"] button:hover {{ background:#CBFA66 !important; }}
+[class*="st-key-nc_"] button:disabled {{ background:#222224 !important; border-color:#2A2A2D !important; }}
+[class*="st-key-nc_"] button:disabled, [class*="st-key-nc_"] button:disabled * {{ color:#6A6A70 !important; }}
+[class*="st-key-ficha_"] [data-testid="stExpander"] {{ margin:.6rem .8rem 0; }}
 
 .m3k-sem .val b {{ color:var(--texto); font-weight:600; }} .m3k-sem .val.f {{ color:var(--aviso); font-weight:600; }} .m3k-sem .val.ok {{ color:var(--ok); font-weight:600; }}
 .m3k-aldia b {{ display:block; font-size:1.8rem; color:var(--ok); }} .m3k-aldia span {{ color:var(--suave); }} .m3k-aldia strong {{ color:var(--texto); }}
@@ -418,7 +434,6 @@ html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid=
 .m3k-cab .ico {{ background:#B8F53A !important; box-shadow:0 0 0 4px rgba(184,245,58,.14), 0 0 22px rgba(184,245,58,.25) !important; }}
 .m3k-kpi .ic {{ background:#DDF7A8 !important; box-shadow:0 0 0 3px rgba(184,245,58,.14); }}
 .m3k-modo .ico {{ background:#DDF7A8 !important; }} .m3k-modo.sel .ico {{ background:#B8F53A !important; }}
-.m3k-cliente .av {{ background:#B8F53A !important; color:#0A1A05 !important; }}
 .m3k-simula .gran {{ display:inline-flex; width:64px; height:64px; border-radius:18px; background:#DDF7A8; align-items:center; justify-content:center; font-size:2rem; }}
 
 /* Barras y pistas: más contraste sobre las tarjetas */
