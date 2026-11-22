@@ -79,9 +79,10 @@ def mostrar() -> None:
         iniciales = "".join(w[0] for w in c["nombre"].split()[:2]).upper() or "?"
         n = len(suyos)
         sub = "Sin créditos registrados" if n == 0 else f"{n} crédito{'s' if n != 1 else ''} registrado{'s' if n != 1 else ''}"
-        def dato(etq, val):
-            return f'<span><em>{etq}</em>{ui.esc(val) if val else "—"}</span>'
-        contacto = dato("DNI", c["dni"]) + dato("Teléfono", c.get("telefono")) + dato("Dirección", c.get("direccion"))
+        def dato(icono, etq, val):
+            return (f'<span class="it"><i class="ic">{icono}</i><span><em>{etq}</em>'
+                    f'{ui.esc(val) if val else "—"}</span></span>')
+        contacto = dato("badge", "DNI", c["dni"]) + dato("call", "Teléfono", c.get("telefono")) + dato("location_on", "Dirección", c.get("direccion"))
         with st.container(border=True):
             st.markdown(
                 f'<div class="m3k-cliente"><div class="av">{ui.esc(iniciales)}</div>'
