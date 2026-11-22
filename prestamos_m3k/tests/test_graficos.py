@@ -44,6 +44,7 @@ def test_proximos_cobros_saltan_domingos():
     assert [d["fecha"].weekday() for d in dias] == [0, 1, 2, 3, 4, 5]  # el domingo de hoy no cuenta
     assert dias[0]["fecha"] == date(2026, 11, 16) and dias[0]["monto"] == 180.0 and dias[0]["cuotas"] == 1
     assert all(d["monto"] == 0 for d in dias[1:])
+    assert len(dias[0]["detalle"]) == 1 and dias[0]["detalle"][0]["monto"] == 180.0 and dias[0]["detalle"][0]["cliente"]
 
 
 def test_composicion_suma_lo_que_te_deben():

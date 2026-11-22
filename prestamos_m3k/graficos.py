@@ -63,7 +63,11 @@ def proximos_dias(dias: list[dict], hoy) -> str:
             rotulo = DIAS[d["fecha"].weekday()].capitalize()
         clase = "m3k-dia" + (" hoy" if d["fecha"] == hoy else "") + ("" if d["monto"] else " vacio")
         nivel = (d["monto"] / mayor * 100) if mayor else 0
-        detalle = f'{d["cuotas"]} cuota(s)' if d["cuotas"] else "Sin cobros"
+        if d["cuotas"]:
+            filas = "".join(f'<div class="q"><span>{ui.esc(x["cliente"])}</span><b class="num">{ui.soles(x["monto"])}</b></div>' for x in d.get("detalle", []))
+            detalle = f'{d["cuotas"]} cuota(s)' + (f'<div class="qs">{filas}</div>' if filas else "")
+        else:
+            detalle = "Sin cobros"
         tarjetas.append(
             f'<div class="{clase}" style="animation-delay:{i * 0.06:.2f}s"><div class="d">{ui.esc(rotulo)} · {_dm(d["fecha"])}</div>'
             f'<div class="m num">{ui.soles(d["monto"]) if d["monto"] else "—"}</div><div class="n">{detalle}</div>'
