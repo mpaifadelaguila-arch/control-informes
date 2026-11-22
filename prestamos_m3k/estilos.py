@@ -574,6 +574,10 @@ html body .stApp [data-testid="stAlert"] [data-testid="stAlertContainer"], html 
 /* iconos Material: trazo normal aunque el texto de al lado esté en negrita */
 html body .stApp [data-testid="stIconMaterial"], html body .stApp [data-testid="stIconMaterial"] *, html body .stApp [data-testid="stRadio"] label span[class*="material"], html body .stApp button span[data-testid="stIconMaterial"] {{ font-weight:400 !important; font-variation-settings:'FILL' 0, 'wght' 300 !important; }}
 html body .stApp [data-testid="stRadio"] label[data-baseweb="radio"] p {{ font-size:.92rem; word-break:normal; overflow-wrap:normal; hyphens:none; }}
+/* botones de enlace (st.link_button): mismo aspecto oscuro que los demás */
+html body .stApp [data-testid="stLinkButton"] a, html body .stApp [data-testid="stLinkButton"] a:visited {{ background:#161617 !important; border:1px solid #38383C !important; color:#F4F4F2 !important; text-decoration:none !important; }}
+html body .stApp [data-testid="stLinkButton"] a *, html body .stApp [data-testid="stLinkButton"] a p {{ color:#F4F4F2 !important; background:transparent !important; }}
+html body .stApp [data-testid="stLinkButton"] a:hover {{ border-color:#B8F53A !important; background:#1F1F21 !important; }}
 </style>
 """
 
