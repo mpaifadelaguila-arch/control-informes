@@ -364,6 +364,17 @@ input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:foc
   -webkit-text-fill-color:#F2FBE8 !important; caret-color:#B8F53A; transition:background-color 9999s ease-in-out 0s; }}
 [data-testid="stTextInput"] button, [data-testid="stTextInput"] button * {{ background-color:#12281A !important; color:#B8F53A !important; fill:#B8F53A !important; }}
 
+/* Campos de texto y clave: todo el contenedor oscuro, incluido el ojo para ver la clave */
+html body .stApp [data-testid="stTextInput"] [data-baseweb="input"], html body .stApp [data-testid="stTextInput"] [data-baseweb="base-input"],
+html body .stApp [data-testid="stTextInput"] [data-baseweb="input"] > div, html body .stApp [data-testid="stTextInput"] input,
+html body .stApp [data-testid="stTextArea"] [data-baseweb="textarea"], html body .stApp [data-testid="stTextArea"] textarea {{ background:#0C1C10 !important; background-color:#0C1C10 !important; color:#F2FBE8 !important; }}
+html body .stApp [data-testid="stTextInput"] [data-baseweb="input"], html body .stApp [data-testid="stTextArea"] [data-baseweb="textarea"] {{ border:1px solid #2A4A2C !important; border-radius:8px !important; overflow:hidden; }}
+html body .stApp [data-testid="stTextInput"] [data-baseweb="input"]:focus-within, html body .stApp [data-testid="stTextArea"] [data-baseweb="textarea"]:focus-within {{ border-color:#B8F53A !important; box-shadow:0 0 0 2px rgba(184,245,58,.18) !important; }}
+html body .stApp [data-testid="stTextInput"] [data-baseweb="input"] > div:last-child:not(:first-child), html body .stApp [data-testid="stTextInput"] button {{ background:#0C1C10 !important; border:0 !important; box-shadow:none !important; }}
+html body .stApp [data-testid="stTextInput"] button svg, html body .stApp [data-testid="stTextInput"] button svg * {{ fill:#B8F53A !important; stroke:none !important; color:#B8F53A !important; }}
+html body .stApp [data-testid="stTextInput"] button:hover svg * {{ fill:#D9FB8C !important; }}
+html body .stApp [data-testid="stTextInput"] button:hover {{ transform:none; box-shadow:none; }}
+
 /* Iconos: fichas claras para que se vean sobre fondo oscuro */
 .m3k-cab .ico {{ background:#B8F53A !important; box-shadow:0 0 0 4px rgba(184,245,58,.14), 0 0 22px rgba(184,245,58,.25) !important; }}
 .m3k-kpi .ic {{ background:#DDF7A8 !important; box-shadow:0 0 0 3px rgba(184,245,58,.14); }}
