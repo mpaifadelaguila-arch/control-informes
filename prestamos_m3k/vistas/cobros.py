@@ -115,7 +115,7 @@ def mostrar() -> None:
     with col2:
         st.markdown('<div style="font-size:.875rem;margin-bottom:.3rem">Medio de pago</div>', unsafe_allow_html=True)
         metodo = nav.pestanas(list(calc.METODOS_COBRO), f"mp_{sel}", ancho_completo=True,
-                              iconos={"Efectivo": ":material/payments:", "Transferencia": ":material/account_balance:"})
+                              iconos={"Efectivo": ":material/payments:"})
 
     pagos = [p for p in db["pagos"] if not p.get("anulado")]
     ev_f = calc.evaluar_prestamo(prestamo, pagos, f_cobro, float(db["config"].get("mora_diaria_pct", 0) or 0))
