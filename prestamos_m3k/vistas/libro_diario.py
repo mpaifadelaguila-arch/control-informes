@@ -71,15 +71,10 @@ def _comprobacion(lib: list[dict]) -> None:
         st.error("El Debe y el Haber no son iguales. Avísame para revisar los asientos.")
 
 
-def mostrar() -> None:
-    db = datos.cargar()
-    hoy = calc.hoy()
-    ui.encabezado("Libros contables", "Para tu contador: el detalle de cada asiento, el mayor por cuenta y el balance de comprobación")
-    if not (db["prestamos"] or db["movimientos"] or db["config"]["capital_base"]):
-        ui.vacio("Aún no hay asientos", "Registra un crédito, un cobro o un aporte de capital y aparecerán aquí.")
-        return
+def cuerpo(db: dict, hoy) -> None:
+    """Libros contables, para el contador: va como pestaña dentro de «Resultados»."""
+    st.caption("Para tu contador: el detalle de cada asiento, el mayor por cuenta y el balance de comprobación.")
     vista = nav.pestanas(["Libro diario", "Libro mayor", "Balance de comprobación"], "vista_libro")
-    st.divider()
     periodo, desde, hasta = comun.selector_periodo(db, hoy, "periodo_libro")
     lib = cont.asientos(db, hasta, hoy)
     if vista == "Libro diario":
