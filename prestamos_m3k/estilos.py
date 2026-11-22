@@ -166,6 +166,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-dia.hoy {{ border-color:var(--acento); background:#12281A; }} .m3k-dia.vacio {{ opacity:.6; }}
 .m3k-dia .d {{ font-size:.74rem; text-transform:uppercase; letter-spacing:.03em; color:var(--suave); }}
 .m3k-dia .m {{ font-size:1.12rem; font-weight:700; margin:.1rem 0; }} .m3k-dia .n {{ font-size:.76rem; color:var(--suave); }}
+.m3k-dia .qs {{ margin-top:.35rem; border-top:1px dashed var(--borde); padding-top:.3rem; }}
+.m3k-dia .q {{ display:flex; justify-content:space-between; gap:.4rem; font-size:.76rem; color:#CFE8B8; line-height:1.5; }}
+.m3k-dia .q span {{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }} .m3k-dia .q b {{ color:var(--texto); font-weight:600; }}
 .m3k-dia .nivel {{ height:4px; background:#1E3A1F; border-radius:99px; margin-top:.5rem; overflow:hidden; }}
 .m3k-dia .nivel i {{ display:block; height:100%; background:var(--info); border-radius:99px; transform-origin:left; animation:m3k-ancho .8s ease .2s both; }}
 .m3k-sem {{ display:grid; grid-template-columns:repeat(6,1fr); gap:.5rem; align-items:start; }}

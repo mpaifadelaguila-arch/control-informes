@@ -494,12 +494,17 @@ def proximos_cobros(db: dict, evals: dict[str, dict], al_dia, n: int = 6) -> lis
             dias.append({"fecha": dia, "monto_c": 0, "cuotas": 0})
         dia += timedelta(days=1)
     por_fecha = {d["fecha"]: d for d in dias}
-    for c in _cuotas_de_creditos(db, evals):
-        d = por_fecha.get(c["vence"])
-        if d and c["saldo"] > 0:
-            d["monto_c"] += a_centimos(c["saldo"])
-            d["cuotas"] += 1
-    return [{"fecha": d["fecha"], "monto": de_centimos(d["monto_c"]), "cuotas": d["cuotas"]} for d in dias]
+    nombres = {c["id"]: c.get("nombre", "—") for c in db["clientes"]}
+    for pr in db["prestamos"]:
+        if pr.get("anulado"):
+            continue
+        for c in evals[pr["id"]]["cuotas"]:
+            d = por_fecha.get(c["vence"])
+            if d and c["saldo"] > 0:
+                d["monto_c"] += a_centimos(c["saldo"])
+                d["cuotas"] += 1
+                d.setdefault("detalle", []).append({"cliente": nombres.get(pr["cliente_id"], "—"), "prestamo": pr["numero"], "monto": c["saldo"]})
+    return [{"fecha": d["fecha"], "monto": de_centimos(d["monto_c"]), "cuotas": d["cuotas"], "detalle": d.get("detalle", [])} for d in dias]
 
 
 def composicion_cartera(db: dict, evals: dict[str, dict]) -> list[dict]:
