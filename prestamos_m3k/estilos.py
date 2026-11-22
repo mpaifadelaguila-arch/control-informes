@@ -62,18 +62,20 @@ def pct(valor: float, decimales: int = 1) -> str:
     return f"{valor * 100:,.{decimales}f} %"
 
 
-def _banner_uri() -> str:
-    """Foto de billetes ya difuminada para el encabezado; si falta el archivo, el encabezado queda sin imagen."""
+def _banner_uri(nombre: str = "banner_billetes.jpg") -> str:
+    """Foto del encabezado ya difuminada; si falta el archivo, el encabezado queda sin imagen."""
     import base64
     from pathlib import Path
     try:
-        datos = base64.b64encode((Path(__file__).parent / "assets" / "banner_billetes.jpg").read_bytes()).decode()
+        datos = base64.b64encode((Path(__file__).parent / "assets" / nombre).read_bytes()).decode()
     except OSError:
         return "none"
     return f"url(data:image/jpeg;base64,{datos})"
 
 
 _BANNER = _banner_uri()
+_BANNER_CONT = _banner_uri("banner_contabilidad.jpg")
+SECCIONES_CONTABILIDAD = {"Resultados", "Cuentas por cobrar"}
 
 
 CSS = f"""
@@ -524,6 +526,7 @@ html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-colo
   opacity:1; pointer-events:none; z-index:0;
   -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 35%, #000 100%); mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 35%, #000 100%); }}
 .m3k-cab > * {{ position:relative; z-index:1; }}
+.m3k-cab.cont::before {{ background-image:{_BANNER_CONT}; }}
 @media (max-width:640px) {{ .m3k-cab::before {{ width:100%; opacity:.35; }} }}
 </style>
 """
@@ -544,7 +547,8 @@ SECCIONES = {
 def encabezado(titulo: str, subtitulo: str = "") -> None:
     sub = f"<p>{esc(subtitulo)}</p>" if subtitulo else ""
     icono, color = SECCIONES.get(titulo, ("💼", ACENTO))
-    st.markdown(f'<div class="m3k-cab" style="--sec:{color}"><div class="ico">{icono}</div><div><div class="marca">M3K · Préstamos personales</div>'
+    clase = "m3k-cab cont" if titulo in SECCIONES_CONTABILIDAD else "m3k-cab"
+    st.markdown(f'<div class="{clase}" style="--sec:{color}"><div class="ico">{icono}</div><div><div class="marca">M3K · Préstamos personales</div>'
                 f"<h1>{esc(titulo)}</h1>{sub}</div></div>", unsafe_allow_html=True)
 
 
