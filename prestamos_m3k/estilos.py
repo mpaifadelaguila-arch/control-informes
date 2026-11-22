@@ -138,6 +138,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
   .m3k-cab h1 {{ font-size:1.25rem; }} .m3k-kpi .v {{ font-size:1.3rem; }}
   .m3k-fila {{ flex-direction:column; align-items:flex-start; }}
 }}
+.m3k-login::after {{ content:''; position:absolute; left:50%; top:-10px; width:190px; height:190px; border-radius:50%; pointer-events:none; z-index:3;
+  background:conic-gradient(from 0deg, transparent 0 55%, rgba(255,214,90,.0) 58%, rgba(255,214,90,.95) 100%);
+  -webkit-mask:radial-gradient(circle closest-side, transparent 91%, #000 92%, #000 98%, transparent 100%);
+  mask:radial-gradient(circle closest-side, transparent 91%, #000 92%, #000 98%, transparent 100%);
+  animation:m3k-orbita 5s linear 1.2s infinite both; }}
 @media (prefers-reduced-motion: reduce) {{ * {{ animation:none !important; transition:none !important; scroll-behavior:auto !important; }} }}
 
 /* Gráficos del inicio y animaciones (se apagan con «reducir movimiento», más abajo) */
@@ -440,17 +445,18 @@ html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid=
 .m3k-login .pasos span {{ display:block; font-size:1.4rem; margin-bottom:.2rem; }}
 @keyframes m3k-logo-in {{ from {{ opacity:0; transform:translateY(10px) scale(.92); }} to {{ opacity:1; transform:none; }} }}
 @keyframes m3k-glow-in {{ from {{ opacity:0; transform:translateX(-50%) scale(.6); }} to {{ opacity:1; transform:translateX(-50%) scale(1); }} }}
-@keyframes m3k-respira {{ 0%,100% {{ opacity:.62; transform:translateX(-50%) scale(.94); }} 50% {{ opacity:1; transform:translateX(-50%) scale(1.07); }} }}
-@keyframes m3k-logo-luz {{ 0%,100% {{ filter:drop-shadow(0 0 6px rgba(214,165,40,.22)); }} 50% {{ filter:drop-shadow(0 0 20px rgba(232,184,58,.55)); }} }}
-.m3k-login::before {{ animation:m3k-glow-in 1.1s cubic-bezier(.2,.8,.2,1) both, m3k-respira 4.5s 1.1s ease-in-out infinite; }}
-.m3k-login .logo-img {{ animation:m3k-logo-in .7s cubic-bezier(.2,.8,.2,1) both, m3k-logo-luz 4.5s .8s ease-in-out infinite; }}
+@keyframes m3k-respira {{ 0%,100% {{ opacity:.35; transform:translateX(-50%) scale(.82); }} 50% {{ opacity:1; transform:translateX(-50%) scale(1.2); }} }}
+@keyframes m3k-logo-luz {{ 0%,100% {{ filter:drop-shadow(0 0 4px rgba(214,165,40,.15)) brightness(.94); }} 50% {{ filter:drop-shadow(0 0 30px rgba(255,205,70,.85)) brightness(1.12); }} }}
+@keyframes m3k-orbita {{ from {{ transform:translateX(-50%) rotate(0deg); }} to {{ transform:translateX(-50%) rotate(360deg); }} }}
+.m3k-login::before {{ animation:m3k-glow-in 1.1s cubic-bezier(.2,.8,.2,1) both, m3k-respira 3.2s 1.1s ease-in-out infinite; }}
+.m3k-login .logo-img {{ animation:m3k-logo-in .7s cubic-bezier(.2,.8,.2,1) both, m3k-logo-luz 3.2s .8s ease-in-out infinite; }}
 .m3k-login .marca {{ animation:m3k-entra .6s .3s cubic-bezier(.2,.8,.2,1) both; }}
 .m3k-login h1 {{ animation:m3k-entra .6s .4s cubic-bezier(.2,.8,.2,1) both; }}
 .m3k-login p {{ animation:m3k-entra .6s .5s cubic-bezier(.2,.8,.2,1) both; }}
 .m3k-login .pasos div:nth-child(1) {{ animation:m3k-entra .6s .6s cubic-bezier(.2,.8,.2,1) both; }}
 .m3k-login .pasos div:nth-child(2) {{ animation:m3k-entra .6s .72s cubic-bezier(.2,.8,.2,1) both; }}
 .m3k-login .pasos div:nth-child(3) {{ animation:m3k-entra .6s .84s cubic-bezier(.2,.8,.2,1) both; }}
-@media (prefers-reduced-motion: reduce) {{ .m3k-login *, .m3k-login::before {{ animation:none !important; }} }}
+@media (prefers-reduced-motion: reduce) {{ .m3k-login *, .m3k-login::before, .m3k-login::after {{ animation:none !important; }} }}
 .st-key-acceso_form {{ max-width:460px; margin:0 auto; }}
 
 /* Modalidades: tarjetas con icono y ejemplo */
