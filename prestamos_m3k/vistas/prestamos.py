@@ -65,6 +65,9 @@ def _cartera(db: dict, evals: dict) -> None:
     st.markdown(g.cuotas(ev["cuotas"]), unsafe_allow_html=True)
     st.markdown('<div style="height:.6rem"></div>', unsafe_allow_html=True)
 
+    if st.button("Ver recibo del desembolso", icon=":material/receipt_long:"):
+        st.session_state["recibo_sel"] = sel
+        comun.ir_a("recibos")
     if ev["estado"] != "anulado":
         with st.expander("Anular este crédito"):
             st.caption("Solo se puede anular si no tiene cobros vigentes. El dinero vuelve a la caja y el folio queda registrado.")
