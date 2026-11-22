@@ -84,7 +84,7 @@ html {{ scroll-behavior: smooth; }}
 .m3k-kpi .e {{ color:var(--suave); font-size:.76rem; letter-spacing:.03em; text-transform:uppercase; }}
 .m3k-kpi .v {{ font-size:1.5rem; font-weight:700; margin:.1rem 0; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }}
 .m3k-kpi .nota {{ color:var(--suave); font-size:.78rem; }}
-.m3k-kpi.heroe {{ background:var(--papel); }}
+.m3k-kpi.heroe {{ box-shadow:0 0 28px rgba(184,245,58,.10); background:var(--papel); }}
 
 /* Pastillas de estado (siempre con texto) */
 .m3k-chip {{ display:inline-block; padding:.08rem .55rem; border-radius:4px; font-size:.74rem; font-weight:600; white-space:nowrap;
@@ -261,7 +261,15 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 /* Tema oscuro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio, así que los colores base se fijan aquí
    para que esta app se vea igual en cualquier despliegue. */
 :root {{ color-scheme: dark; }}
-.stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stMain"] {{ background:#050D07 !important; color:var(--texto) !important; }}
+.stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stMain"] {{ background-color:#050D07 !important; color:var(--texto) !important; }}
+/* Fondo: resplandor lima en las esquinas y textura fina de puntos, como en las referencias */
+[data-testid="stAppViewContainer"] {{ background-image:
+  radial-gradient(ellipse 60% 45% at 100% 0%, rgba(184,245,58,.16), transparent 70%),
+  radial-gradient(ellipse 50% 40% at 0% 100%, rgba(120,220,60,.10), transparent 70%),
+  radial-gradient(rgba(184,245,58,.07) 1px, transparent 1px) !important;
+  background-size:auto, auto, 22px 22px !important; background-attachment:fixed !important; }}
+[data-testid="stHeader"] {{ background:transparent !important; }}
+[data-testid="stSidebar"], [data-testid="stSidebarContent"] {{ background-image:radial-gradient(ellipse 120% 40% at 0% 0%, rgba(184,245,58,.10), transparent 70%) !important; }}
 [data-testid="stSidebar"], [data-testid="stSidebarContent"], [data-testid="stSidebarNav"] {{ background:#07140A !important; border-right:1px solid var(--borde); }}
 .stApp, .stApp p, .stApp li, .stApp span, .stApp label, .stApp h1, .stApp h2, .stApp h3, .stApp h4,
 .stApp [data-testid="stMarkdownContainer"], .stApp [data-testid="stWidgetLabel"], .stApp [data-testid="stCaptionContainer"] {{ color:var(--texto); }}
@@ -307,7 +315,9 @@ code {{ background:#16301A !important; color:#D9FB8C !important; }}
 .stApp .m3k-recibo, .stApp .m3k-recibo * {{ color:#0A1A05; }} .stApp .m3k-recibo .anul {{ color:#B3261E; }} .stApp .m3k-recibo small {{ color:#3E5A2A !important; }}
 
 /* Acceso: tarjeta central con marca y tres razones para entrar */
-.m3k-login {{ max-width:460px; margin:1.2rem auto .8rem; text-align:center; }}
+.m3k-login {{ max-width:460px; margin:1.2rem auto .8rem; text-align:center; position:relative; }}
+.m3k-login::before {{ content:''; position:absolute; left:50%; top:-60px; width:520px; height:360px; transform:translateX(-50%); z-index:-1;
+  background:radial-gradient(ellipse at center, rgba(184,245,58,.28), transparent 65%); pointer-events:none; }}
 .m3k-login .logo {{ width:76px; height:76px; border-radius:22px; background:#B8F53A; color:#0A1A05; font-size:2.3rem;
   display:flex; align-items:center; justify-content:center; margin:0 auto 1rem; box-shadow:0 0 0 8px rgba(184,245,58,.12); }}
 .m3k-login .marca {{ font-size:.74rem; letter-spacing:.16em; color:#B8F53A; font-weight:700; }}
