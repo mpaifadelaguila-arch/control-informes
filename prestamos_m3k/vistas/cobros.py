@@ -121,24 +121,34 @@ def mostrar() -> None:
     # ---- elegir cuotas: se cobran siempre de la más antigua a la más nueva ----
     st.subheader("¿Qué cuotas se cobran?", anchor=False)
     _inicializar_seleccion(sel, pendientes)
-    a1, a2, a3 = st.columns(3)
-    a1.button("Solo las vencidas", on_click=_atajo, args=(sel, pendientes, "vencidas"), icon=":material/schedule:")
-    a2.button("Solo la próxima", on_click=_atajo, args=(sel, pendientes, "proxima"), icon=":material/looks_one:")
-    a3.button("Todas las pendientes", on_click=_atajo, args=(sel, pendientes, "todas"), icon=":material/done_all:")
+    a1, a2, a3, _resto = st.columns([1, 1, 1.15, 2.2])
+    a1.button("Solo las vencidas", on_click=_atajo, args=(sel, pendientes, "vencidas"), icon=":material/schedule:", use_container_width=True)
+    a2.button("Solo la próxima", on_click=_atajo, args=(sel, pendientes, "proxima"), icon=":material/looks_one:", use_container_width=True)
+    a3.button("Todas las pendientes", on_click=_atajo, args=(sel, pendientes, "todas"), icon=":material/done_all:", use_container_width=True)
     st.caption("Marca una cuota y se marcan también las anteriores, porque siempre se cobra desde la más antigua.")
 
-    for c in ev_f["cuotas"]:
-        fila = st.columns([3, 2, 2], vertical_alignment="center")
-        if c["saldo"] > 0.004:
-            fila[0].checkbox(f"Cuota {c['n']} · {ui.fecha_dia(c['vence'])}", key=_clave(sel, c["n"]), on_change=_al_marcar, args=(sel, pendientes, c["n"]))
-            detalle = f"Pagado {ui.soles(c['pagado'])} de {ui.soles(c['monto'])}" if c["pagado"] > 0.004 else ""
-            fila[1].markdown(f'{ui.chip_cuota(c["estado"])} <small style="color:{ui.TEXTO_SUAVE}">{ui.esc(detalle)}</small>' if detalle else str(ui.chip_cuota(c["estado"])),
-                             unsafe_allow_html=True)
-            fila[2].markdown(f'<div class="num" style="text-align:right"><b>{ui.soles(c["saldo"])}</b></div>', unsafe_allow_html=True)
+    pagadas = [c for c in ev_f["cuotas"] if c["saldo"] <= 0.004]
+    if pagadas:
+        lista = " · ".join(f"Cuota {c['n']} ({ui.fecha_dia(c['vence'])})" for c in pagadas)
+        st.markdown(f'<div class="m3k-pagadas">✅ <b>Ya pagadas:</b> {ui.esc(lista)}</div>', unsafe_allow_html=True)
+
+    for c in pendientes:
+        vence = c["vence"] if not isinstance(c["vence"], str) else calc.fecha(c["vence"])
+        dias = (vence - f_cobro).days
+        if dias < 0:
+            cuando, tono = f"venció hace {-dias} día(s)", ui.TONOS["malo"]
+        elif dias == 0:
+            cuando, tono = "vence hoy", ui.TONOS["aviso"]
         else:
-            fila[0].markdown(f'<span style="color:{ui.TEXTO_SUAVE}">Cuota {c["n"]} · {ui.fecha_dia(c["vence"])}</span>', unsafe_allow_html=True)
-            fila[1].markdown(str(ui.chip_cuota("pagada")), unsafe_allow_html=True)
-            fila[2].markdown(f'<div class="num" style="text-align:right;color:{ui.TEXTO_SUAVE}">{ui.soles(c["monto"])}</div>', unsafe_allow_html=True)
+            cuando, tono = f"vence en {dias} día(s)", ui.TEXTO_SUAVE
+        with st.container(border=True):
+            fila = st.columns([1.6, 2.6, 2, 1.6], vertical_alignment="center")
+            fila[0].checkbox(f"Cuota {c['n']} de {len(ev_f['cuotas'])}", key=_clave(sel, c["n"]), on_change=_al_marcar, args=(sel, pendientes, c["n"]))
+            fila[1].markdown(f'<b>{ui.fecha_dia(c["vence"])}</b><br><small style="color:{tono};font-weight:600">{cuando}</small>', unsafe_allow_html=True)
+            detalle = f"Pagado {ui.soles(c['pagado'])} de {ui.soles(c['monto'])}" if c["pagado"] > 0.004 else ""
+            fila[2].markdown(f'{ui.chip_cuota(c["estado"])}' + (f'<br><small style="color:{ui.TEXTO_SUAVE}">{ui.esc(detalle)}</small>' if detalle else ""),
+                             unsafe_allow_html=True)
+            fila[3].markdown(f'<div class="num" style="text-align:right;font-size:1.15rem"><b>{ui.soles(c["saldo"])}</b></div>', unsafe_allow_html=True)
 
     marcadas = [c for c in pendientes if st.session_state.get(_clave(sel, c["n"]))]
     suma_cuotas = round(sum(c["saldo"] for c in marcadas), 2)
