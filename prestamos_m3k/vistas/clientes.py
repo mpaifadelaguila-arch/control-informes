@@ -93,7 +93,7 @@ def mostrar() -> None:
                 activo_txt = "Activo" if c["activo"] else "Inactivo"
                 with st.container(key=f"ficha_{c['id']}"):
                     st.markdown(
-                        f'<span class="f-pill {clase}">{estado}</span>'
+                        f'<div class="f-notch"><span class="f-pill {clase}">{estado}</span></div>'
                         f'<div class="f-cab"><div class="av">{ui.esc(iniciales)}</div><span>Cliente</span></div>'
                         f'<div class="f-panel"><div class="f-est"><span>• {activo_txt.upper()}</span>'
                         f'<i class="ic">{"check_circle" if c["activo"] else "pause_circle"}</i></div>{contacto}</div>'
