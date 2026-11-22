@@ -571,6 +571,9 @@ html body .stApp .m3k-paso span {{ background:rgba(184,245,58,.14) !important; b
 html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"] [data-testid="stIconMaterial"] {{ font-weight:400 !important; font-variation-settings:'FILL' 0, 'wght' 400 !important; }}
 /* alertas: el borde va solo en el contenedor externo (si no, se ve una marca doble) */
 html body .stApp [data-testid="stAlert"] [data-testid="stAlertContainer"], html body .stApp [data-testid="stAlert"] [data-baseweb="notification"], html body .stApp [data-testid="stAlert"] [role="alert"] {{ border:none !important; border-left:none !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; }}
+/* iconos Material: trazo normal aunque el texto de al lado esté en negrita */
+html body .stApp [data-testid="stIconMaterial"], html body .stApp [data-testid="stIconMaterial"] *, html body .stApp [data-testid="stRadio"] label span[class*="material"], html body .stApp button span[data-testid="stIconMaterial"] {{ font-weight:400 !important; font-variation-settings:'FILL' 0, 'wght' 300 !important; }}
+html body .stApp [data-testid="stRadio"] label[data-baseweb="radio"] p {{ font-size:.92rem; word-break:normal; overflow-wrap:normal; hyphens:none; }}
 </style>
 """
 
