@@ -119,7 +119,7 @@ def dona(segmentos: list[dict], centro: str, centro_sub: str) -> str:
         items.append(f'<li><i style="background:{color}"></i><span>{ui.esc(etiqueta)}</span><b class="num">{ui.soles(s["monto"])}</b>'
                      f'<em>{s["monto"] / total * 100:.0f} %</em></li>')
     svg = (f'<svg viewBox="0 0 120 120" width="150" height="150" role="img" aria-label="Cartera por antigüedad">'
-           f'<circle cx="60" cy="60" r="{r}" fill="none" stroke="#1E3A1F" stroke-width="16"/>{"".join(aros)}'
+           f'<circle cx="60" cy="60" r="{r}" fill="none" stroke="#2A2A2D" stroke-width="16"/>{"".join(aros)}'
            f'<text x="60" y="58" text-anchor="middle" class="dc">{ui.esc(centro)}</text>'
            f'<text x="60" y="73" text-anchor="middle" class="ds">{ui.esc(centro_sub)}</text></svg>')
     return f'<div class="m3k-dona">{svg}<ul>{"".join(items)}</ul></div>'
@@ -134,7 +134,7 @@ def linea(serie: list[tuple]) -> str:
     pts = [(i / n * 600, 125 - (v - menor) / rango * 105 if mayor != menor else 70) for i, (_, v) in enumerate(serie)]
     trazo = " ".join(f'{"M" if i == 0 else "L"}{x:.1f} {y:.1f}' for i, (x, y) in enumerate(pts))
     area = f"{trazo} L600 140 L0 140 Z"
-    rejilla = "".join(f'<line x1="0" x2="600" y1="{y}" y2="{y}" stroke="#1E3A1F" stroke-width="1" vector-effect="non-scaling-stroke"/>' for y in (20, 70, 125))
+    rejilla = "".join(f'<line x1="0" x2="600" y1="{y}" y2="{y}" stroke="#2A2A2D" stroke-width="1" vector-effect="non-scaling-stroke"/>' for y in (20, 70, 125))
     svg = (f'<svg class="lin" viewBox="0 0 600 140" preserveAspectRatio="none" role="img" aria-label="Saldo de caja de los últimos días">{rejilla}'
            f'<g class="revela"><path d="{area}" fill="#B8F53A" fill-opacity=".10"/>'
            f'<path d="{trazo}" fill="none" stroke="#B8F53A" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></g></svg>')
