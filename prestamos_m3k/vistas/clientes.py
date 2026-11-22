@@ -100,7 +100,7 @@ def mostrar() -> None:
                         f'<div class="f-nom"><b>{ui.esc(c["nombre"])}</b><small>{sub}</small></div>',
                         unsafe_allow_html=True,
                     )
-                    _, b1, b2, _ = st.columns([1, 2, 2, 1])
+                    b1, b2 = st.columns(2)
                     if b1.button("Créditos", key=f"vc_{c['id']}", disabled=not suyos, icon=":material/receipt_long:", use_container_width=True):
                         st.session_state["_vista_prestamos"] = "Cartera"
                         st.session_state["filtro_prestamo"] = "Todos"
