@@ -239,9 +239,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 
 .m3k-dias.cuotas {{ grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:.5rem; }}
 .m3k-dias.cuotas .m3k-dia {{ padding:.5rem .65rem; }} .m3k-dias.cuotas .m {{ font-size:1rem; }}
-.m3k-cliente {{ display:grid; grid-template-columns:44px minmax(160px,1fr) auto; gap:.9rem; align-items:center; margin-bottom:.9rem; }}
+.m3k-cliente {{ display:grid; grid-template-columns:48px minmax(160px,1fr) auto; gap:.9rem; align-items:center; }}
+.m3k-contacto {{ display:flex; flex-wrap:wrap; gap:.4rem 1.6rem; margin:.8rem 0 .9rem; padding-top:.8rem; border-top:1px solid #2A2A2D; font-size:.9rem; }}
+.m3k-contacto span {{ color:var(--texto); }} .m3k-contacto em {{ display:block; font-style:normal; font-size:.72rem; color:var(--suave); text-transform:uppercase; letter-spacing:.04em; }}
 .m3k-cliente .est {{ display:flex; gap:.35rem; justify-content:flex-end; flex-wrap:wrap; }}
-.m3k-cliente .av {{ width:40px; height:40px; border-radius:50%; background:#252527; color:var(--acento); font-weight:700; display:flex; align-items:center; justify-content:center; }}
+.m3k-cliente .av {{ width:46px; height:46px; border-radius:50%; background:#252527; color:var(--acento); font-weight:700; display:flex; align-items:center; justify-content:center; }}
 .m3k-cliente .dat b {{ display:block; }} .m3k-cliente small {{ color:var(--suave); }}
 @media (max-width: 760px) {{ .m3k-cliente {{ grid-template-columns:44px 1fr; }} .m3k-cliente .est {{ grid-column:1 / -1; justify-content:flex-start; }} }}
 

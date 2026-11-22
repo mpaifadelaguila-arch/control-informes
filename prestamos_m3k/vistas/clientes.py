@@ -77,14 +77,17 @@ def mostrar() -> None:
         else:
             chips += str(ui.chip("Sin créditos vigentes", "neutro"))
         iniciales = "".join(w[0] for w in c["nombre"].split()[:2]).upper() or "?"
-        contacto = f'DNI {ui.esc(c["dni"])} · {ui.esc(c.get("telefono") or "sin teléfono")}'
-        if c.get("direccion"):
-            contacto += f' · {ui.esc(c["direccion"])}'
+        n = len(suyos)
+        sub = "Sin créditos registrados" if n == 0 else f"{n} crédito{'s' if n != 1 else ''} registrado{'s' if n != 1 else ''}"
+        def dato(etq, val):
+            return f'<span><em>{etq}</em>{ui.esc(val) if val else "—"}</span>'
+        contacto = dato("DNI", c["dni"]) + dato("Teléfono", c.get("telefono")) + dato("Dirección", c.get("direccion"))
         with st.container(border=True):
             st.markdown(
                 f'<div class="m3k-cliente"><div class="av">{ui.esc(iniciales)}</div>'
-                f'<div class="dat"><b>{ui.esc(c["nombre"])}</b><small>{contacto}</small></div>'
-                f'<div class="est">{chips}</div></div>',
+                f'<div class="dat"><b>{ui.esc(c["nombre"])}</b><small>{sub}</small></div>'
+                f'<div class="est">{chips}</div></div>'
+                f'<div class="m3k-contacto">{contacto}</div>',
                 unsafe_allow_html=True,
             )
             b1, b2, b3 = st.columns(3)
