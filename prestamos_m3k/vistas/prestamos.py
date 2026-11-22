@@ -13,6 +13,11 @@ from vistas import comun
 FILTROS = {"Todos": None, "Al día": "vigente", "Vencidos": "vencido", "Cancelados": "cancelado", "Anulados": "anulado"}
 
 
+def _proxima(ev: dict) -> str:
+    prox = ev["proxima"]
+    return f"{ui.soles(prox['saldo'])} · {ui.fecha_dia(prox['vence'])}" if prox else "—"
+
+
 def _cartera(db: dict, evals: dict) -> None:
     if not db["prestamos"]:
         ui.vacio("Aún no hay créditos", "Crea el primero en la pestaña «Nuevo crédito».")
@@ -37,12 +42,12 @@ def _cartera(db: dict, evals: dict) -> None:
         return
 
     ui.tabla(
-        ["N.º", "Cliente", "Modalidad", "Desembolso", "Capital", "Total", "Cobrado", "Saldo", "Estado"],
+        ["N.º", "Cliente", "Modalidad", "Desembolso", "Capital", "Próxima cuota", "Cobrado", "Saldo", "Estado"],
         [[f"{p['numero']:04d}", comun.nombre_cliente(db, p["cliente_id"]),
           f"{comun.nombre_modalidad(p['modalidad'])} · {len(p['cuotas'])} cuota(s)", ui.fecha_txt(p["fecha_desembolso"]),
-          ui.soles(p["monto"]), ui.soles(p["total"]), ui.barra(evals[p["id"]]["avance"]), ui.soles(evals[p["id"]]["saldo"]),
+          ui.soles(p["monto"]), _proxima(evals[p["id"]]), ui.barra(evals[p["id"]]["avance"]), ui.soles(evals[p["id"]]["saldo"]),
           ui.chip_prestamo(evals[p["id"]]["estado"])] for p in lista],
-        numericas=(4, 5, 7), sin_corte=(0, 1, 3), etiqueta="Cartera de créditos",
+        numericas=(4, 7), sin_corte=(0, 1, 3, 5), etiqueta="Cartera de créditos",
     )
 
     st.subheader("Detalle del crédito", anchor=False)

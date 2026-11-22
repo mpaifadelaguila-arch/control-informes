@@ -6,7 +6,8 @@ import calculos as calc
 import contabilidad as cont
 import datos
 import estilos as ui
-from vistas import cierre, comun
+import navegacion as nav
+from vistas import cierre, comun, reportes
 
 
 def _ganancia(lib: list[dict], desde, hasta) -> None:
@@ -52,9 +53,15 @@ def _situacion(lib: list[dict], hasta) -> None:
 def mostrar() -> None:
     db = datos.cargar()
     hoy = calc.hoy()
-    ui.encabezado("Resumen contable", "Cuánto ganaste, cómo se movió tu caja y qué tienes. Cada cifra aparece una sola vez")
+    ui.encabezado("Resultados", "Cuánto cobraste, cuánto ganaste y qué tienes. Cada cifra aparece una sola vez")
     if not (db["prestamos"] or db["movimientos"] or db["config"]["capital_base"]):
         ui.vacio("Aún no hay información contable", "Registra un crédito, un cobro o un aporte de capital.")
+        return
+    vista = nav.pestanas(["Cobranza", "Ganancia y balance"], "vista_resultados",
+                         iconos={"Cobranza": ":material/payments:", "Ganancia y balance": ":material/account_balance:"})
+    st.divider()
+    if vista == "Cobranza":
+        reportes.cuerpo(db, hoy)
         return
     periodo, desde, hasta = comun.selector_periodo(db, hoy, "periodo_resumen", "Mes")
     lib = cont.asientos(db, hoy, hoy)

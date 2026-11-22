@@ -236,6 +236,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .st-key-nav_principal [data-testid="stRadio"] label[data-baseweb="radio"] {{ padding:.5rem 1.25rem; border-radius:10px; }}
 .st-key-nav_principal [data-testid="stRadio"] label[data-baseweb="radio"] p {{ font-size:1rem; }}
 
+/* Encabezado con ícono y fondo de color por sección; tarjetas con ícono y tinte */
+.m3k-cab {{ justify-content:flex-start; background:linear-gradient(100deg, color-mix(in srgb, var(--sec, var(--acento)) 13%, #fff) 0%, #fff 75%); border:1px solid var(--borde);
+  border-bottom:3px solid var(--sec, var(--acento)); border-radius:12px; padding:.9rem 1.1rem; align-items:center; gap:1rem; }}
+.m3k-cab .ico {{ width:54px; height:54px; border-radius:14px; background:color-mix(in srgb, var(--sec, var(--acento)) 18%, #fff); font-size:1.7rem;
+  display:flex; align-items:center; justify-content:center; flex:none; box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--sec, var(--acento)) 25%, #fff); }}
+.m3k-cab .marca {{ color:var(--sec, var(--acento)); }}
+.m3k-kpi {{ background:linear-gradient(135deg, color-mix(in srgb, var(--tono, #9aa79f) 9%, #fff), #fff 70%); position:relative; padding-right:3.4rem; }}
+.m3k-kpi.heroe {{ background:linear-gradient(135deg, color-mix(in srgb, var(--tono, #9aa79f) 16%, #fff), #fff 80%); }}
+.m3k-kpi .ic {{ position:absolute; top:.7rem; right:.7rem; width:38px; height:38px; border-radius:50%; font-size:1.2rem;
+  background:color-mix(in srgb, var(--tono, #9aa79f) 16%, #fff); display:flex; align-items:center; justify-content:center; }}
+[data-testid="stSidebar"] {{ background:linear-gradient(180deg, #F1F6F3 0%, #E4EEE8 100%) !important; }}
+
 /* Tema claro forzado: Streamlit Cloud usa la configuración de la raíz del repositorio (tema oscuro de la app de informes),
    así que los colores base se fijan aquí para que esta app se vea igual en cualquier despliegue. */
 :root {{ color-scheme: light; }}
@@ -286,9 +298,18 @@ def aplicar() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
 
 
+# icono y color de cada pantalla (el color agrupa por sección: operación verde, contabilidad azul, control ámbar)
+SECCIONES = {
+    "Control de cartera": ("🏠", "#1F6B4F"), "Registrar cobro": ("💵", "#1F6B4F"), "Préstamos": ("💰", "#1F6B4F"), "Clientes": ("👥", "#1F6B4F"),
+    "Resultados": ("📊", "#1F5F99"), "Cuentas por cobrar": ("🧾", "#1F5F99"), "Libros contables": ("📒", "#1F5F99"),
+    "Caja": ("🏦", "#A8741A"), "Recibos": ("🧾", "#A8741A"), "Configuración": ("⚙️", "#5A6B62"),
+}
+
+
 def encabezado(titulo: str, subtitulo: str = "") -> None:
     sub = f"<p>{esc(subtitulo)}</p>" if subtitulo else ""
-    st.markdown(f'<div class="m3k-cab"><div><div class="marca">M3K · Préstamos personales</div>'
+    icono, color = SECCIONES.get(titulo, ("💼", ACENTO))
+    st.markdown(f'<div class="m3k-cab" style="--sec:{color}"><div class="ico">{icono}</div><div><div class="marca">M3K · Préstamos personales</div>'
                 f"<h1>{esc(titulo)}</h1>{sub}</div></div>", unsafe_allow_html=True)
 
 
@@ -316,6 +337,18 @@ def chip_cuadre(cuadra: bool) -> Raw:
     return chip("Cuadra", "ok") if cuadra else chip("No cuadra", "malo")
 
 
+ICONOS_KPI = (("hoy", "📅"), ("vencido", "⚠️"), ("atraso", "⚠️"), ("calle", "💰"), ("prestado", "💰"), ("caja", "🏦"), ("disponible", "🏦"), ("liquidez", "🏦"),
+              ("ganancia", "📈"), ("cobrad", "💵"), ("cobrar", "💵"), ("cuota", "🗓️"), ("saldo", "🧮"), ("cliente", "👥"), ("entrado", "📥"),
+              ("salido", "📤"), ("crédito", "💳"), ("capital", "🏛️"), ("interés", "📈"), ("total", "🧮"))
+
+
+def _icono_kpi(etiqueta: str, icono: str | None = None) -> str:
+    if icono:
+        return icono
+    e = etiqueta.lower()
+    return next((i for clave, i in ICONOS_KPI if clave in e), "📌")
+
+
 def kpis(items: list[dict]) -> None:
     """items: dicts con etiqueta, valor, nota (opcional), tono (ok/aviso/malo/info) y heroe (opcional)."""
     tarjetas = []
@@ -323,7 +356,7 @@ def kpis(items: list[dict]) -> None:
         tono = TONOS.get(it.get("tono", ""), BORDE)
         clase = "m3k-kpi heroe" if it.get("heroe") else "m3k-kpi"
         nota = f'<div class="nota">{esc(it["nota"])}</div>' if it.get("nota") else ""
-        tarjetas.append(f'<div class="{clase}" style="--tono:{tono}"><div class="e">{esc(it["etiqueta"])}</div>'
+        tarjetas.append(f'<div class="{clase}" style="--tono:{tono}"><div class="ic">{_icono_kpi(it["etiqueta"], it.get("icono"))}</div><div class="e">{esc(it["etiqueta"])}</div>'
                         f'<div class="v">{esc(it["valor"])}</div>{nota}</div>')
     st.markdown(f'<div class="m3k-kpis">{"".join(tarjetas)}</div>', unsafe_allow_html=True)
 
