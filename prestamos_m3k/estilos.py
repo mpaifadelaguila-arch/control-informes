@@ -659,7 +659,7 @@ def _logo_html() -> str:
 def acceso_cabecera() -> None:
     """Marca y razones para entrar, sobre el formulario de la clave."""
     st.markdown(f'<div class="m3k-login">{_logo_html()}<div class="marca">M3K · PRÉSTAMOS</div>'
-                '<h1>Tu <span>cartera</span>, clara y al día</h1><p>Ingresa tu clave para continuar.</p>'
+                '<h1>Tu dinero, <span>bajo control</span></h1><p>Acceso privado. Ingresa tu clave.</p>'
                 '<div class="pasos"><div><span>💵</span>Cobros del día</div><div><span>📒</span>Cartera y clientes</div>'
                 '<div><span>🧾</span>Recibos</div></div></div>', unsafe_allow_html=True)
 
