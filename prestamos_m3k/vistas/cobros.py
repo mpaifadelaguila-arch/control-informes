@@ -179,6 +179,7 @@ def mostrar() -> None:
         unsafe_allow_html=True,
     )
 
+    st.markdown('<div style="height:.9rem"></div>', unsafe_allow_html=True)
     if st.button("Registrar cobro", type="primary", disabled=monto <= 0, icon=":material/check_circle:"):
         try:
             pago = ops.registrar_pago(db, sel, f_cobro, monto, metodo, nota, hoy_=hoy)
