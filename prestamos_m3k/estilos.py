@@ -240,8 +240,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-dias.cuotas {{ grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:.5rem; }}
 .m3k-dias.cuotas .m3k-dia {{ padding:.5rem .65rem; }} .m3k-dias.cuotas .m {{ font-size:1rem; }}
 .m3k-cliente {{ display:grid; grid-template-columns:48px minmax(160px,1fr) auto; gap:.9rem; align-items:center; }}
-.m3k-contacto {{ display:flex; flex-wrap:wrap; gap:.4rem 1.6rem; margin:.8rem 0 .9rem; padding-top:.8rem; border-top:1px solid #2A2A2D; font-size:.9rem; }}
-.m3k-contacto span {{ color:var(--texto); }} .m3k-contacto em {{ display:block; font-style:normal; font-size:.72rem; color:var(--suave); text-transform:uppercase; letter-spacing:.04em; }}
+.m3k-contacto {{ display:flex; flex-wrap:wrap; gap:.8rem 2rem; margin:.8rem 0 .9rem; padding-top:.8rem; border-top:1px solid #2A2A2D; font-size:.9rem; }}
+.m3k-contacto .it {{ display:flex; align-items:center; gap:.6rem; color:var(--texto); }}
+.m3k-contacto .ic {{ font-family:'Material Symbols Rounded'; font-style:normal; font-size:20px; line-height:1; width:36px; height:36px; border-radius:10px; background:#222224; color:#B8F53A; display:flex; align-items:center; justify-content:center; font-feature-settings:'liga'; -webkit-font-feature-settings:'liga'; }}
+.m3k-contacto em {{ display:block; font-style:normal; font-size:.72rem; color:var(--suave); text-transform:uppercase; letter-spacing:.04em; }}
 .m3k-cliente .est {{ display:flex; gap:.35rem; justify-content:flex-end; flex-wrap:wrap; }}
 .m3k-cliente .av {{ width:46px; height:46px; border-radius:50%; background:#252527; color:var(--acento); font-weight:700; display:flex; align-items:center; justify-content:center; }}
 .m3k-cliente .dat b {{ display:block; }} .m3k-cliente small {{ color:var(--suave); }}
@@ -534,6 +536,9 @@ html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-colo
 .m3k-cab.ctrl::before {{ background-image:{_BANNER_CTRL}; }}
 .m3k-cab.app::before {{ background-image:{_BANNER_APP}; }}
 @media (max-width:640px) {{ .m3k-cab::before {{ width:100%; opacity:.35; }} }}
+[class*="st-key-nc_"] button {{ background:#B8F53A !important; color:#0A1A05 !important; border-color:#B8F53A !important; font-weight:600; }}
+[class*="st-key-nc_"] button:hover {{ background:#CBFA66 !important; }}
+[class*="st-key-nc_"] button:disabled {{ background:#222224 !important; color:#6A6A70 !important; border-color:#2A2A2D !important; }}
 </style>
 """
 
