@@ -210,7 +210,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 
 .m3k-dias.cuotas {{ grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:.5rem; }}
 .m3k-dias.cuotas .m3k-dia {{ padding:.5rem .65rem; }} .m3k-dias.cuotas .m {{ font-size:1rem; }}
-.m3k-cliente {{ display:grid; grid-template-columns:44px minmax(160px,1.3fr) 190px minmax(190px,1fr); gap:.9rem; align-items:center; }}
+.m3k-cliente {{ display:grid; grid-template-columns:44px minmax(160px,1.3fr) 190px minmax(190px,1fr); gap:.9rem; align-items:center; margin-bottom:.9rem; }}
 .m3k-cliente .est {{ display:flex; gap:.35rem; justify-content:flex-end; flex-wrap:wrap; }}
 .m3k-cliente .av {{ width:40px; height:40px; border-radius:50%; background:#DCEBE3; color:var(--acento); font-weight:700; display:flex; align-items:center; justify-content:center; }}
 .m3k-cliente .dat b {{ display:block; }} .m3k-cliente small {{ color:var(--suave); }}
