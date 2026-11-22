@@ -7,7 +7,7 @@ import contabilidad as cont
 import datos
 import estilos as ui
 import navegacion as nav
-from vistas import cierre, comun, reportes
+from vistas import cierre, comun, libro_diario, reportes
 
 
 def _ganancia(lib: list[dict], desde, hasta) -> None:
@@ -47,7 +47,7 @@ def _situacion(lib: list[dict], hasta) -> None:
     if b["cuadra"]:
         st.caption(f"Situación al {ui.fecha_txt(hasta)}. Los dos totales son iguales: todo lo que tienes viene de tu capital o de tus ganancias.")
     else:
-        st.error("Los dos totales no son iguales. Revisa los asientos en Libros contables.")
+        st.error("Los dos totales no son iguales. Revisa los asientos en la pestaña «Para el contador».")
 
 
 def mostrar() -> None:
@@ -57,11 +57,15 @@ def mostrar() -> None:
     if not (db["prestamos"] or db["movimientos"] or db["config"]["capital_base"]):
         ui.vacio("Aún no hay información contable", "Registra un crédito, un cobro o un aporte de capital.")
         return
-    vista = nav.pestanas(["Cobranza", "Ganancia y balance"], "vista_resultados",
-                         iconos={"Cobranza": ":material/payments:", "Ganancia y balance": ":material/account_balance:"})
+    vista = nav.pestanas(["Cobranza", "Ganancia y balance", "Para el contador"], "vista_resultados",
+                         iconos={"Cobranza": ":material/payments:", "Ganancia y balance": ":material/account_balance:",
+                                 "Para el contador": ":material/menu_book:"})
     st.divider()
     if vista == "Cobranza":
         reportes.cuerpo(db, hoy)
+        return
+    if vista == "Para el contador":
+        libro_diario.cuerpo(db, hoy)
         return
     periodo, desde, hasta = comun.selector_periodo(db, hoy, "periodo_resumen", "Mes")
     lib = cont.asientos(db, hoy, hoy)

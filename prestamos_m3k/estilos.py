@@ -301,7 +301,7 @@ def aplicar() -> None:
 # icono y color de cada pantalla (el color agrupa por sección: operación verde, contabilidad azul, control ámbar)
 SECCIONES = {
     "Control de cartera": ("🏠", "#1F6B4F"), "Registrar cobro": ("💵", "#1F6B4F"), "Préstamos": ("💰", "#1F6B4F"), "Clientes": ("👥", "#1F6B4F"),
-    "Resultados": ("📊", "#1F5F99"), "Cuentas por cobrar": ("🧾", "#1F5F99"), "Libros contables": ("📒", "#1F5F99"),
+    "Resultados": ("📊", "#1F5F99"), "Cuentas por cobrar": ("🧾", "#1F5F99"), 
     "Caja": ("🏦", "#A8741A"), "Recibos": ("🧾", "#A8741A"), "Configuración": ("⚙️", "#5A6B62"),
 }
 
