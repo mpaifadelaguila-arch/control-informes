@@ -526,8 +526,9 @@ html body .stApp [data-testid="stSidebar"] .stButton button:hover {{ border-colo
   opacity:1; pointer-events:none; z-index:0;
   -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 35%, #000 100%); mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.55) 35%, #000 100%); }}
 .m3k-cab > * {{ position:relative; z-index:1; }}
-.m3k-cab.cont::before {{ background-image:{_BANNER_CONT}; background-position:center; background-size:cover; width:min(500px,60%);
-  -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 18%, #000 40%); mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 18%, #000 40%); }}
+.m3k-cab.cont {{ min-height:158px; align-items:center; }}
+.m3k-cab.cont::before {{ background-image:{_BANNER_CONT}; background-size:100% 100%; background-position:center; left:auto; width:auto; height:100%; aspect-ratio:962 / 317;
+  -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 14%, #000 32%); mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.7) 14%, #000 32%); }}
 @media (max-width:640px) {{ .m3k-cab::before {{ width:100%; opacity:.35; }} }}
 </style>
 """
