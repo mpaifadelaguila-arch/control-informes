@@ -103,6 +103,33 @@ def sumar_meses(desde: date, n: int) -> date:
     return date(anio, mes + 1, min(desde.day, monthrange(anio, mes + 1)[1]))
 
 
+def ultimo_dia_mes(d: date) -> date:
+    return date(d.year, d.month, monthrange(d.year, d.month)[1])
+
+
+DIAS_BASE_MES = 30  # el interés de un tramo corto se prorratea con meses de 30 días
+
+
+def cronograma_mensual_fin_de_mes(monto, tasa_pct, fecha_desembolso, meses: int) -> list[dict]:
+    """Cobro a fin de mes: la primera cuota vence el último día del mes de la entrega y cobra solo el interés de esos días
+    (tasa ÷ 30 por día); luego `meses` meses completos, cada uno a fin de mes. En el último va también todo el capital."""
+    if meses not in MESES_MENSUAL:
+        raise ValueError("La modalidad mensual admite de 1 a 3 meses.")
+    f0 = fecha(fecha_desembolso)
+    capital_c = a_centimos(monto)
+    interes_mes_c = a_centimos(total_a_pagar(monto, tasa_pct, 1)) - capital_c
+    cuotas, dias_tramo = [], (ultimo_dia_mes(f0) - f0).days
+    if dias_tramo > 0:
+        tramo_c = int((Decimal(interes_mes_c) * dias_tramo / DIAS_BASE_MES).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        cuotas.append({"n": 1, "vence": trasladar_domingo(ultimo_dia_mes(f0)).isoformat(), "monto": de_centimos(tramo_c),
+                       "capital": 0.0, "dias": dias_tramo})
+    for i in range(1, meses + 1):
+        ultimo = i == meses
+        cuotas.append({"n": len(cuotas) + 1, "vence": trasladar_domingo(ultimo_dia_mes(sumar_meses(f0.replace(day=1), i))).isoformat(),
+                       "monto": de_centimos(interes_mes_c + (capital_c if ultimo else 0)), "capital": de_centimos(capital_c) if ultimo else 0.0})
+    return cuotas
+
+
 def fechas_vencimiento(modalidad: str, fecha_desembolso, n_cuotas: int | None = None, meses: int | None = None) -> list[date]:
     f0 = fecha(fecha_desembolso)
     if modalidad == "mensual":
@@ -125,7 +152,9 @@ def fechas_vencimiento(modalidad: str, fecha_desembolso, n_cuotas: int | None = 
 # ───────────────────────── cronograma y costo ─────────────────────────
 
 def generar_cronograma(monto, tasa_pct, modalidad: str, fecha_desembolso, n_cuotas: int | None = None,
-                       meses: int | None = None) -> list[dict]:
+                       meses: int | None = None, fin_de_mes: bool = False) -> list[dict]:
+    if modalidad == "mensual" and fin_de_mes:
+        return cronograma_mensual_fin_de_mes(monto, tasa_pct, fecha_desembolso, MESES_MENSUAL[0] if meses is None else meses)
     vencimientos = fechas_vencimiento(modalidad, fecha_desembolso, n_cuotas, meses)
     if modalidad == "mensual":
         m = len(vencimientos)

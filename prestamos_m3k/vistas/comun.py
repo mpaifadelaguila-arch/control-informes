@@ -4,6 +4,7 @@ import streamlit as st
 
 import calculos as calc
 import operaciones as ops
+from estilos import soles as ui_soles
 
 
 def ir_a(clave: str) -> None:
@@ -24,9 +25,18 @@ def descripcion_credito(p: dict) -> str:
     nombre = nombre_modalidad(p["modalidad"])
     if p["modalidad"] == "mensual":
         m = p.get("meses", len(p["cuotas"]))
-        return f"{nombre} · {m} {'mes' if m == 1 else 'meses'}"
+        return f"{nombre} · {m} {'mes' if m == 1 else 'meses'}" + (" · fin de mes" if p.get("fin_de_mes") else "")
     n = len(p["cuotas"])
     return f"{nombre} · {n} cuota{'s' if n != 1 else ''}"
+
+
+def texto_interes(p: dict) -> str:
+    """El interés del crédito, dicho como corresponde a su modalidad."""
+    ganancia = ui_soles(p["total"] - p["monto"])
+    if p.get("meses", 1) > 1 or p.get("fin_de_mes"):
+        extra = ", el primer tramo prorrateado" if p.get("fin_de_mes") else ""
+        return f"{p['tasa']:g} % por mes × {p.get('meses', 1)} mes(es){extra} = {ganancia}"
+    return f"{p['tasa']:g} % = {ganancia}"
 
 
 def nombre_modalidad(clave: str) -> str:

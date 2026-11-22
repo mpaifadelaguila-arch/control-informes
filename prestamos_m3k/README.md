@@ -29,7 +29,8 @@ En **Configuración → Datos de ejemplo** puedes cargar una cartera ficticia pa
 - Los **domingos no se trabaja ni se cobra**: el plazo son 24 días de trabajo (lunes a sábado).
   **Diario**: 24 cuotas, una por día de trabajo. **Semanal**: siempre 4 cuotas iguales, una cada 7 días
   (si cae en domingo pasa al lunes). **Mensual**: de 1 a 3 meses, con 20 % de interés por mes; los primeros meses se paga solo
-  el interés y en el último el interés más todo el capital. Cada cuota vence el mismo día de cada mes (si cae domingo, pasa al lunes).
+  el interés y en el último el interés más todo el capital. Cada cuota vence el mismo día de cada mes, o **a fin de mes**: entonces la primera cuota vence el último día del mes de la entrega y cobra solo
+  el interés de esos días (20 % ÷ 30 por día), y luego vienen los meses completos (si una fecha cae domingo, pasa al lunes).
 - La última cuota absorbe los céntimos de redondeo.
 - Cada cobro cubre primero la **mora** (si está activada) y luego las cuotas más antiguas; se admiten abonos parciales.
 - **Capital en calle** = capital entregado − capital ya recuperado (la parte de capital de cada cuota cobrada).
