@@ -569,6 +569,8 @@ html body .stApp [data-baseweb="select"] > div > div:last-child {{ background:rg
 html body .stApp [data-baseweb="select"] svg {{ fill:#D6F58C !important; color:#D6F58C !important; }}
 html body .stApp .m3k-paso span {{ background:rgba(184,245,58,.14) !important; border:1px solid rgba(184,245,58,.55); color:#D6F58C !important; box-shadow:none; }}
 html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"] [data-testid="stIconMaterial"] {{ font-weight:400 !important; font-variation-settings:'FILL' 0, 'wght' 400 !important; }}
+/* alertas: el borde va solo en el contenedor externo (si no, se ve una marca doble) */
+html body .stApp [data-testid="stAlert"] [data-testid="stAlertContainer"], html body .stApp [data-testid="stAlert"] [data-baseweb="notification"], html body .stApp [data-testid="stAlert"] [role="alert"] {{ border:none !important; border-left:none !important; border-radius:0 !important; background:transparent !important; box-shadow:none !important; }}
 </style>
 """
 
