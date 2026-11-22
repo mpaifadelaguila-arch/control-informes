@@ -266,6 +266,9 @@ html body .stApp [class*="st-key-nc_"] button:not(:disabled):hover {{ background
 [class*="st-key-nc_"] button:disabled {{ background:#222224 !important; border-color:#2A2A2D !important; }}
 [class*="st-key-nc_"] button:disabled, [class*="st-key-nc_"] button:disabled * {{ color:#6A6A70 !important; }}
 [class*="st-key-ficha_"] [data-testid="stExpander"] {{ margin:.6rem .8rem 0; width:calc(100% - 1.6rem) !important; box-sizing:border-box; }}
+html body .stApp [class*="st-key-ficha_"] [data-testid="stExpander"], html body .stApp [class*="st-key-ficha_"] [data-testid="stExpander"] details {{ background:#161617 !important; border-color:#2A2A2D !important; border-radius:14px !important; }}
+html body .stApp [class*="st-key-ficha_"] [data-testid="stExpander"] summary, html body .stApp [class*="st-key-ficha_"] [data-testid="stExpander"] summary:hover, html body .stApp [class*="st-key-ficha_"] [data-testid="stExpander"] summary:focus, html body .stApp [class*="st-key-ficha_"] [data-testid="stExpander"] details[open] > summary {{ background:#161617 !important; color:#F4F4F2 !important; }}
+html body .stApp [class*="st-key-ficha_"] [data-testid="stExpander"] summary *, html body .stApp [class*="st-key-ficha_"] [data-testid="stExpander"] summary:hover * {{ color:#F4F4F2 !important; fill:#F4F4F2 !important; }}
 
 .m3k-sem .val b {{ color:var(--texto); font-weight:600; }} .m3k-sem .val.f {{ color:var(--aviso); font-weight:600; }} .m3k-sem .val.ok {{ color:var(--ok); font-weight:600; }}
 .m3k-aldia b {{ display:block; font-size:1.8rem; color:var(--ok); }} .m3k-aldia span {{ color:var(--suave); }} .m3k-aldia strong {{ color:var(--texto); }}
