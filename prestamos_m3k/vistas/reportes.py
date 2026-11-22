@@ -68,7 +68,7 @@ def cuerpo(db: dict, hoy: date) -> None:
     ])
 
     if df.empty:
-        ui.vacio("Sin cobros en este periodo", "Prueba con otro periodo o registra cobros en «Registrar cobro».")
+        ui.vacio("Sin cobros en este periodo", "Prueba con otro periodo o registra cobros en «Registrar cobro».", "💵")
     else:
         st.markdown(g.panel("De lo que cobraste, ¿cuánto es tuyo?", g.reparto([
             ("Capital que te devuelven (lo que prestaste)", capital, ui.TONOS["info"]),

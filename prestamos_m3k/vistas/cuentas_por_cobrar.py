@@ -16,7 +16,7 @@ def mostrar() -> None:
     evals = calc.evaluar_cartera(db, hoy)
     cxc = cont.cuentas_por_cobrar(db, evals, hoy)
     if not cxc["filas"]:
-        ui.vacio("No hay cuentas por cobrar", "Cuando registres un crédito, su saldo aparecerá aquí por cliente.")
+        ui.vacio("No hay cuentas por cobrar", "Cuando registres un crédito, su saldo aparecerá aquí por cliente.", "🧾")
         return
 
     t = cxc["total"]

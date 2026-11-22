@@ -55,7 +55,7 @@ def mostrar() -> None:
     hoy = calc.hoy()
     ui.encabezado("Resultados", "Cuánto cobraste, cuánto ganaste y qué tienes. Cada cifra aparece una sola vez")
     if not (db["prestamos"] or db["movimientos"] or db["config"]["capital_base"]):
-        ui.vacio("Aún no hay información contable", "Registra un crédito, un cobro o un aporte de capital.")
+        ui.vacio("Aún no hay información contable", "Registra un crédito, un cobro o un aporte de capital.", "📊")
         return
     vista = nav.pestanas(["Cobranza", "Ganancia y balance", "Para el contador"], "vista_resultados",
                          iconos={"Cobranza": ":material/payments:", "Ganancia y balance": ":material/account_balance:",

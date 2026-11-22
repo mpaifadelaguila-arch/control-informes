@@ -20,7 +20,7 @@ def _proxima(ev: dict) -> str:
 
 def _cartera(db: dict, evals: dict) -> None:
     if not db["prestamos"]:
-        ui.vacio("Aún no hay créditos", "Crea el primero en la pestaña «Nuevo crédito».")
+        ui.vacio("Aún no hay créditos", "Crea el primero en la pestaña «Nuevo crédito».", "💰")
         return
     # filtros con su conteo: sirven también de resumen de la cartera
     conteo = {k: sum(1 for p in db["prestamos"] if v is None or evals[p["id"]]["estado"] == v) for k, v in FILTROS.items()}
@@ -38,7 +38,7 @@ def _cartera(db: dict, evals: dict) -> None:
             continue
         lista.append(p)
     if not lista:
-        ui.vacio("Sin créditos con ese filtro", "Cambia el estado o borra la búsqueda para ver más.")
+        ui.vacio("Sin créditos con ese filtro", "Cambia el estado o borra la búsqueda para ver más.", "🔍")
         return
 
     ui.tabla(
@@ -121,7 +121,7 @@ def _tarjetas_modalidades(elegida: str, monto: float, tasa: float) -> str:
 def _nuevo(db: dict, hoy, evals: dict) -> None:
     activos = [c for c in db["clientes"] if c["activo"]]
     if not activos:
-        ui.vacio("Primero registra un cliente", "Un crédito necesita un cliente activo.")
+        ui.vacio("Primero registra un cliente", "Un crédito necesita un cliente activo.", "👥")
         if st.button("Ir a Clientes", icon=":material/group:"):
             comun.ir_a("clientes")
         return

@@ -65,7 +65,7 @@ def mostrar() -> None:
 
     activos = [p for p in db["prestamos"] if evals[p["id"]]["estado"] in ("vigente", "vencido")]
     if not activos:
-        ui.vacio("No hay créditos por cobrar", "Cuando registres un crédito, aparecerá aquí para cobrar sus cuotas.")
+        ui.vacio("No hay créditos por cobrar", "Cuando registres un crédito, aparecerá aquí para cobrar sus cuotas.", "💵")
         if st.button("Crear un crédito", type="primary", icon=":material/add_card:"):
             st.session_state["_vista_prestamos"] = "Nuevo crédito"
             comun.ir_a("prestamos")
@@ -80,7 +80,7 @@ def mostrar() -> None:
 
     candidatos = [p for p in activos if coincide(p)]
     if not candidatos:
-        ui.vacio("Sin resultados", f"Ningún crédito activo coincide con «{busqueda}».")
+        ui.vacio("Sin resultados", f"Ningún crédito activo coincide con «{busqueda}».", "🔍")
         return
     ids = [p["id"] for p in candidatos]
 
