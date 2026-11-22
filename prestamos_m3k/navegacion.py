@@ -15,10 +15,7 @@ def pestanas(opciones, key, etiquetas=None, iconos=None, ancho_completo=False):
     actual = st.session_state[key]
     n = len(opciones)
     # ancho_completo: los botones se reparten todo el ancho (para columnas angostas, donde el texto se cortaría)
-    if ancho_completo:  # el ancho de cada botón sigue a su texto, así las palabras largas no se salen
-        columnas = st.columns([len((etiquetas or {}).get(op, op)) + 6 for op in opciones])
-    else:
-        columnas = st.columns([1] * n + [max(1, 7 - n)])
+    columnas = st.columns([1] * n if ancho_completo else [1] * n + [max(1, 7 - n)])
     for i, op in enumerate(opciones):
         texto = (etiquetas or {}).get(op, op)
         with columnas[i]:

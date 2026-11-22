@@ -31,8 +31,8 @@ MODALIDADES = {
     # «Pago único» ya no se ofrece, pero los créditos antiguos con esa modalidad se siguen mostrando y cobrando.
     "final": {"nombre": "Pago único", "texto": "1 solo pago al día de trabajo 24", "oculta": True},
 }
-ENTREGAS = ("Efectivo", "Yape", "Plin", "Transferencia")
-METODOS_COBRO = ("Efectivo", "Yape", "Plin", "Transferencia")
+ENTREGAS = ("Efectivo", "Yape", "Plin")
+METODOS_COBRO = ("Efectivo", "Yape", "Plin")
 
 # Tramos de antigüedad de la deuda vencida: (etiqueta, desde, hasta) en días de atraso.
 TRAMOS_MORA = (
