@@ -57,4 +57,4 @@ def mostrar() -> None:
     else:
         ui.tabla(["Fecha y hora", "Acción", "Detalle"],
                  [[a["ts"].replace("T", " ")[:16], a["accion"], a["detalle"]] for a in reversed(db["auditoria"][-100:])],
-                 etiqueta="Registro de cambios")
+                 etiqueta="Registro de cambios", apilar=True)

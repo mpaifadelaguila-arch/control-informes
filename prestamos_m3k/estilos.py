@@ -622,6 +622,17 @@ html body .stApp [class*="st-key-nc_entrega__"] button > div, html body .stApp [
   html body .stApp [class*="st-key-nc_"] button p, html body .stApp [class*="st-key-mp_"] button p, html body .stApp [class*="st-key-vc_"] button p {{ font-size:.8rem !important; white-space:normal; }}
   html body .stApp [class*="st-key-ficha_"] {{ margin-bottom:.8rem; }}
   html body .stApp .f-panel b {{ font-size:.95rem; }}
+  /* tablas anchas (opción apilar): en el celular cada fila es una tarjeta con sus datos etiquetados */
+  html body .stApp .m3k-scroll:has(.m3k-tabla.apilar) {{ overflow:visible; max-height:none; border:0; background:none; }}
+  html body .stApp .m3k-tabla.apilar, html body .stApp .m3k-tabla.apilar tbody, html body .stApp .m3k-tabla.apilar tfoot,
+  html body .stApp .m3k-tabla.apilar tr, html body .stApp .m3k-tabla.apilar td {{ display:block; width:100%; box-sizing:border-box; }}
+  html body .stApp .m3k-tabla.apilar thead {{ display:none; }}
+  html body .stApp .m3k-tabla.apilar tbody tr, html body .stApp .m3k-tabla.apilar tfoot tr {{ border:1px solid #2A2A2D; border-radius:14px; background:#161617; margin:0 0 .6rem; padding:.35rem 0; }}
+  html body .stApp .m3k-tabla.apilar tfoot tr {{ border-color:rgba(184,245,58,.5); }}
+  html body .stApp .m3k-tabla.apilar td, html body .stApp .m3k-tabla.apilar tbody tr:nth-child(even) td, html body .stApp .m3k-tabla.apilar tbody tr:hover td {{ display:flex; justify-content:space-between; align-items:center; gap:.8rem; border-top:0; padding:.28rem .8rem; text-align:right; white-space:normal; background:transparent; }}
+  html body .stApp .m3k-tabla.apilar td::before {{ content:attr(data-label); color:#9A9AA0; font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; text-align:left; flex:0 0 auto; }}
+  html body .stApp .m3k-tabla.apilar td.nw, html body .stApp .m3k-tabla.apilar td.n {{ white-space:normal; }}
+  html body .stApp .m3k-tabla.apilar td .m3k-barra {{ width:55%; min-width:90px; flex:0 1 55%; }}
   /* cabecera con fondo sólido: el logo y el botón del menú ya no se encimen con el contenido al hacer scroll */
   html body .stApp [data-testid="stHeader"] {{ background:#0B0B0C !important; }}
   /* filtros y vistas: botones en fila (2 por línea como mínimo), no uno debajo de otro */
@@ -712,13 +723,14 @@ def kpis(items: list[dict]) -> None:
 
 
 def tabla(columnas: list[str], filas: list, numericas: tuple[int, ...] = (), etiqueta: str = "", pie: list | None = None,
-          sin_corte: tuple[int, ...] = ()) -> None:
+          sin_corte: tuple[int, ...] = (), apilar: bool = False) -> None:
     """Tabla HTML con cabecera fija, desplazamiento propio y fila de totales opcional.
 
     Cada fila es una lista de celdas, o un dict {"celdas": [...], "clase": "cab"|"sub"} para filas de agrupación.
     Si una fila trae menos celdas que columnas, su última celda ocupa el resto del ancho (útil para títulos de asiento).
     Las celdas se escapan salvo que sean `Raw`. Una celda que empieza con dos espacios se muestra con sangría.
     `sin_corte` lista las columnas cuyo texto nunca se parte en dos líneas (fechas, números, cuentas).
+    `apilar` hace que en pantallas pequeñas cada fila se vea como una tarjeta con sus datos etiquetados.
     """
     def celda(i: int, valor, ancho: int = 1) -> str:
         clases = []
@@ -731,7 +743,8 @@ def tabla(columnas: list[str], filas: list, numericas: tuple[int, ...] = (), eti
             clases.append("sangria")
             texto = esc(valor.strip())
         span = f' colspan="{ancho}"' if ancho > 1 else ""
-        return f'<td class="{" ".join(clases)}"{span}>{texto}</td>'
+        etiqueta_col = f' data-label="{html.escape(columnas[i])}"' if i < len(columnas) else ""
+        return f'<td class="{" ".join(clases)}"{span}{etiqueta_col}>{texto}</td>'
 
     cab = "".join(f'<th class="{"n" if i in numericas else ""}">{esc(c)}</th>' for i, c in enumerate(columnas))
     cuerpo = []
@@ -742,9 +755,9 @@ def tabla(columnas: list[str], filas: list, numericas: tuple[int, ...] = (), eti
         cuerpo.append(f'<tr class="{clase}">' + "".join(partes) + "</tr>")
     tfoot = ""
     if pie:
-        tfoot = "<tfoot><tr>" + "".join(f'<td class="{"n" if i in numericas else ""}">{esc(c)}</td>' for i, c in enumerate(pie)) + "</tr></tfoot>"
+        tfoot = "<tfoot><tr>" + "".join(f'<td class="{"n" if i in numericas else ""}" data-label="{html.escape(columnas[i])}">{esc(c)}</td>' for i, c in enumerate(pie)) + "</tr></tfoot>"
     aria = f' aria-label="{html.escape(etiqueta)}"' if etiqueta else ""
-    st.markdown(f'<div class="m3k-scroll" role="region" tabindex="0"{aria}><table class="m3k-tabla">'
+    st.markdown(f'<div class="m3k-scroll" role="region" tabindex="0"{aria}><table class="m3k-tabla{" apilar" if apilar else ""}">'
                 f'<thead><tr>{cab}</tr></thead><tbody>{"".join(cuerpo)}</tbody>{tfoot}</table></div>', unsafe_allow_html=True)
 
 

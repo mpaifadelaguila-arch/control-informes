@@ -71,7 +71,7 @@ def mostrar() -> None:
         ui.tabla(["Fecha", "Tipo", "Detalle", "Folio", "Monto", "Saldo"],
                  [[ui.fecha_txt(h["fecha"]), ui.chip(h["tipo"], TONO_TIPO.get(h["tipo"], "neutro")), h["detalle"], h["folio"] or "—",
                    _monto_coloreado(h["monto"]), ui.soles(h["saldo"])] for h in historial[-200:]],
-                 numericas=(4, 5), sin_corte=(0, 3), etiqueta="Historial de caja")
+                 numericas=(4, 5), sin_corte=(0, 3), etiqueta="Historial de caja", apilar=True)
         st.caption("«Saldo» es lo que quedaba en caja después de cada movimiento." + (f" Se muestran los 200 más recientes de {len(historial)}." if len(historial) > 200 else ""))
 
     manuales = [m for m in db["movimientos"] if not m.get("anulado")]
