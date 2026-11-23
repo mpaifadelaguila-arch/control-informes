@@ -649,6 +649,7 @@ html body .stApp [class*="st-key-barra_movil"] {{ display:none !important; }}
   html body .stApp [class*="st-key-barra_movil"] [data-testid="stPopover"] button [data-testid="stIconMaterial"]:last-child:not(:first-child) {{ display:none !important; }}
   html body .stApp [class*="st-key-barra_movil"] a[data-testid="stPageLink-NavLink"][aria-current="page"] {{ color:#B8F53A !important; background:rgba(184,245,58,.10) !important; border-radius:12px; }}
   html body .stApp [data-testid="stPopoverBody"] {{ min-width:min(260px,90vw); }}
+  html body .stApp [class*="st-key-barra_movil"] [data-testid="stIconEmoji"] {{ font-size:1.65rem !important; line-height:1.1 !important; margin:0 !important; }}
   /* barra inferior: iconos más grandes, texto completo y claro, pestaña activa marcada */
   html body .stApp [class*="st-key-barra_movil"] {{ background:#141416 !important; border-top:1px solid #2F2F33 !important; box-shadow:0 -8px 20px rgba(0,0,0,.5); padding:.35rem .25rem calc(.35rem + env(safe-area-inset-bottom)) !important; }}
   html body .stApp [class*="st-key-barra_movil"] [data-testid="stColumn"], html body .stApp [class*="st-key-barra_movil"] [data-testid="stElementContainer"], html body .stApp [class*="st-key-barra_movil"] [data-testid="stPopover"] {{ overflow:visible !important; min-width:0 !important; }}
@@ -871,18 +872,17 @@ def tarjeta_caja(liquidez: float, respaldo: bool) -> None:
 
 def barra_movil(paginas: dict) -> None:
     """Barra de navegación inferior (solo se ve en el celular, el CSS la oculta en pantallas grandes)."""
-    principales = (("inicio", "Inicio", ":material/home:"), ("cobros", "Cobrar", ":material/payments:"),
-                   ("prestamos", "Créditos", ":material/request_quote:"), ("clientes", "Clientes", ":material/group:"))
-    mas = (("resumen", "Resultados", ":material/finance:"), ("cxc", "Cuentas por cobrar", ":material/account_balance:"),
-           ("caja", "Caja", ":material/account_balance_wallet:"), ("recibos", "Recibos", ":material/receipt_long:"),
-           ("config", "Configuración", ":material/settings:"))
+    # iconos a color (los mismos de las cabeceras de cada pantalla)
+    principales = (("inicio", "Inicio", "🏠"), ("cobros", "Cobrar", "💵"), ("prestamos", "Créditos", "💰"), ("clientes", "Clientes", "👥"))
+    mas = (("resumen", "Resultados", "📊"), ("cxc", "Cuentas por cobrar", "📒"), ("caja", "Caja", "🏦"),
+           ("recibos", "Recibos", "🧾"), ("config", "Configuración", "⚙️"))
     with st.container(key="barra_movil"):
         columnas = st.columns(5)
         for col, (clave, etiqueta, icono) in zip(columnas, principales):
             with col:
                 st.page_link(paginas[clave], label=etiqueta, icon=icono)
         with columnas[4]:
-            with st.popover("Más", icon=":material/more_horiz:", use_container_width=True):
+            with st.popover("Más", icon="🗂️", use_container_width=True):
                 for clave, etiqueta, icono in mas:
                     st.page_link(paginas[clave], label=etiqueta, icon=icono, use_container_width=True)
                 if st.button("Cerrar sesión", icon=":material/logout:", key="salir_movil", use_container_width=True):
