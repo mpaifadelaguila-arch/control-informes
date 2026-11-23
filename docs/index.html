@@ -19,6 +19,7 @@
   #carga { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:#0B0B0C; transition:opacity .4s; }
   #carga img { width:96px; height:96px; border-radius:22px; animation:resp 1.6s ease-in-out infinite; }
   #carga a { color:#9A9AA0; font-size:13px; }
+  iframe { position:fixed; top:-3px; left:-3px; width:calc(100% + 6px); height:calc(100% + 3px + 56px); border:0; background:#0B0B0C; }
   @keyframes resp { 0%,100% { transform:scale(1); opacity:.85 } 50% { transform:scale(1.06); opacity:1 } }
 </style>
 </head>
@@ -28,7 +29,16 @@
 <script>
   /* Instalada (icono): abre la app directo. En el navegador se queda para poder instalarla. */
   var instalada = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-  if (instalada) { location.replace("https://m3k-prestamos.streamlit.app/"); }
+  if (instalada) {
+    /* modo app: la app se muestra a pantalla completa dentro de la página (sin barra del navegador) */
+    var f = document.createElement("iframe");
+    f.title = "M3K Préstamos"; f.allow = "clipboard-write; web-share; camera";
+    f.src = "https://m3k-prestamos.streamlit.app/?embed=true&embed_options=dark_theme";
+    f.addEventListener("load", function () { setTimeout(function () { var c = document.getElementById("carga"); c.style.opacity = 0; setTimeout(function () { c.style.display = "none"; }, 450); }, 1200); });
+    document.body.appendChild(f);
+    document.getElementById("abrir").style.display = "inline-block";
+    document.getElementById("msg").textContent = "Abriendo M3K Préstamos…";
+  }
   else {
     document.getElementById("msg").textContent = "Para instalar: menú ⋮ de Chrome → Instalar app";
     document.getElementById("abrir").style.display = "inline-block";
