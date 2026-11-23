@@ -634,6 +634,8 @@ html body .stApp [class*="st-key-barra_movil"] {{ display:none !important; }}
   html body .stApp [class*="st-key-nc_"] button p, html body .stApp [class*="st-key-mp_"] button p, html body .stApp [class*="st-key-vc_"] button p {{ font-size:.8rem !important; white-space:normal; }}
   html body .stApp [class*="st-key-ficha_"] {{ margin-bottom:.8rem; }}
   html body .stApp .f-panel b {{ font-size:.95rem; }}
+  /* la animación de entrada del contenido impedía que la barra inferior quedara fija a la pantalla */
+  html body .stApp, html body .stApp [data-testid="stAppViewContainer"], html body .stApp [data-testid="stMain"], html body .stApp [data-testid="stMainBlockContainer"], html body .stApp .block-container {{ animation:none !important; transform:none !important; filter:none !important; will-change:auto !important; contain:none !important; perspective:none !important; }}
   /* celular: sin barra lateral ni cabecera; la navegación va en la barra inferior */
   html body .stApp [data-testid="stSidebar"], html body .stApp [data-testid="stSidebarCollapsedControl"], html body .stApp [data-testid="stExpandSidebarButton"], html body .stApp [data-testid="collapsedControl"], html body .stApp [data-testid="stHeader"] {{ display:none !important; }}
   html body .stApp [data-testid="stMainBlockContainer"], html body .stApp .block-container {{ padding-top:1rem !important; padding-bottom:6rem !important; }}
