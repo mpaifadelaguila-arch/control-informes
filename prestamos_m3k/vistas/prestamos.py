@@ -47,7 +47,7 @@ def _cartera(db: dict, evals: dict) -> None:
           comun.descripcion_credito(p), ui.fecha_txt(p["fecha_desembolso"]),
           ui.soles(p["monto"]), _proxima(evals[p["id"]]), ui.barra(evals[p["id"]]["avance"]), ui.soles(evals[p["id"]]["saldo"]),
           ui.chip_prestamo(evals[p["id"]]["estado"])] for p in lista],
-        numericas=(4, 7), sin_corte=(0, 1, 3, 5), etiqueta="Cartera de créditos",
+        numericas=(4, 7), sin_corte=(0, 1, 3, 5), etiqueta="Cartera de créditos", apilar=True,
     )
 
     st.subheader("Detalle del crédito", anchor=False)

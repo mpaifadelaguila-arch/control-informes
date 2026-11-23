@@ -143,7 +143,7 @@ def mostrar() -> None:
     ui.tabla(["Folio", "Fecha", "Cliente", "Crédito", "Monto", "Estado"],
              [[r["folio"], ui.fecha_dia(r["fecha"]), r["cliente"], r["detalle"], ui.soles(r["monto"]),
                ui.chip("Anulado", "neutro") if r["anulado"] else ui.chip("Vigente", "ok")] for r in lista[-150:]],
-             numericas=(4,), sin_corte=(0, 1, 2, 3), etiqueta="Recibos")
+             numericas=(4,), sin_corte=(0, 1, 2, 3), etiqueta="Recibos", apilar=True)
     if len(lista) > 150:
         st.caption(f"Se muestran los 150 más recientes (los anteriores quedan fuera de la lista) de {len(lista)}. Usa la búsqueda para encontrar uno anterior.")
 

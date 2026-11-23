@@ -27,7 +27,7 @@ def mostrar() -> None:
     cols = ["Cliente", "Al día"] + [f"Atraso {calc.TRAMOS_MORA[i][0]}" for i in usados] + ["Total que debe"]
     ui.tabla(cols,
              [[f["cliente"], m(f["por_vencer"])] + [m(f["tramos"][i]) for i in usados] + [m(f["por_cobrar"])] for f in filas],
-             numericas=tuple(range(1, len(cols))), sin_corte=(0,), etiqueta="Cuentas por cobrar",
+             numericas=tuple(range(1, len(cols))), sin_corte=(0,), etiqueta="Cuentas por cobrar", apilar=True,
              pie=["Total", m(t["por_vencer"])] + [m(t["tramos"][i]) for i in usados] + [m(t["por_cobrar"])])
     st.caption(f"{t['creditos']} crédito(s) activo(s). «Al día» son las cuotas que aún no vencen; las columnas de atraso son las cuotas vencidas, "
                "según cuántos días llevan sin pagarse." if usados else f"{t['creditos']} crédito(s) activo(s). Nadie está atrasado.")
