@@ -23,11 +23,16 @@
 </style>
 </head>
 <body>
-<div id="carga"><img src="icon-192.png" alt="M3K"><span>Abriendo M3K Préstamos…</span>
-  <a href="https://m3k-prestamos.streamlit.app/" target="_top">¿Tarda mucho? Abrir directamente</a></div>
+<div id="carga"><img src="icon-192.png" alt="M3K"><span id="msg">Abriendo M3K Préstamos…</span>
+  <a id="abrir" href="https://m3k-prestamos.streamlit.app/" style="display:none;background:#B8F53A;color:#0A1A05;padding:12px 22px;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none">Abrir la app</a></div>
 <script>
-  /* sin marco: el celular no carga la app dentro de un iframe; se abre directamente */
-  setTimeout(function () { location.replace("https://m3k-prestamos.streamlit.app/"); }, 600);
+  /* Instalada (icono): abre la app directo. En el navegador se queda para poder instalarla. */
+  var instalada = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  if (instalada) { location.replace("https://m3k-prestamos.streamlit.app/"); }
+  else {
+    document.getElementById("msg").textContent = "Para instalar: menú ⋮ de Chrome → Instalar app";
+    document.getElementById("abrir").style.display = "inline-block";
+  }
   if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function () {}); }
 </script>
 </body>
