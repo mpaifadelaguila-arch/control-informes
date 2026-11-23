@@ -14,7 +14,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
   html, body { margin:0; height:100%; background:#0B0B0C; color:#F4F4F2; font-family:system-ui, sans-serif; overflow:hidden; }
-  iframe { position:fixed; inset:0; width:100%; height:100%; border:0; background:#0B0B0C; padding-top:env(safe-area-inset-top); box-sizing:border-box; }
+  /* el modo embed añade una barra inferior y un marco claro: el iframe se estira unos píxeles y el sobrante queda fuera de pantalla */
+  iframe { position:fixed; top:-3px; left:-3px; width:calc(100% + 6px); height:calc(100% + 3px + 56px); border:0; background:#0B0B0C; }
   #carga { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:#0B0B0C; transition:opacity .4s; }
   #carga img { width:96px; height:96px; border-radius:22px; animation:resp 1.6s ease-in-out infinite; }
   #carga a { color:#9A9AA0; font-size:13px; }
@@ -24,7 +25,7 @@
 <body>
 <div id="carga"><img src="icon-192.png" alt="M3K"><span>Abriendo M3K Préstamos…</span>
   <a href="https://m3k-prestamos.streamlit.app/" target="_top">¿Tarda mucho? Abrir directamente</a></div>
-<iframe id="app" title="M3K Préstamos" src="https://m3k-prestamos.streamlit.app/" allow="clipboard-write; web-share; camera"></iframe>
+<iframe id="app" title="M3K Préstamos" src="https://m3k-prestamos.streamlit.app/?embed=true&embed_options=dark_theme" allow="clipboard-write; web-share; camera"></iframe>
 <script>
   document.getElementById("app").addEventListener("load", function () {
     setTimeout(function () { var c = document.getElementById("carga"); c.style.opacity = 0; setTimeout(function () { c.style.display = "none"; }, 450); }, 1200);
