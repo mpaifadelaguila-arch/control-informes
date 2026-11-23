@@ -15,12 +15,12 @@ def _formulario(db: dict, cliente: dict | None, clave: str) -> None:
     """Formulario de alta (cliente=None) o de edición."""
     c = cliente or {}
     with st.form(clave, clear_on_submit=cliente is None):
-        nombre = st.text_input("Nombre completo", value=c.get("nombre", ""), autocomplete="name")
+        nombre = st.text_input(":material/person: Nombre completo", value=c.get("nombre", ""), autocomplete="name", placeholder="Ej. María Pérez Rojas")
         col1, col2 = st.columns(2)
-        dni = col1.text_input("DNI", value=c.get("dni", ""), max_chars=8, placeholder="8 dígitos")
-        tel = col2.text_input("Teléfono o WhatsApp", value=c.get("telefono", ""), autocomplete="tel")
-        direccion = st.text_input("Dirección (opcional)", value=c.get("direccion", ""), autocomplete="street-address")
-        if st.form_submit_button("Guardar cambios" if cliente else "Guardar cliente", type="primary"):
+        dni = col1.text_input(":material/badge: DNI", value=c.get("dni", ""), max_chars=8, placeholder="8 dígitos")
+        tel = col2.text_input(":material/call: Teléfono o WhatsApp", value=c.get("telefono", ""), autocomplete="tel", placeholder="9 dígitos, ej. 987654321")
+        direccion = st.text_input(":material/location_on: Dirección (opcional)", value=c.get("direccion", ""), autocomplete="street-address", placeholder="Calle, número, distrito")
+        if st.form_submit_button("Guardar cambios" if cliente else "Guardar cliente", type="primary", icon=":material/save:"):
             try:
                 if cliente:
                     ops.editar_cliente(db, cliente["id"], nombre, dni, tel, direccion)
@@ -39,7 +39,7 @@ def mostrar() -> None:
     activos_n = sum(1 for c in db["clientes"] if c["activo"])
     ui.encabezado("Clientes", f"{len(db['clientes'])} registrado(s) · {activos_n} activo(s)")
 
-    with st.expander("Nuevo cliente", expanded=not db["clientes"] or st.session_state.pop("_abrir_nuevo_cliente", False)):
+    with st.expander(":material/person_add: Nuevo cliente", expanded=not db["clientes"] or st.session_state.pop("_abrir_nuevo_cliente", False)):
         _formulario(db, None, "form_nuevo_cliente")
 
     if not db["clientes"]:
