@@ -25,11 +25,9 @@
 <body>
 <div id="carga"><img src="icon-192.png" alt="M3K"><span>Abriendo M3K Préstamos…</span>
   <a href="https://m3k-prestamos.streamlit.app/" target="_top">¿Tarda mucho? Abrir directamente</a></div>
-<iframe id="app" title="M3K Préstamos" src="https://m3k-prestamos.streamlit.app/?embed=true&embed_options=dark_theme" allow="clipboard-write; web-share; camera"></iframe>
 <script>
-  document.getElementById("app").addEventListener("load", function () {
-    setTimeout(function () { var c = document.getElementById("carga"); c.style.opacity = 0; setTimeout(function () { c.style.display = "none"; }, 450); }, 1200);
-  });
+  /* sin marco: el celular no carga la app dentro de un iframe; se abre directamente */
+  setTimeout(function () { location.replace("https://m3k-prestamos.streamlit.app/"); }, 600);
   if ("serviceWorker" in navigator) { navigator.serviceWorker.register("sw.js").catch(function () {}); }
 </script>
 </body>
