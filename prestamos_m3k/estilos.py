@@ -609,6 +609,8 @@ html body .stApp [class*="st-key-nc_entrega__"] button [data-testid="stIconMater
 html body .stApp [class*="st-key-nc_entrega__"] button > div, html body .stApp [class*="st-key-mp_"][class*="__"] button > div {{ gap:.25rem; flex-wrap:nowrap; }}
 /* accesos directos de Inicio: solo en el celular */
 html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-qa_"]) {{ display:none !important; }}
+/* barra inferior: solo en el celular */
+html body .stApp [class*="st-key-barra_movil"] {{ display:none !important; }}
 /* móvil: encabezado compacto y filas de botones que NO se apilan (solo las filas de botones; el resto de columnas sí se apila) */
 @media (max-width: 640px) {{
   html body .stApp .m3k-cab {{ min-height:108px; padding:.7rem .8rem; gap:.7rem; }}
@@ -632,6 +634,19 @@ html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"
   html body .stApp [class*="st-key-nc_"] button p, html body .stApp [class*="st-key-mp_"] button p, html body .stApp [class*="st-key-vc_"] button p {{ font-size:.8rem !important; white-space:normal; }}
   html body .stApp [class*="st-key-ficha_"] {{ margin-bottom:.8rem; }}
   html body .stApp .f-panel b {{ font-size:.95rem; }}
+  /* celular: sin barra lateral ni cabecera; la navegación va en la barra inferior */
+  html body .stApp [data-testid="stSidebar"], html body .stApp [data-testid="stSidebarCollapsedControl"], html body .stApp [data-testid="stExpandSidebarButton"], html body .stApp [data-testid="collapsedControl"], html body .stApp [data-testid="stHeader"] {{ display:none !important; }}
+  html body .stApp [data-testid="stMainBlockContainer"], html body .stApp .block-container {{ padding-top:1rem !important; padding-bottom:6rem !important; }}
+  html body .stApp [class*="st-key-barra_movil"] {{ display:block !important; position:fixed !important; left:0; right:0; bottom:0; width:100% !important; z-index:999990; background:#121213; border-top:1px solid #2A2A2D; padding:.25rem .3rem calc(.3rem + env(safe-area-inset-bottom)); box-sizing:border-box; }}
+  html body .stApp [class*="st-key-barra_movil"] [data-testid="stHorizontalBlock"] {{ flex-direction:row !important; flex-wrap:nowrap !important; gap:0 !important; align-items:stretch; }}
+  html body .stApp [class*="st-key-barra_movil"] [data-testid="stColumn"] {{ min-width:0 !important; width:auto !important; flex:1 1 0 !important; }}
+  html body .stApp [class*="st-key-barra_movil"] a[data-testid="stPageLink-NavLink"], html body .stApp [class*="st-key-barra_movil"] [data-testid="stPopover"] button {{ flex-direction:column !important; justify-content:center; align-items:center; gap:2px !important; padding:.3rem 0 !important; min-height:52px; background:transparent !important; border:0 !important; box-shadow:none !important; color:#9A9AA0 !important; width:100%; }}
+  html body .stApp [class*="st-key-barra_movil"] a[data-testid="stPageLink-NavLink"] > div, html body .stApp [class*="st-key-barra_movil"] [data-testid="stPopover"] button > div {{ flex-direction:column !important; align-items:center; gap:2px !important; justify-content:center; }}
+  html body .stApp [class*="st-key-barra_movil"] a[data-testid="stPageLink-NavLink"] p, html body .stApp [class*="st-key-barra_movil"] [data-testid="stPopover"] button p {{ font-size:.68rem !important; margin:0; color:inherit !important; white-space:nowrap; }}
+  html body .stApp [class*="st-key-barra_movil"] [data-testid="stIconMaterial"] {{ font-size:1.4rem !important; color:inherit !important; margin:0 !important; }}
+  html body .stApp [class*="st-key-barra_movil"] [data-testid="stPopover"] button [data-testid="stIconMaterial"]:last-child:not(:first-child) {{ display:none !important; }}
+  html body .stApp [class*="st-key-barra_movil"] a[data-testid="stPageLink-NavLink"][aria-current="page"] {{ color:#B8F53A !important; background:rgba(184,245,58,.10) !important; border-radius:12px; }}
+  html body .stApp [data-testid="stPopoverBody"] {{ min-width:min(260px,90vw); }}
   /* Nuevo crédito: solo la modalidad elegida, compacta (los botones de arriba cambian de una a otra) */
   html body .stApp .m3k-modos {{ display:block; margin:.2rem 0 .8rem; }}
   html body .stApp .m3k-modo:not(.sel) {{ display:none; }}
@@ -840,6 +855,27 @@ def tarjeta_caja(liquidez: float, respaldo: bool) -> None:
     estado = "Respaldo en Google Drive activo" if respaldo else "Sin respaldo: datos solo en este equipo"
     st.markdown(f'<div class="m3k-liq"><div class="et">Liquidez en caja</div><div class="val num">{soles(liquidez)}</div>'
                 f'<div class="est"><span class="pt{"" if respaldo else " off"}"></span>{estado}</div></div>', unsafe_allow_html=True)
+
+
+def barra_movil(paginas: dict) -> None:
+    """Barra de navegación inferior (solo se ve en el celular, el CSS la oculta en pantallas grandes)."""
+    principales = (("inicio", "Inicio", ":material/home:"), ("cobros", "Cobrar", ":material/payments:"),
+                   ("prestamos", "Créditos", ":material/request_quote:"), ("clientes", "Clientes", ":material/group:"))
+    mas = (("resumen", "Resultados", ":material/finance:"), ("cxc", "Cuentas por cobrar", ":material/account_balance:"),
+           ("caja", "Caja", ":material/account_balance_wallet:"), ("recibos", "Recibos", ":material/receipt_long:"),
+           ("config", "Configuración", ":material/settings:"))
+    with st.container(key="barra_movil"):
+        columnas = st.columns(5)
+        for col, (clave, etiqueta, icono) in zip(columnas, principales):
+            with col:
+                st.page_link(paginas[clave], label=etiqueta, icon=icono)
+        with columnas[4]:
+            with st.popover("Más", icon=":material/more_horiz:", use_container_width=True):
+                for clave, etiqueta, icono in mas:
+                    st.page_link(paginas[clave], label=etiqueta, icon=icono, use_container_width=True)
+                if st.button("Cerrar sesión", icon=":material/logout:", key="salir_movil", use_container_width=True):
+                    st.session_state.clear()
+                    st.rerun()
 
 
 def ocultar_barra_lateral() -> None:

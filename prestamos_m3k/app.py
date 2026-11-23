@@ -94,6 +94,7 @@ with st.sidebar:
         st.session_state.clear()
         st.rerun()
 
+estilos.barra_movil(paginas)
 estilos.mensaje_pendiente()
 if st.session_state.get("_error_respaldo"):
     st.warning("El último cambio se guardó aquí pero no se pudo respaldar en Google Drive. "
