@@ -339,7 +339,7 @@ html body .stApp [data-testid="stExpander"] summary *, html body .stApp [data-te
   radial-gradient(ellipse 50% 40% at 0% 100%, rgba(255,255,255,.03), transparent 70%),
   radial-gradient(rgba(184,245,58,.07) 1px, transparent 1px) !important;
   background-size:auto, auto, 22px 22px !important; background-attachment:fixed !important; }}
-[data-testid="stHeader"] {{ background:transparent !important; }}
+[data-testid="stHeader"] {{ background:#0B0B0C !important; }}  /* sólida: el contenido ya no se ve por detrás del logo y las flechas al desplazarse */
 [data-testid="stSidebar"], [data-testid="stSidebarContent"] {{ background-image:radial-gradient(ellipse 120% 35% at 0% 0%, rgba(255,255,255,.04), transparent 70%) !important; }}
 [data-testid="stSidebar"], [data-testid="stSidebarContent"], [data-testid="stSidebarNav"] {{ background:#111112 !important; border-right:1px solid var(--borde); }}
 .stApp, .stApp p, .stApp li, .stApp span, .stApp label, .stApp h1, .stApp h2, .stApp h3, .stApp h4,
