@@ -39,7 +39,7 @@ def mostrar() -> None:
     activos_n = sum(1 for c in db["clientes"] if c["activo"])
     ui.encabezado("Clientes", f"{len(db['clientes'])} registrado(s) · {activos_n} activo(s)")
 
-    with st.expander("Nuevo cliente", expanded=not db["clientes"]):
+    with st.expander("Nuevo cliente", expanded=not db["clientes"] or st.session_state.pop("_abrir_nuevo_cliente", False)):
         _formulario(db, None, "form_nuevo_cliente")
 
     if not db["clientes"]:
