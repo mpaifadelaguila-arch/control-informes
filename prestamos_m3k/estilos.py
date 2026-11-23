@@ -622,6 +622,22 @@ html body .stApp [class*="st-key-nc_entrega__"] button > div, html body .stApp [
   html body .stApp [class*="st-key-nc_"] button p, html body .stApp [class*="st-key-mp_"] button p, html body .stApp [class*="st-key-vc_"] button p {{ font-size:.8rem !important; white-space:normal; }}
   html body .stApp [class*="st-key-ficha_"] {{ margin-bottom:.8rem; }}
   html body .stApp .f-panel b {{ font-size:.95rem; }}
+  /* cabecera con fondo sólido: el logo y el botón del menú ya no se encimen con el contenido al hacer scroll */
+  html body .stApp [data-testid="stHeader"] {{ background:#0B0B0C !important; }}
+  /* filtros y vistas: botones en fila (2 por línea como mínimo), no uno debajo de otro */
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-filtro_prestamo__"]),
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-filtro_cliente__"]),
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-filtro_caja__"]),
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-vista_prestamos__"]) {{ flex-direction:row !important; flex-wrap:wrap !important; gap:.4rem !important; }}
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-filtro_prestamo__"]) > [data-testid="stColumn"],
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-filtro_cliente__"]) > [data-testid="stColumn"],
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-filtro_caja__"]) > [data-testid="stColumn"],
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-vista_prestamos__"]) > [data-testid="stColumn"] {{ min-width:0 !important; width:auto !important; flex:1 1 calc(50% - .4rem) !important; }}
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-filtro_prestamo__"]) > [data-testid="stColumn"]:not(:has(button)),
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-filtro_cliente__"]) > [data-testid="stColumn"]:not(:has(button)),
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-filtro_caja__"]) > [data-testid="stColumn"]:not(:has(button)),
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-vista_prestamos__"]) > [data-testid="stColumn"]:not(:has(button)) {{ display:none !important; }}
+  html body .stApp [class*="st-key-filtro_"] button p, html body .stApp [class*="st-key-vista_prestamos__"] button p {{ font-size:.8rem !important; white-space:normal; }}
 }}
 </style>
 """
