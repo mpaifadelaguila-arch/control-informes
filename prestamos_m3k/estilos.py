@@ -599,6 +599,8 @@ html body .stApp [class*="st-key-nc_entrega__"] button, html body .stApp [class*
 html body .stApp [class*="st-key-nc_entrega__"] button p, html body .stApp [class*="st-key-mp_"][class*="__"] button p {{ white-space:nowrap !important; word-break:normal !important; overflow-wrap:normal !important; hyphens:none !important; font-size:.8rem !important; }}
 html body .stApp [class*="st-key-nc_entrega__"] button [data-testid="stIconMaterial"], html body .stApp [class*="st-key-mp_"][class*="__"] button [data-testid="stIconMaterial"] {{ font-size:1.05rem !important; margin-right:.1rem; }}
 html body .stApp [class*="st-key-nc_entrega__"] button > div, html body .stApp [class*="st-key-mp_"][class*="__"] button > div {{ gap:.25rem; flex-wrap:nowrap; }}
+/* accesos directos de Inicio: solo en el celular */
+html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-qa_"]) {{ display:none !important; }}
 /* móvil: encabezado compacto y filas de botones que NO se apilan (solo las filas de botones; el resto de columnas sí se apila) */
 @media (max-width: 640px) {{
   html body .stApp .m3k-cab {{ min-height:108px; padding:.7rem .8rem; gap:.7rem; }}
@@ -623,7 +625,7 @@ html body .stApp [class*="st-key-nc_entrega__"] button > div, html body .stApp [
   html body .stApp [class*="st-key-ficha_"] {{ margin-bottom:.8rem; }}
   html body .stApp .f-panel b {{ font-size:.95rem; }}
   /* accesos directos de Inicio: 2 por línea */
-  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-qa_"]) {{ flex-direction:row !important; flex-wrap:wrap !important; gap:.4rem !important; }}
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-qa_"]) {{ display:flex !important; flex-direction:row !important; flex-wrap:wrap !important; gap:.4rem !important; }}
   html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-qa_"]) > [data-testid="stColumn"] {{ min-width:0 !important; width:auto !important; flex:1 1 calc(50% - .4rem) !important; }}
   html body .stApp [class*="st-key-qa_"] button p {{ font-size:.85rem !important; white-space:nowrap; }}
   /* tablas anchas (opción apilar): en el celular cada fila es una tarjeta con sus datos etiquetados */
