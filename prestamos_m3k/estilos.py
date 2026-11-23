@@ -622,6 +622,10 @@ html body .stApp [class*="st-key-nc_entrega__"] button > div, html body .stApp [
   html body .stApp [class*="st-key-nc_"] button p, html body .stApp [class*="st-key-mp_"] button p, html body .stApp [class*="st-key-vc_"] button p {{ font-size:.8rem !important; white-space:normal; }}
   html body .stApp [class*="st-key-ficha_"] {{ margin-bottom:.8rem; }}
   html body .stApp .f-panel b {{ font-size:.95rem; }}
+  /* accesos directos de Inicio: 2 por línea */
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-qa_"]) {{ flex-direction:row !important; flex-wrap:wrap !important; gap:.4rem !important; }}
+  html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-qa_"]) > [data-testid="stColumn"] {{ min-width:0 !important; width:auto !important; flex:1 1 calc(50% - .4rem) !important; }}
+  html body .stApp [class*="st-key-qa_"] button p {{ font-size:.85rem !important; white-space:nowrap; }}
   /* tablas anchas (opción apilar): en el celular cada fila es una tarjeta con sus datos etiquetados */
   html body .stApp .m3k-scroll:has(.m3k-tabla.apilar) {{ overflow:visible; max-height:none; border:0; background:none; }}
   html body .stApp .m3k-tabla.apilar, html body .stApp .m3k-tabla.apilar tbody, html body .stApp .m3k-tabla.apilar tfoot,

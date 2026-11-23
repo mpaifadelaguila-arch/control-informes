@@ -31,6 +31,19 @@ def mostrar() -> None:
             comun.ir_a("config")
         return
 
+    # accesos directos a lo más usado (en el celular el menú lateral queda escondido)
+    a1, a2, a3, a4 = st.columns(4)
+    if a1.button("Cobrar", key="qa_cobrar", icon=":material/payments:", use_container_width=True, type="primary"):
+        comun.ir_a("cobros")
+    if a2.button("Nuevo crédito", key="qa_credito", icon=":material/add_circle:", use_container_width=True):
+        st.session_state["_vista_prestamos"] = "Nuevo crédito"
+        comun.ir_a("prestamos")
+    if a3.button("Nuevo cliente", key="qa_cliente", icon=":material/person_add:", use_container_width=True):
+        st.session_state["_abrir_nuevo_cliente"] = True
+        comun.ir_a("clientes")
+    if a4.button("Recibos", key="qa_recibos", icon=":material/receipt_long:", use_container_width=True):
+        comun.ir_a("recibos")
+
     ui.kpis([
         {"etiqueta": "Para cobrar hoy", "valor": ui.soles(ind["cobros_hoy_monto"]), "heroe": True, "tono": "info",
          "nota": f"{ind['cobros_hoy_n']} cuota(s) vencen hoy"},
