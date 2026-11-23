@@ -624,6 +624,13 @@ html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"
   html body .stApp [class*="st-key-nc_"] button p, html body .stApp [class*="st-key-mp_"] button p, html body .stApp [class*="st-key-vc_"] button p {{ font-size:.8rem !important; white-space:normal; }}
   html body .stApp [class*="st-key-ficha_"] {{ margin-bottom:.8rem; }}
   html body .stApp .f-panel b {{ font-size:.95rem; }}
+  /* Nuevo crédito: solo la modalidad elegida, compacta (los botones de arriba cambian de una a otra) */
+  html body .stApp .m3k-modos {{ display:block; margin:.2rem 0 .8rem; }}
+  html body .stApp .m3k-modo:not(.sel) {{ display:none; }}
+  html body .stApp .m3k-modo {{ padding:.7rem .85rem; transform:none !important; }}
+  html body .stApp .m3k-modo .ico {{ width:34px; height:34px; font-size:1.1rem; border-radius:10px; margin-bottom:.35rem; }}
+  html body .stApp .m3k-modo ul {{ font-size:.8rem; line-height:1.45; }}
+  html body .stApp .m3k-modo .sub {{ margin:.05rem 0 .35rem; }}
   /* accesos directos de Inicio: 2 por línea */
   html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-qa_"]) {{ display:flex !important; flex-direction:row !important; flex-wrap:wrap !important; gap:.4rem !important; }}
   html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-qa_"]) > [data-testid="stColumn"] {{ min-width:0 !important; width:auto !important; flex:1 1 calc(50% - .4rem) !important; }}
