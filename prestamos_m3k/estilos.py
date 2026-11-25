@@ -12,7 +12,7 @@ Criterios aplicados, tomados de las Web Interface Guidelines de Vercel:
 from __future__ import annotations
 
 import html
-from datetime import date
+from datetime import date, datetime
 
 import streamlit as st
 
@@ -860,10 +860,17 @@ def _logo_html() -> str:
     return f'<img class="logo-img" alt="M3K" src="data:image/png;base64,{datos}">'
 
 
+def saludo_del_dia() -> str:
+    """«Buenos días» / «Buenas tardes» / «Buenas noches» según la hora de Lima."""
+    hora = datetime.now(calc.LIMA).hour
+    return "Buenos días" if hora < 12 else "Buenas tardes" if hora < 19 else "Buenas noches"
+
+
 def acceso_cabecera() -> None:
-    """Marca y razones para entrar, sobre el formulario de la clave."""
+    """Marca y saludo de bienvenida, sobre el formulario de la clave."""
     st.markdown(f'<div class="m3k-login">{_logo_html()}<div class="marca">M3K · PRÉSTAMOS</div>'
-                '<h1>Tu dinero, <span>bajo control</span></h1><p>Acceso privado. Ingresa tu clave.</p>'
+                f'<h1>{saludo_del_dia()}, <span>Monthy</span></h1>'
+                '<p>Monthy Paifa Del Aguila · M3K Préstamos<br>Acceso privado. Ingresa tu clave.</p>'
                 '<div class="pasos"><div><span>💵</span>Cobros del día</div><div><span>📒</span>Cartera y clientes</div>'
                 '<div><span>🧾</span>Recibos</div></div></div>', unsafe_allow_html=True)
 
