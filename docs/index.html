@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B0B0C">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://m3k-prestamos.streamlit.app">
+<link rel="dns-prefetch" href="https://m3k-prestamos.streamlit.app">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -16,7 +18,7 @@
   html, body { margin:0; height:100%; background:#0B0B0C; color:#F4F4F2; font-family:system-ui, sans-serif; overflow:hidden; }
   /* el modo embed añade una barra inferior y un marco claro: el iframe se estira unos píxeles y el sobrante queda fuera de pantalla */
   iframe { position:fixed; top:-3px; left:-3px; width:calc(100% + 6px); height:calc(100% + 3px + 56px); border:0; background:#0B0B0C; }
-  #carga { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:#0B0B0C; transition:opacity .4s; }
+  #carga { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; background:#0B0B0C; transition:opacity .2s; }
   #carga img { width:96px; height:96px; border-radius:22px; animation:resp 1.6s ease-in-out infinite; }
   #carga a { color:#9A9AA0; font-size:13px; }
   iframe { position:fixed; top:-3px; left:-3px; width:calc(100% + 6px); height:calc(100% + 3px + 56px); border:0; background:#0B0B0C; }
@@ -34,7 +36,7 @@
     var f = document.createElement("iframe");
     f.title = "M3K Préstamos"; f.allow = "clipboard-write; web-share; camera";
     f.src = "https://m3k-prestamos.streamlit.app/?embed=true&embed_options=dark_theme";
-    f.addEventListener("load", function () { setTimeout(function () { var c = document.getElementById("carga"); c.style.opacity = 0; setTimeout(function () { c.style.display = "none"; }, 450); }, 1200); });
+    f.addEventListener("load", function () { var c = document.getElementById("carga"); c.style.opacity = 0; setTimeout(function () { c.style.display = "none"; }, 220); });
     document.body.appendChild(f);
     document.getElementById("abrir").style.display = "inline-block";
     document.getElementById("msg").textContent = "Abriendo M3K Préstamos…";
