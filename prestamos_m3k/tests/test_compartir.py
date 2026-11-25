@@ -22,3 +22,10 @@ def test_mensaje_y_enlace():
 def test_imagen_png_valida_y_anulado():
     assert recibo_imagen.generar(D)[:8] == b"\x89PNG\r\n\x1a\n"
     assert recibo_imagen.generar(dict(D, anulado=True, motivo="error de monto"))[:4] == b"\x89PNG"
+
+
+def test_recibo_de_prestamo_cancelado():
+    c = dict(D, cancelado=True, bloque2=D["bloque2"] + [("Estado del crédito", "CANCELADO", True)])
+    assert "CANCELADO" in compartir.mensaje(c, "KATIA GIOVANA") and "Saldo del crédito" not in compartir.mensaje(c, "KATIA")
+    assert recibo_imagen.generar(c)[:4] == b"\x89PNG"
+    assert len(recibo_imagen.generar(c)) != len(recibo_imagen.generar(D))

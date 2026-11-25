@@ -32,6 +32,9 @@ def mensaje(d: dict, nombre_cliente: str) -> str:
     """Texto corto que acompaña a la imagen."""
     primero = (nombre_cliente or "").split()[0].capitalize() if nombre_cliente else ""
     saludo = f"Hola {primero}, " if primero else "Hola, "
+    if d["titulo"] == "Recibo de cobro" and d.get("cancelado"):
+        return (f"{saludo}recibimos tu pago de {_valor(d, 'TOTAL COBRADO')}. Recibo {d['folio']}. "
+                "¡Tu préstamo quedó CANCELADO! Gracias.")
     if d["titulo"] == "Recibo de cobro":
         return (f"{saludo}recibimos tu pago de {_valor(d, 'TOTAL COBRADO')}. Recibo {d['folio']}. "
                 f"Saldo del crédito: {_valor(d, 'Saldo del crédito tras este cobro')}. ¡Gracias!")

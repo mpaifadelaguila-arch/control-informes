@@ -383,7 +383,7 @@ button[data-testid^="stBaseButton-secondary"]:hover, [data-testid="stFormSubmitB
 hr {{ border-color:var(--borde) !important; }}
 code {{ background:#252527 !important; color:#D9FB8C !important; }}
 
-.stApp .m3k-recibo, .stApp .m3k-recibo * {{ color:#0A1A05; }} .stApp .m3k-recibo .anul {{ color:#B3261E; }} .stApp .m3k-recibo small {{ color:#3E5A2A !important; }}
+.stApp .m3k-recibo, .stApp .m3k-recibo * {{ color:#0A1A05; }} .stApp .m3k-recibo .anul {{ color:#B3261E; }} .stApp .m3k-recibo .canc {{ color:#1F6B4F; font-weight:800; font-size:1.15rem; letter-spacing:.04em; border:2px solid #1F6B4F; border-radius:10px; padding:.35rem .7rem; margin:.5rem 0 .2rem; display:inline-block; }} .stApp .m3k-recibo small {{ color:#3E5A2A !important; }}
 
 /* ---- Correcciones de visibilidad: todo control con fondo oscuro y texto claro ---- */
 div[data-baseweb="select"], div[data-baseweb="select"] * {{ background-color:#161617 !important; color:#F4F4F2 !important; border-color:#38383C !important; }}
