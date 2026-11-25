@@ -10,8 +10,7 @@ on:
 jobs:
   visitar:
     # Las direcciones se guardan en variables de repositorio (Settings > Secrets and variables > Actions > Variables):
-    # APP_URL (app de informes) y APP_URL_PRESTAMOS (app de préstamos). Basta con que exista una.
-    if: ${{ vars.APP_URL != '' || vars.APP_URL_PRESTAMOS != '' }}
+    # APP_URL (app de informes) y APP_URL_PRESTAMOS (app de préstamos). Si APP_URL_PRESTAMOS no existe se usa la dirección de M3K Préstamos.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -23,4 +22,4 @@ jobs:
       - run: python .github/scripts/mantener_activa.py
         env:
           APP_URL: ${{ vars.APP_URL }}
-          APP_URL_PRESTAMOS: ${{ vars.APP_URL_PRESTAMOS }}
+          APP_URL_PRESTAMOS: ${{ vars.APP_URL_PRESTAMOS || 'https://m3k-prestamos.streamlit.app' }}
