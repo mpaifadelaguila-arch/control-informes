@@ -204,6 +204,7 @@ def registrar_pago(db: dict, prestamo_id: str, fecha_pago, monto: float, metodo:
     antes_pagadas = {c["n"] for c in antes["cuotas"] if c["estado"] == "pagada"}
     pago["cuotas_cubiertas"] = [c["n"] for c in despues["cuotas"] if c["estado"] == "pagada" and c["n"] not in antes_pagadas]
     pago["saldo_despues"] = despues["saldo"]
+    pago["cancelo_prestamo"] = calc.a_centimos(despues["saldo"]) == 0 and calc.a_centimos(despues.get("mora_pendiente", 0)) == 0
     db["pagos"].append(pago)
     cliente = buscar(db["clientes"], prestamo["cliente_id"]) or {}
     _auditar(db, "Cobro registrado", f"{pago['folio']} · {cliente.get('nombre', '—')} · S/ {monto_c / 100:.2f}")

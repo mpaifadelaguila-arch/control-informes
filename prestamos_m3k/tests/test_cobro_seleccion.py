@@ -70,3 +70,12 @@ def test_atajos_y_limpieza():
     # al volver a un crédito sin casillas guardadas se vuelve a proponer la selección
     cobros._inicializar_seleccion(pr["id"], pend)
     assert _marcadas(cobros, st, pr, pend) == [1, 2, 3]
+
+
+def test_el_cobro_que_deja_el_credito_en_cero_lo_marca_como_cancelado():
+    """Tanto si paga la última cuota como si paga varias a la vez: el recibo debe decir préstamo cancelado."""
+    db, pr, _ = _escenario()
+    p1 = ops.registrar_pago(db, pr["id"], HOY, 360.0, hoy_=HOY)        # 2 cuotas de 4: aún no cancela
+    assert p1["cancelo_prestamo"] is False
+    p2 = ops.registrar_pago(db, pr["id"], HOY, 360.0, hoy_=HOY)        # las 2 últimas de un solo pago
+    assert p2["cancelo_prestamo"] is True and p2["saldo_despues"] == 0

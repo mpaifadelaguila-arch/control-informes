@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 _FUENTES = Path(__file__).parent / "assets" / "fuentes"
 ANCHO, MARGEN, BORDE = 960, 72, 6
-FONDO, TINTA, SUAVE, LIMA, LINEA, ROJO = "#F4F4F2", "#0A1A05", "#4A4F45", "#B8F53A", "#8C9488", "#B3261E"
+FONDO, TINTA, SUAVE, LIMA, LINEA, ROJO, VERDE = "#F4F4F2", "#0A1A05", "#4A4F45", "#B8F53A", "#8C9488", "#B3261E", "#1F6B4F"
 
 
 def _fuente(peso: str, tam: int) -> ImageFont.FreeTypeFont:
@@ -59,7 +59,7 @@ def generar(d: dict) -> bytes:
 
     b1, b2 = filas(d["bloque1"], False), filas(d["bloque2"], True)
     alto_fila = lambda fnt, n: int(fnt.size * 1.5) * n + 10
-    cuerpo = 40 + 60 + 70 + 40 + (60 if d["anulado"] else 0)
+    cuerpo = 40 + 60 + 70 + 40 + (60 if d["anulado"] else 0) + (96 if d.get("cancelado") else 0)
     cuerpo += 34 + sum(alto_fila(f, len(l)) for _, l, f, _ in b1) + 34 + sum(alto_fila(f, len(l)) for _, l, f, _ in b2) + 34
     if d["cronograma"]:
         cuerpo += 56 + 64 * (len(d["cronograma"]) + 1) + 30
@@ -79,6 +79,12 @@ def generar(d: dict) -> bytes:
     if d["anulado"]:
         dib.text((x0, y), "ANULADO" + (f" — {d['motivo']}" if d["motivo"] else ""), font=f_fuerte, fill=ROJO)
         y += 60
+    if d.get("cancelado"):
+        texto = "PRÉSTAMO CANCELADO"
+        ancho_t = dib.textlength(texto, font=f_fuerte)
+        dib.rounded_rectangle((x0, y, x1, y + 76), radius=18, fill="#E4F5D2", outline=VERDE, width=4)
+        dib.text((x0 + (x1 - x0 - ancho_t) / 2, y + 16), texto, font=f_fuerte, fill=VERDE)
+        y += 96
 
     def punteada(yy):
         xx = x0

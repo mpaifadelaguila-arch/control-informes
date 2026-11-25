@@ -26,12 +26,16 @@ def _datos_recibo(db: dict, tipo: str, r: dict) -> dict:
         bloque2 = [("Aplicado a cuotas", ui.soles(r["monto_cuota"]), False)]
         if r.get("monto_mora"):
             bloque2.append(("Aplicado a mora", ui.soles(r["monto_mora"]), False))
+        # el cobro cancela el crédito cuando deja el saldo en cero (sea la última cuota o varias en un solo pago)
+        cancelado = (not r.get("anulado", False)) and r.get("cancelo_prestamo", calc.a_centimos(r.get("saldo_despues", 1)) == 0)
         bloque2 += [("TOTAL COBRADO", ui.soles(r["monto_cuota"] + r.get("monto_mora", 0)), True),
                     ("Saldo del crédito tras este cobro", ui.soles(r.get("saldo_despues", 0)), False)]
+        if cancelado:
+            bloque2.append(("Estado del crédito", "CANCELADO", True))
         if r.get("nota"):
             bloque2.append(("Nota", r["nota"], False))
         return {"titulo": "Recibo de cobro", "folio": r["folio"], "anulado": r.get("anulado", False), "motivo": r.get("motivo_anulacion", ""),
-                "bloque1": bloque1, "bloque2": bloque2, "cronograma": None, "firma": "Firma de quien recibe"}
+                "bloque1": bloque1, "bloque2": bloque2, "cronograma": None, "firma": "Firma de quien recibe", "cancelado": cancelado}
     cli = ops.buscar(db["clientes"], r["cliente_id"]) or {}
     bloque1 = [("Fecha", ui.fecha_dia(r["fecha_desembolso"])), ("Cliente", cli.get("nombre", "—")), ("DNI", cli.get("dni", "—")),
                ("Crédito", f"Préstamo {r['numero']:04d}"), ("Forma de entrega", r["entrega"])]
@@ -53,6 +57,8 @@ def _html_recibo(d: dict) -> str:
     partes = [f"<h3>{html.escape(d['titulo'])}</h3>", f"<div>{html.escape(d['folio'])}</div>"]
     if d["anulado"]:
         partes.append('<div class="anul">ANULADO — ' + html.escape(d["motivo"]) + "</div>")
+    if d.get("cancelado"):
+        partes.append('<div class="canc">✔ PRÉSTAMO CANCELADO</div>')
     partes += ["<hr>"] + [_fila(e, v) for e, v in d["bloque1"]] + ["<hr>"] + [_fila(e, v, f) for e, v, f in d["bloque2"]]
     if d["cronograma"]:
         filas = "".join(f"<tr><td>{html.escape(n)}</td><td>{html.escape(f)}</td><td style='text-align:right'>{html.escape(m)}</td></tr>" for n, f, m in d["cronograma"])
@@ -93,6 +99,10 @@ def _pdf_recibo(d: dict) -> bytes:
                  Paragraph(esc(d["folio"]), ParagraphStyle("f", parent=base, textColor=gris))]
     if d["anulado"]:
         elementos.append(Paragraph("ANULADO — " + esc(d["motivo"]), ParagraphStyle("a", parent=fuerte, textColor=colors.HexColor("#B3261E"))))
+    if d.get("cancelado"):
+        marco = Table([[Paragraph("PRÉSTAMO CANCELADO", ParagraphStyle("c", parent=fuerte, fontSize=14, leading=18, textColor=verde, alignment=1))]], colWidths=[124 * mm])
+        marco.setStyle(TableStyle([("BOX", (0, 0), (-1, -1), 1.4, verde), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
+        elementos += [Spacer(1, 4), marco]
     elementos += [linea(), bloque([(e, v, False) for e, v in d["bloque1"]]), linea(), bloque(d["bloque2"])]
     if d["cronograma"]:
         elementos += [linea(), Paragraph("<b>Cronograma</b>", base), Spacer(1, 3)]
