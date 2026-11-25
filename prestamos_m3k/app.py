@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as componentes
 
 st.set_page_config(page_title="M3K Préstamos", page_icon=":material/payments:", layout="wide", initial_sidebar_state="auto")
 
@@ -60,7 +61,13 @@ def acceso() -> bool:
     return False
 
 
+def _avisar_listo() -> None:
+    """Le avisa a la página puente (el icono instalado) que la pantalla ya está dibujada, para que quite su pantalla de carga."""
+    componentes.html("<script>try{window.top.postMessage('m3k-listo','*')}catch(e){}</script>", height=0)
+
+
 if not acceso():
+    _avisar_listo()
     st.stop()
 
 paginas = {
@@ -100,3 +107,4 @@ if st.session_state.get("_error_respaldo"):
     st.warning("El último cambio se guardó aquí pero no se pudo respaldar en Google Drive. "
                f"Detalle: {st.session_state['_error_respaldo']}")
 navegacion.run()
+_avisar_listo()

@@ -36,7 +36,11 @@
     var f = document.createElement("iframe");
     f.title = "M3K Préstamos"; f.allow = "clipboard-write; web-share; camera";
     f.src = "https://m3k-prestamos.streamlit.app/?embed=true&embed_options=dark_theme";
-    f.addEventListener("load", function () { var c = document.getElementById("carga"); c.style.opacity = 0; setTimeout(function () { c.style.display = "none"; }, 220); });
+    /* la app avisa (postMessage) cuando su pantalla ya está dibujada; si no avisa, se quita igual a los 10 s */
+    var quitada = false;
+    function quitar() { if (quitada) return; quitada = true; var c = document.getElementById("carga"); c.style.opacity = 0; setTimeout(function () { c.style.display = "none"; }, 220); }
+    window.addEventListener("message", function (e) { if (e.data === "m3k-listo" && /\.streamlit\.app$/.test(new URL(e.origin).hostname)) { setTimeout(quitar, 150); } });
+    setTimeout(quitar, 10000);
     document.body.appendChild(f);
     document.getElementById("abrir").style.display = "inline-block";
     document.getElementById("msg").textContent = "Abriendo M3K Préstamos…";
