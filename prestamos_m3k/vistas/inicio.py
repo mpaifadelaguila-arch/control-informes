@@ -5,6 +5,7 @@ from datetime import timedelta
 import streamlit as st
 
 import calculos as calc
+import compartir
 import contabilidad as cont
 import datos
 import estilos as ui
@@ -44,15 +45,21 @@ def mostrar() -> None:
     if a4.button("Recibos", key="qa_recibos", icon=":material/receipt_long:", use_container_width=True):
         comun.ir_a("recibos")
 
+    # 1) el dinero: cuánto hay para prestar, cuánto está prestado y el total
     ui.kpis([
-        {"etiqueta": "Para cobrar hoy", "valor": ui.soles(ind["cobros_hoy_monto"]), "heroe": True, "tono": "info",
+        {"etiqueta": "Para prestar", "valor": ui.soles(caja["liquidez"]), "heroe": True, "tono": "ok" if caja["liquidez"] >= 0 else "malo",
+         "icono": "🏦", "nota": "Dinero disponible en caja"},
+        {"etiqueta": "Prestado en la calle", "valor": ui.soles(ind["capital_en_calle"]), "tono": "aviso", "icono": "💰",
+         "nota": f"{ind['prestamos_activos']} préstamo(s) · te deben {ui.soles(ind['por_cobrar'])} con interés"},
+        {"etiqueta": "Capital total", "valor": ui.soles(caja["liquidez"] + ind["capital_en_calle"]), "tono": "info", "icono": "📊",
+         "nota": "En caja + prestado"},
+    ])
+    # 2) los cobros
+    ui.kpis([
+        {"etiqueta": "Para cobrar hoy", "valor": ui.soles(ind["cobros_hoy_monto"]), "tono": "info", "icono": "📅",
          "nota": f"{ind['cobros_hoy_n']} cuota(s) vencen hoy"},
         {"etiqueta": "Vencido", "valor": ui.soles(ind["vencido"]), "tono": "malo" if ind["vencido"] > 0 else "ok",
          "nota": "Cuotas atrasadas" if ind["vencido"] > 0 else "Nadie atrasado"},
-        {"etiqueta": "Prestado en la calle", "valor": ui.soles(ind["capital_en_calle"]), "tono": "aviso",
-         "nota": f"{ind['prestamos_activos']} préstamo(s) · te deben {ui.soles(ind['por_cobrar'])} con interés"},
-        {"etiqueta": "Dinero en caja", "valor": ui.soles(caja["liquidez"]), "tono": "ok" if caja["liquidez"] >= 0 else "malo",
-         "nota": "Disponible para prestar"},
     ])
 
     st.subheader("Cobranza", anchor=False)
@@ -72,8 +79,12 @@ def mostrar() -> None:
                 f'<b>{ui.esc(fila["cliente"].get("nombre", "—"))}</b><br><small style="color:{ui.TEXTO_SUAVE}">Préstamo {pr["numero"]:04d} · '
                 f'{ui.esc(comun.nombre_modalidad(pr["modalidad"]))} · {ui.esc(fila["cliente"].get("telefono") or "sin teléfono")}</small>',
                 unsafe_allow_html=True)
+            enlace = compartir.enlace_chat(
+                compartir.telefono_wa(fila["cliente"].get("telefono")),
+                compartir.recordatorio(fila["cliente"].get("nombre", ""), ui.soles(fila["vencido"] + fila["hoy"]), fila["vencido"] > 0, pr["numero"]))
+            recordar = (f' <a class="m3k-recordar" href="{ui.esc(enlace)}" target="_blank" rel="noopener">Recordar por WhatsApp</a>' if enlace else "")
             c2.markdown(f'{ui.chip("Vencido" if fila["vencido"] > 0 else "Vence hoy", "malo" if fila["vencido"] > 0 else "info")} '
-                        f'<span class="num">{ui.esc(" · ".join(detalle))}</span>', unsafe_allow_html=True)
+                        f'<span class="num">{ui.esc(" · ".join(detalle))}</span>{recordar}', unsafe_allow_html=True)
             if c3.button("Cobrar", key=f"cobrar_{i}_{pr['id']}", icon=":material/payments:", use_container_width=True):
                 st.session_state["cobro_prestamo"] = pr["id"]
                 comun.ir_a("cobros")
@@ -88,30 +99,31 @@ def mostrar() -> None:
     else:
         st.caption("No hay cuotas que venzan en los próximos días.")
 
-    mes = calc.avance_mes(db, evals, hoy)
-    if mes["esperado"]:
-        nombre_mes = cont.nombre_mes(cont.periodo_de(hoy)).split()[0].lower()
-        st.markdown(g.panel("Avance de la cobranza del mes", g.avance(mes["cobrado"], mes["esperado"], nombre_mes)), unsafe_allow_html=True)
+    with st.expander("Ver gráficos y más detalle", icon=":material/insights:"):
+        mes = calc.avance_mes(db, evals, hoy)
+        if mes["esperado"]:
+            nombre_mes = cont.nombre_mes(cont.periodo_de(hoy)).split()[0].lower()
+            st.markdown(g.panel("Avance de la cobranza del mes", g.avance(mes["cobrado"], mes["esperado"], nombre_mes)), unsafe_allow_html=True)
 
-    semanas = calc.cuotas_por_semana(db, evals, hoy)
-    composicion = calc.composicion_cartera(db, evals)
-    if any(sm["esperado"] for sm in semanas) or composicion:
-        st.subheader("Cartera", anchor=False)
-        izq, der = st.columns([3, 2])
-        if any(sm["esperado"] for sm in semanas):
-            primera = next(k for k, sm in enumerate(semanas) if sm["esperado"] or sm["actual"])
-            semanas = semanas[min(primera, len(semanas) - 4):]
-            izq.markdown(g.panel("Cobrado frente a lo que vencía, por semana", g.semanas(semanas), "Cada grupo es una semana de lunes a sábado (la fecha es su lunes): en gris, lo que vencía; en verde, lo que ya se cobró de eso."),
-                         unsafe_allow_html=True)
-        if composicion:
-            total = sum(c["monto"] for c in composicion)
-            if any(c["gravedad"] > 0 for c in composicion):
-                der.markdown(g.panel("Lo que te deben, por antigüedad", g.dona(composicion, f"S/ {total:,.0f}", "te deben"),
-                                     "Cada color es un tramo de atraso, de verde (al día) a rojo (muy atrasado)."), unsafe_allow_html=True)
-            else:
-                der.markdown(g.panel("Lo que te deben", g.todo_al_dia(total)), unsafe_allow_html=True)
+        semanas = calc.cuotas_por_semana(db, evals, hoy)
+        composicion = calc.composicion_cartera(db, evals)
+        if any(sm["esperado"] for sm in semanas) or composicion:
+            st.subheader("Cartera", anchor=False)
+            izq, der = st.columns([3, 2])
+            if any(sm["esperado"] for sm in semanas):
+                primera = next(k for k, sm in enumerate(semanas) if sm["esperado"] or sm["actual"])
+                semanas = semanas[min(primera, len(semanas) - 4):]
+                izq.markdown(g.panel("Cobrado frente a lo que vencía, por semana", g.semanas(semanas), "Cada grupo es una semana de lunes a sábado (la fecha es su lunes): en gris, lo que vencía; en verde, lo que ya se cobró de eso."),
+                             unsafe_allow_html=True)
+            if composicion:
+                total = sum(c["monto"] for c in composicion)
+                if any(c["gravedad"] > 0 for c in composicion):
+                    der.markdown(g.panel("Lo que te deben, por antigüedad", g.dona(composicion, f"S/ {total:,.0f}", "te deben"),
+                                         "Cada color es un tramo de atraso, de verde (al día) a rojo (muy atrasado)."), unsafe_allow_html=True)
+                else:
+                    der.markdown(g.panel("Lo que te deben", g.todo_al_dia(total)), unsafe_allow_html=True)
 
-    serie = cont.serie_caja(cont.asientos(db, hoy, hoy), hoy, 30)
-    if len({v for _, v in serie}) > 1:
-        st.subheader("Caja", anchor=False)
-        st.markdown(g.panel("Dinero disponible, últimos 30 días", g.linea(serie)), unsafe_allow_html=True)
+        serie = cont.serie_caja(cont.asientos(db, hoy, hoy), hoy, 30)
+        if len({v for _, v in serie}) > 1:
+            st.subheader("Caja", anchor=False)
+            st.markdown(g.panel("Dinero disponible, últimos 30 días", g.linea(serie)), unsafe_allow_html=True)

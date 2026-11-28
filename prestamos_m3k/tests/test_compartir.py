@@ -29,3 +29,10 @@ def test_recibo_de_prestamo_cancelado():
     assert "CANCELADO" in compartir.mensaje(c, "KATIA GIOVANA") and "Saldo del crédito" not in compartir.mensaje(c, "KATIA")
     assert recibo_imagen.generar(c)[:4] == b"\x89PNG"
     assert len(recibo_imagen.generar(c)) != len(recibo_imagen.generar(D))
+
+
+def test_recordatorio_de_pago():
+    v = compartir.recordatorio("KATIA GIOVANA GONZALES", "S/ 180.00", True, 3)
+    assert v.startswith("Hola Katia,") and "S/ 180.00" in v and "vencido" in v and "0003" in v
+    h = compartir.recordatorio("", "S/ 75.00", False)
+    assert h.startswith("Hola,") and "hoy" in h and "préstamo" not in h
