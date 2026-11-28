@@ -927,7 +927,9 @@ html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria
 [data-testid="stDialog"] .m3k-recibo {{ zoom:.82; max-width:none; }}
 [data-testid="stDialog"] [data-testid="stDownloadButton"] button {{ background:#16223C !important; color:#F4F4F2 !important; border:1px solid #2B3A5F !important; }}
 [data-testid="stDialog"] [data-testid="stDownloadButton"] button * {{ color:#F4F4F2 !important; }}
-[data-testid="stDialog"] [class*="st-key-wa_chat"] a, [data-testid="stDialog"] [class*="st-key-wa_chat"] a * {{ background:#16223C !important; color:#F4F4F2 !important; border:1px solid #2B3A5F !important; }}
+[data-testid="stDialog"] [class*="st-key-wa_chat"] a {{ background:#16223C !important; color:#F4F4F2 !important; border:1px solid #2B3A5F !important; box-shadow:none !important; }}
+[data-testid="stDialog"] [class*="st-key-wa_chat"] a * {{ background:transparent !important; color:#F4F4F2 !important; border:0 !important; box-shadow:none !important; outline:0 !important; }}
+[data-testid="stDialog"] [class*="st-key-wa_chat"] > div, [data-testid="stDialog"] [class*="st-key-wa_chat"] [data-testid="stElementContainer"] {{ background:transparent !important; border:0 !important; padding:0 !important; box-shadow:none !important; }}
 [data-testid="stDialog"] [data-testid="stFormSubmitButton"] button, [data-testid="stDialog"] [data-testid="stFormSubmitButton"] button * {{ color:#0A1A05 !important; }}
 
 /* ventanas flotantes: fondo oscuro garantizado (la base del tema es clara y el cuadro vive fuera de .stApp) */
