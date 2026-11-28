@@ -172,9 +172,9 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
                     meses = int(nav.pestanas(list(calc.MESES_MENSUAL), "nc_meses", etiquetas={m: f"{m} {'mes' if m == 1 else 'meses'}" for m in calc.MESES_MENSUAL},
                                              ancho_completo=True))
                 with c_cuando:
-                    st.markdown("**¿Cuándo se cobra?**")
+                    st.markdown("**¿Cuándo se cobra cada mes?**")
                     fin_de_mes = nav.pestanas(["mismo_dia", "fin_de_mes"], "nc_cuando", ancho_completo=True,
-                                              etiquetas={"mismo_dia": "El mismo día de cada mes", "fin_de_mes": "A fin de mes"},
+                                              etiquetas={"mismo_dia": "Mismo día", "fin_de_mes": "Fin de mes"},
                                               iconos={"mismo_dia": ":material/event_repeat:", "fin_de_mes": ":material/event:"}) == "fin_de_mes"
 
         with st.container(border=True):
