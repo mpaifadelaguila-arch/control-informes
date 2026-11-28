@@ -858,6 +858,19 @@ html body .stApp .m3k-simula li svg.svg {{ color:#B8F53A; margin-right:.2rem; }}
   html body .stApp [class*="st-key-barra_movil"] a[data-testid="stPageLink-NavLink"][aria-current="page"]::before {{ display:none !important; }}
   html body .stApp [class*="st-key-barra_movil"] a[data-testid="stPageLink-NavLink"], html body .stApp [class*="st-key-barra_movil"] [data-testid="stPopover"] button {{ transition:color .2s cubic-bezier(.23,1,.32,1), background-color .2s cubic-bezier(.23,1,.32,1); }}
 }}
+
+/* animación extra: escalonado, pulsación, desplegables, avisos */
+@keyframes m3k-abre {{ from {{ opacity:0; transform:translateY(-6px); }} to {{ opacity:1; transform:none; }} }}
+@keyframes m3k-aviso {{ from {{ opacity:0; transform:translateX(18px); }} to {{ opacity:1; transform:none; }} }}
+[class*="st-key-tarj_"] {{ animation:m3k-subir .28s cubic-bezier(.23,1,.32,1) both; }}
+[class*="st-key-tarj_"]:nth-of-type(2) {{ animation-delay:.04s; }} [class*="st-key-tarj_"]:nth-of-type(3) {{ animation-delay:.08s; }}
+[class*="st-key-tarj_"]:nth-of-type(4) {{ animation-delay:.12s; }} [class*="st-key-tarj_"]:nth-of-type(n+5) {{ animation-delay:.16s; }}
+.m3k-kpi:nth-child(2) {{ animation-delay:.04s; }} .m3k-kpi:nth-child(3) {{ animation-delay:.08s; }} .m3k-kpi:nth-child(4) {{ animation-delay:.12s; }}
+.stButton button:active, .stFormSubmitButton button:active, .stDownloadButton button:active {{ transform:scale(.97) !important; }}
+[data-testid="stExpander"] details[open] > div {{ animation:m3k-abre .22s cubic-bezier(.23,1,.32,1) both; }}
+[data-testid="stPopoverBody"], [data-baseweb="popover"] > div {{ animation:m3k-abre .18s cubic-bezier(.23,1,.32,1) both; }}
+[data-testid="stToast"], [data-testid="stAlert"] {{ animation:m3k-aviso .25s cubic-bezier(.23,1,.32,1) both; }}
+@media (hover:hover) {{ [class*="st-key-tarj_"]:hover {{ transform:translateY(-1px); transition:transform .2s ease; }} }}
 </style>
 """
 
