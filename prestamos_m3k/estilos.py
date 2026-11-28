@@ -868,6 +868,8 @@ def saludo_del_dia() -> str:
 
 def acceso_cabecera() -> None:
     """Marca y saludo de bienvenida, sobre el formulario de la clave."""
+    # en el acceso la franja de arriba es transparente: así no corta el resplandor del logo (en el resto de la app es sólida)
+    st.markdown('<style>html body .stApp [data-testid="stHeader"] { background:transparent !important; }</style>', unsafe_allow_html=True)
     st.markdown(f'<div class="m3k-login">{_logo_html()}<div class="marca">M3K · PRÉSTAMOS</div>'
                 f'<h1>{saludo_del_dia()}, <span>Monthy</span></h1>'
                 '<p>Monthy Paifa Del Aguila · M3K Préstamos<br>Acceso privado. Ingresa tu clave.</p>'
