@@ -28,6 +28,7 @@ estilos.aplicar()
 
 _LUZ_JS = r"""<script>(function(){try{var w=window.parent,d=w.document;
 if(w.__m3kLuz||!w.matchMedia('(hover: hover)').matches||w.matchMedia('(prefers-reduced-motion: reduce)').matches)return;w.__m3kLuz=1;
+d.addEventListener('pointermove',function(e){d.documentElement.style.setProperty('--gx',e.clientX+'px');d.documentElement.style.setProperty('--gy',e.clientY+'px');},{passive:true});
 var sel='.m3k-hero,[class*="st-key-tarj_"],.m3k-kpi,.m3k-panel',pend=null;
 d.addEventListener('pointermove',function(e){if(pend)return;pend=w.requestAnimationFrame(function(){pend=null;
 var el=e.target&&e.target.closest?e.target.closest(sel):null;if(!el)return;var r=el.getBoundingClientRect();

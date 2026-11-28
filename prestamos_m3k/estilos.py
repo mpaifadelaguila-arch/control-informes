@@ -882,7 +882,6 @@ html body .stApp .m3k-simula li svg.svg {{ color:#B8F53A; margin-right:.2rem; }}
 [data-baseweb="input"], [data-baseweb="select"] > div, [data-baseweb="textarea"] {{ transition:box-shadow .2s ease, border-color .2s ease; }}
 [data-baseweb="input"]:focus-within, [data-baseweb="select"]:focus-within > div, [data-baseweb="textarea"]:focus-within {{
   box-shadow:0 0 0 3px rgba(184,245,58,.18) !important; }}
-[data-testid="stSidebarNavLink"][aria-current="page"] {{ box-shadow:inset 3px 0 0 #B8F53A, 0 0 18px rgba(184,245,58,.10); }}
 @media (hover:hover) {{
   .m3k-hero::before, [class*="st-key-tarj_"]::before, .m3k-kpi::before, .m3k-panel::before {{ content:""; position:absolute; inset:0;
     border-radius:inherit; pointer-events:none; opacity:0; transition:opacity .3s ease; z-index:1;
@@ -892,6 +891,23 @@ html body .stApp .m3k-simula li svg.svg {{ color:#B8F53A; margin-right:.2rem; }}
   [class*="st-key-tarj_"]:hover, .m3k-kpi:hover {{ box-shadow:0 8px 26px rgba(0,0,0,.35), 0 0 0 1px rgba(184,245,58,.22); }}
   .stButton button[kind="primary"]:hover, .stFormSubmitButton button[kind="primary"]:hover, .stFormSubmitButton button[kind="primaryFormSubmit"]:hover {{
     box-shadow:0 0 0 3px rgba(184,245,58,.16), 0 8px 24px rgba(184,245,58,.28) !important; transform:translateY(-1px); }}
+}}
+
+/* luz global, barrido periódico y resplandor del menú */
+@keyframes m3k-barrido-ciclo {{ 0% {{ left:-55%; }} 13% {{ left:125%; }} 100% {{ left:125%; }} }}
+@keyframes m3k-pulso-menu {{ 0%,100% {{ box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 0 0 1px rgba(184,245,58,.35), 0 0 14px rgba(184,245,58,.22); }}
+  50% {{ box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 0 0 1px rgba(184,245,58,.55), 0 0 26px rgba(184,245,58,.45); }} }}
+html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria-current="page"] {{ animation:m3k-pulso-menu 3.6s ease-in-out infinite; }}
+.m3k-hero, [class*="st-key-tarj_"], .m3k-kpi {{ overflow:hidden; }}
+.m3k-hero::after {{ animation:m3k-barrido-ciclo 8s .35s cubic-bezier(.23,1,.32,1) infinite; }}
+[class*="st-key-tarj_"]::after, .m3k-kpi::after {{ content:""; position:absolute; top:0; bottom:0; width:34%; left:-55%; pointer-events:none; z-index:1;
+  background:linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.055), rgba(255,255,255,0)); transform:skewX(-18deg);
+  animation:m3k-barrido-ciclo 9s 2s cubic-bezier(.23,1,.32,1) infinite; }}
+[class*="st-key-tarj_"]:nth-of-type(even)::after, .m3k-kpi:nth-child(even)::after {{ animation-delay:5.5s; }}
+[class*="st-key-tarj_"]:nth-of-type(3n)::after, .m3k-kpi:nth-child(3n)::after {{ animation-delay:7.5s; }}
+@media (hover:hover) {{
+  .stApp::after {{ content:""; position:fixed; inset:0; pointer-events:none; z-index:2;
+    background:radial-gradient(520px circle at var(--gx,-400px) var(--gy,-400px), rgba(76,141,255,.085), rgba(76,141,255,0) 70%); }}
 }}
 </style>
 """
