@@ -850,7 +850,7 @@ html body .stApp .m3k-simula li svg.svg {{ color:#B8F53A; margin-right:.2rem; }}
 /* ===== Barra inferior del celular: indicador que se desliza entre pantallas ===== */
 @media (max-width: 640px) {{
   html body .stApp [class*="st-key-barra_movil"] {{ --i:4; }}
-  html body .stApp [class*="st-key-barra_movil"]::after {{ content:""; position:absolute; top:0; left:.25rem; width:calc((100% - .5rem) / 5); height:3px; border-radius:0 0 4px 4px; background:#B8F53A; box-shadow:0 2px 10px rgba(184,245,58,.55); transform:translateX(calc(var(--i) * 100%)); transition:transform .32s cubic-bezier(.77,0,.175,1); pointer-events:none; }}
+  html body .stApp [class*="st-key-barra_movil"] {{ background-image:linear-gradient(#B8F53A,#B8F53A) !important; background-repeat:no-repeat !important; background-size:calc((100% - .5rem) / 5) 3px !important; background-position:calc(var(--i) * 25%) 0 !important; transition:background-position .32s cubic-bezier(.77,0,.175,1); }}
   html body .stApp [class*="st-key-barra_movil"]:has([data-testid="stColumn"]:nth-child(1) a[aria-current="page"]) {{ --i:0; }}
   html body .stApp [class*="st-key-barra_movil"]:has([data-testid="stColumn"]:nth-child(2) a[aria-current="page"]) {{ --i:1; }}
   html body .stApp [class*="st-key-barra_movil"]:has([data-testid="stColumn"]:nth-child(3) a[aria-current="page"]) {{ --i:2; }}
