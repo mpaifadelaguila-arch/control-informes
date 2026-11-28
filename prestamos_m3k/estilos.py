@@ -607,6 +607,10 @@ html body .stApp [class*="st-key-nc_entrega__"] button, html body .stApp [class*
 html body .stApp [class*="st-key-nc_entrega__"] button p, html body .stApp [class*="st-key-mp_"][class*="__"] button p {{ white-space:nowrap !important; word-break:normal !important; overflow-wrap:normal !important; hyphens:none !important; font-size:.8rem !important; }}
 html body .stApp [class*="st-key-nc_entrega__"] button [data-testid="stIconMaterial"], html body .stApp [class*="st-key-mp_"][class*="__"] button [data-testid="stIconMaterial"] {{ font-size:1.05rem !important; margin-right:.1rem; }}
 html body .stApp [class*="st-key-nc_entrega__"] button > div, html body .stApp [class*="st-key-mp_"][class*="__"] button > div {{ gap:.25rem; flex-wrap:nowrap; }}
+/* animaciones de entrada más cortas: la app se siente más ágil (la pantalla de acceso conserva las suyas) */
+.block-container {{ animation-duration:.2s !important; }}
+.m3k-kpi, .m3k-kpi:nth-child(n), .m3k-panel, .m3k-dia, .m3k-sem.una .col .val {{ animation-duration:.25s !important; animation-delay:0s !important; }}
+.m3k-avance .pista i, .m3k-dia .nivel i, .m3k-sem .barras i, .m3k-cascada .pista i, .m3k-dona .seg, .m3k-panel .revela, .m3k-reparto .barra {{ animation-duration:.45s !important; animation-delay:0s !important; }}
 /* accesos directos de Inicio: solo en el celular */
 html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-qa_"]) {{ display:none !important; }}
 /* barra inferior: solo en el celular */

@@ -13,6 +13,7 @@ import time
 import streamlit as st
 
 NOMBRE_ARCHIVO = "prestamos_m3k.json"
+_ID_ARCHIVO: dict[str, str] = {}  # id del archivo por carpeta: evita buscarlo en Drive en cada guardado
 
 
 def _secreto(clave: str):
@@ -56,9 +57,11 @@ def descargar() -> tuple[bytes | None, str | None]:
         from googleapiclient.http import MediaIoBaseDownload
 
         servicio = _servicio()
-        id_archivo = _buscar(servicio, _secreto("prestamos_drive_folder_id"))
+        carpeta = _secreto("prestamos_drive_folder_id")
+        id_archivo = _buscar(servicio, carpeta)
         if not id_archivo:
             return None, None
+        _ID_ARCHIVO[carpeta] = id_archivo
         buffer = io.BytesIO()
         descargador = MediaIoBaseDownload(buffer, servicio.files().get_media(fileId=id_archivo))
         listo = False
@@ -80,17 +83,22 @@ def subir(contenido: bytes, reintentos: int = 3) -> str | None:
         try:
             servicio = _servicio()
             carpeta = _secreto("prestamos_drive_folder_id")
-            id_archivo = _buscar(servicio, carpeta)
-            media = MediaIoBaseUpload(io.BytesIO(contenido), mimetype="application/json", resumable=True)
+            id_archivo = _ID_ARCHIVO.get(carpeta) or _buscar(servicio, carpeta)
+            # archivo pequeño: se sube en una sola petición (resumable=False) en lugar de varias
+            media = MediaIoBaseUpload(io.BytesIO(contenido), mimetype="application/json", resumable=False)
             if id_archivo:
                 servicio.files().update(fileId=id_archivo, media_body=media, supportsAllDrives=True).execute()
             else:
-                servicio.files().create(
+                creado = servicio.files().create(
                     body={"name": NOMBRE_ARCHIVO, "parents": [carpeta]},
                     media_body=media, supportsAllDrives=True, fields="id",
                 ).execute()
+                id_archivo = creado.get("id")
+            if id_archivo:
+                _ID_ARCHIVO[carpeta] = id_archivo
             return None
         except Exception as e:
+            _ID_ARCHIVO.pop(_secreto("prestamos_drive_folder_id"), None)  # por si el archivo cambió: se vuelve a buscar
             ultimo_error = str(e)
             time.sleep(1.2 * intento)
     return ultimo_error
