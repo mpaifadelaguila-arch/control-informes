@@ -3,6 +3,7 @@
 from datetime import timedelta
 
 import streamlit as st
+import streamlit.components.v1 as componentes
 
 import calculos as calc
 import compartir
@@ -11,6 +12,17 @@ import datos
 import estilos as ui
 import graficos as g
 from vistas import comun
+
+
+_CIFRAS_JS = r"""<script>(function(){try{var w=window.parent,d=w.document;
+if(w.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+function una(el){var t=el.textContent.trim();if(el.dataset.contado===t)return;el.dataset.contado=t;
+var m=t.match(/^(S\/\s*)(-?[\d,]*\.?\d+)$/);if(!m)return;var fin=parseFloat(m[2].replace(/,/g,''));if(!isFinite(fin)||fin===0)return;
+var t0=null,dur=650;function paso(ts){if(t0===null)t0=ts;var p=Math.min((ts-t0)/dur,1),e=1-Math.pow(1-p,4);
+el.textContent=p<1?m[1]+(fin*e).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):t;if(p<1)w.requestAnimationFrame(paso);}
+w.requestAnimationFrame(paso);}
+function todas(){d.querySelectorAll('.m3k-hero .v,.m3k-hero .v2').forEach(una);}
+todas();setTimeout(todas,150);setTimeout(todas,500);}catch(e){}})();</script>"""
 
 
 def mostrar() -> None:
@@ -64,6 +76,7 @@ def mostrar() -> None:
         f'<div class="mini {vencido_cls}"><div class="e">Vencido</div><div class="v2 num">{ui.esc(ui.soles(ind["vencido"]))}</div>'
         f'<small>{"Cuotas atrasadas" if ind["vencido"] > 0 else "Nadie atrasado"}</small></div>'
         f'</div></div>', unsafe_allow_html=True)
+    componentes.html(_CIFRAS_JS, height=0)
 
     st.subheader("Cobranza", anchor=False)
     cola = calc.cola_cobranza(db, evals, hoy)

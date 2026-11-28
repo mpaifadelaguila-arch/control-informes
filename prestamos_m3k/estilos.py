@@ -841,6 +841,23 @@ html body .stApp [class*="st-key-tarj_cuota_"] {{ padding:.7rem 1rem; }}
 html body .stApp [class*="st-key-tarj_cuota_"]:has(input:checked) {{ border-color:#B8F53A; background:linear-gradient(180deg,#182010,#11160B); }}
 html body .stApp [class*="st-key-tarj_cob_"] {{ padding:.75rem 1rem; }}
 html body .stApp .num, html body .stApp .m3k-hero .v, html body .stApp .m3k-hero .v2, html body .stApp .m3k-kpi .v, html body .stApp .m3k-cred .saldo span {{ font-feature-settings:"tnum" 1, "ss01" 1; }}
+/* ===== Iconos de línea (un solo juego) ===== */
+html body .stApp svg.svg {{ width:1.1em; height:1.1em; vertical-align:-.17em; flex:none; }}
+html body .stApp .m3k-cab .ico, html body .stApp .m3k-kpi .ic, html body .stApp .m3k-vacio .gran, html body .stApp .m3k-simula .gran, html body .stApp .m3k-modo .ico {{ color:#10210A; display:flex; align-items:center; justify-content:center; }}
+html body .stApp .m3k-cab .ico svg.svg, html body .stApp .m3k-vacio .gran svg.svg, html body .stApp .m3k-simula .gran svg.svg {{ width:56%; height:56%; vertical-align:baseline; stroke-width:1.9; }}
+html body .stApp .m3k-kpi .ic svg.svg, html body .stApp .m3k-modo .ico svg.svg {{ width:58%; height:58%; vertical-align:baseline; }}
+html body .stApp .m3k-simula li svg.svg {{ color:#B8F53A; margin-right:.2rem; }}
+/* ===== Barra inferior del celular: indicador que se desliza entre pantallas ===== */
+@media (max-width: 640px) {{
+  html body .stApp [class*="st-key-barra_movil"] {{ --i:4; }}
+  html body .stApp [class*="st-key-barra_movil"]::after {{ content:""; position:absolute; top:0; left:.25rem; width:calc((100% - .5rem) / 5); height:3px; border-radius:0 0 4px 4px; background:#B8F53A; box-shadow:0 2px 10px rgba(184,245,58,.55); transform:translateX(calc(var(--i) * 100%)); transition:transform .32s cubic-bezier(.77,0,.175,1); pointer-events:none; }}
+  html body .stApp [class*="st-key-barra_movil"]:has([data-testid="stColumn"]:nth-child(1) a[aria-current="page"]) {{ --i:0; }}
+  html body .stApp [class*="st-key-barra_movil"]:has([data-testid="stColumn"]:nth-child(2) a[aria-current="page"]) {{ --i:1; }}
+  html body .stApp [class*="st-key-barra_movil"]:has([data-testid="stColumn"]:nth-child(3) a[aria-current="page"]) {{ --i:2; }}
+  html body .stApp [class*="st-key-barra_movil"]:has([data-testid="stColumn"]:nth-child(4) a[aria-current="page"]) {{ --i:3; }}
+  html body .stApp [class*="st-key-barra_movil"] a[data-testid="stPageLink-NavLink"][aria-current="page"]::before {{ display:none !important; }}
+  html body .stApp [class*="st-key-barra_movil"] a[data-testid="stPageLink-NavLink"], html body .stApp [class*="st-key-barra_movil"] [data-testid="stPopover"] button {{ transition:color .2s cubic-bezier(.23,1,.32,1), background-color .2s cubic-bezier(.23,1,.32,1); }}
+}}
 </style>
 """
 
@@ -850,6 +867,52 @@ def aplicar() -> None:
 
 
 # icono y color de cada pantalla (el color agrupa por sección: operación lima, contabilidad celeste, control ámbar)
+
+# --- Iconos de línea (estilo Lucide), un solo juego para toda la app: sustituyen a los emojis ---
+_SVG = {
+    "🏠": '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+    "💵": '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/>',
+    "💰": '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4"/>',
+    "📊": '<path d="M3 3v16a2 2 0 0 0 2 2h16M18 17V9M13 17V5M8 17v-3"/>',
+    "👥": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    "🏦": '<path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2 3 7h18z"/>',
+    "🏛": '<path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2 3 7h18z"/>',
+    "🧾": '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 17.5v-11"/>',
+    "⚙": '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>',
+    "💼": '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+    "📅": '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    "🗓": '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>',
+    "⚠": '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01"/>',
+    "📌": '<path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>',
+    "🌙": '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    "🧮": '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M16 14v4M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"/>',
+    "✅": '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+    "🔍": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    "📭": '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    "📒": '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/>',
+    "📈": '<path d="M16 7h6v6M22 7l-8.5 8.5-5-5L2 17"/>',
+    "📥": '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+    "📤": '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>',
+    "💳": '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+}
+
+
+def ico(simbolo: str) -> str:
+    """Devuelve el icono de línea que corresponde a un emoji; si no hay equivalente, el mismo texto."""
+    trazos = _SVG.get(simbolo.replace("️", ""))
+    if not trazos:
+        return simbolo
+    return ('<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+            f'stroke-linejoin="round" aria-hidden="true">{trazos}</svg>')
+
+
+def con_iconos(html: str) -> str:
+    """Cambia, dentro de un texto HTML, cada emoji conocido por su icono de línea."""
+    for emoji in _SVG:
+        html = html.replace(emoji + "️", emoji).replace(emoji, ico(emoji))
+    return html
+
+
 SECCIONES = {
     "Control de cartera": ("🏠", "#B8F53A"), "Registrar cobro": ("💵", "#B8F53A"), "Préstamos": ("💰", "#B8F53A"), "Clientes": ("👥", "#B8F53A"),
     "Resultados": ("📊", "#6CC4E8"), "Cuentas por cobrar": ("🧾", "#6CC4E8"), 
@@ -861,7 +924,7 @@ def encabezado(titulo: str, subtitulo: str = "") -> None:
     sub = f"<p>{esc(subtitulo)}</p>" if subtitulo else ""
     icono, color = SECCIONES.get(titulo, ("💼", ACENTO))
     clase = "m3k-cab cont" if titulo in SECCIONES_CONTABILIDAD else "m3k-cab ctrl" if titulo in SECCIONES_CONTROL else "m3k-cab app" if titulo in SECCIONES_APLICACION else "m3k-cab"
-    st.markdown(f'<div class="{clase}" style="--sec:{color}"><div class="ico">{icono}</div><div><div class="marca">M3K · Préstamos personales</div>'
+    st.markdown(f'<div class="{clase}" style="--sec:{color}"><div class="ico">{ico(icono)}</div><div><div class="marca">M3K · Préstamos personales</div>'
                 f"<h1>{esc(titulo)}</h1>{sub}</div></div>", unsafe_allow_html=True)
 
 
@@ -896,9 +959,9 @@ ICONOS_KPI = (("hoy", "📅"), ("vencido", "⚠️"), ("atraso", "⚠️"), ("ca
 
 def _icono_kpi(etiqueta: str, icono: str | None = None) -> str:
     if icono:
-        return icono
+        return ico(icono)
     e = etiqueta.lower()
-    return next((i for clave, i in ICONOS_KPI if clave in e), "📌")
+    return ico(next((i for clave, i in ICONOS_KPI if clave in e), "📌"))
 
 
 def kpis(items: list[dict]) -> None:
@@ -958,7 +1021,7 @@ def barra(avance: float) -> Raw:
 
 
 def vacio(titulo: str, ayuda: str, icono: str = "📭") -> None:
-    st.markdown(f'<div class="m3k-vacio"><div class="gran">{icono}</div><b>{esc(titulo)}</b>{esc(ayuda)}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="m3k-vacio"><div class="gran">{ico(icono)}</div><b>{esc(titulo)}</b>{esc(ayuda)}</div>', unsafe_allow_html=True)
 
 
 def verificaciones(items: list[tuple[str, bool, str]]) -> None:
