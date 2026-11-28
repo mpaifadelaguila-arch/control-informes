@@ -757,6 +757,30 @@ html body .stApp [data-testid="stCaptionContainer"] {{ color:#8E949A; }}
   html body .stApp .m3k-kpi {{ padding:.85rem .95rem; }}
   html body .stApp .stButton button {{ min-height:3rem; }}
 }}
+/* ===== Inicio: tarjeta principal con el capital y los cobros del día ===== */
+html body .stApp .m3k-hero {{ display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:1rem; margin:.3rem 0 1.4rem; padding:1.3rem 1.4rem; border-radius:18px; border:1px solid #2A2D2A;
+  background:radial-gradient(120% 140% at 0% 0%, rgba(184,245,58,.13), rgba(184,245,58,0) 55%), linear-gradient(180deg,#151716,#0F1010); }}
+html body .stApp .m3k-hero .e {{ font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:#9AA0A6; font-weight:600; }}
+html body .stApp .m3k-hero .v {{ font-size:2.8rem; font-weight:800; letter-spacing:-.03em; line-height:1.1; margin:.3rem 0 .8rem; }}
+html body .stApp .m3k-hero .barra {{ height:10px; border-radius:6px; background:#F5A524; overflow:hidden; }}
+html body .stApp .m3k-hero .barra i {{ display:block; height:100%; background:#B8F53A; border-radius:6px 0 0 6px; }}
+html body .stApp .m3k-hero .leyenda {{ display:flex; flex-wrap:wrap; gap:.4rem 1.4rem; margin:.7rem 0 .4rem; font-size:.9rem; color:#C9CDD1; }}
+html body .stApp .m3k-hero .leyenda strong {{ color:#fff; margin-left:.3rem; }}
+html body .stApp .m3k-hero .leyenda b {{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:.4rem; }}
+html body .stApp .m3k-hero .d1 {{ background:#B8F53A; }} html body .stApp .m3k-hero .d2 {{ background:#F5A524; }}
+html body .stApp .m3k-hero .nota {{ color:#8E949A; font-size:.82rem; }}
+html body .stApp .m3k-hero .der {{ display:grid; gap:.7rem; align-content:center; }}
+html body .stApp .m3k-hero .mini {{ background:rgba(255,255,255,.04); border:1px solid #2A2C2E; border-radius:14px; padding:.8rem 1rem; }}
+html body .stApp .m3k-hero .mini .v2 {{ font-size:1.6rem; font-weight:800; letter-spacing:-.02em; margin:.1rem 0; }}
+html body .stApp .m3k-hero .mini small {{ color:#8E949A; }}
+html body .stApp .m3k-hero .mini.malo {{ border-color:rgba(255,99,99,.45); }} html body .stApp .m3k-hero .mini.malo .v2 {{ color:#FF7A7A; }}
+html body .stApp .m3k-hero .mini.ok .v2 {{ color:#B8F53A; }}
+@media (max-width: 640px) {{
+  html body .stApp .m3k-hero {{ grid-template-columns:1fr; padding:1.05rem 1rem; border-radius:16px; }}
+  html body .stApp .m3k-hero .v {{ font-size:2.15rem; }}
+  html body .stApp .m3k-hero .der {{ grid-template-columns:1fr 1fr; }}
+  html body .stApp .m3k-hero .mini {{ padding:.65rem .75rem; }} html body .stApp .m3k-hero .mini .v2 {{ font-size:1.2rem; }}
+}}
 </style>
 """
 

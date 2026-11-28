@@ -27,6 +27,8 @@ def _formulario(db: dict, cliente: dict | None, clave: str) -> None:
                 else:
                     ops.crear_cliente(db, nombre, dni, tel, direccion)
                 datos.guardar(db)
+                if not cliente:
+                    st.session_state["_abrir_nuevo_cliente"] = False
                 ui.avisar("ok", "Cliente guardado.")
                 st.rerun()
             except ValueError as e:
@@ -39,8 +41,18 @@ def mostrar() -> None:
     activos_n = sum(1 for c in db["clientes"] if c["activo"])
     ui.encabezado("Clientes", f"{len(db['clientes'])} registrado(s) · {activos_n} activo(s)")
 
-    with st.expander(":material/person_add: Nuevo cliente", expanded=not db["clientes"] or st.session_state.pop("_abrir_nuevo_cliente", False)):
-        _formulario(db, None, "form_nuevo_cliente")
+    # arriba lo más usado: buscar y registrar un cliente nuevo
+    c_busca, c_nuevo = st.columns([4, 1.4], vertical_alignment="bottom")
+    buscar = c_busca.text_input("Buscar", placeholder="Buscar por nombre, DNI o teléfono", label_visibility="collapsed")
+    abierto = bool(st.session_state.get("_abrir_nuevo_cliente")) or not db["clientes"]
+    if c_nuevo.button("Cerrar" if abierto and db["clientes"] else "Nuevo cliente", key="np_abrir_cliente",
+                      icon=":material/close:" if abierto and db["clientes"] else ":material/person_add:", use_container_width=True):
+        st.session_state["_abrir_nuevo_cliente"] = not abierto
+        st.rerun()
+    if abierto:
+        with st.container(border=True):
+            st.markdown("**Nuevo cliente**")
+            _formulario(db, None, "form_nuevo_cliente")
 
     if not db["clientes"]:
         ui.vacio("Todavía no hay clientes", "Completa el formulario de arriba para registrar el primero.", "👥")
@@ -59,7 +71,6 @@ def mostrar() -> None:
     if st.session_state.get("filtro_cliente") not in visibles:
         st.session_state["filtro_cliente"] = "Todos"
     filtro = nav.pestanas(visibles, "filtro_cliente", etiquetas={k: f"{k} ({conteo[k]})" for k in visibles})
-    buscar = st.text_input("Buscar", placeholder="Buscar por nombre, DNI o teléfono", label_visibility="collapsed")
     q = buscar.strip().lower()
     lista = [c for c in db["clientes"] if filtros[filtro](c) and (not q or q in c["nombre"].lower() or q in c["dni"] or q in c.get("telefono", ""))]
     if not lista:
