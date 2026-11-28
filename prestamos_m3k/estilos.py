@@ -929,6 +929,18 @@ html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria
 [data-testid="stDialog"] [data-testid="stDownloadButton"] button * {{ color:#F4F4F2 !important; }}
 [data-testid="stDialog"] [class*="st-key-wa_chat"] a, [data-testid="stDialog"] [class*="st-key-wa_chat"] a * {{ background:#16223C !important; color:#F4F4F2 !important; border:1px solid #2B3A5F !important; }}
 [data-testid="stDialog"] [data-testid="stFormSubmitButton"] button, [data-testid="stDialog"] [data-testid="stFormSubmitButton"] button * {{ color:#0A1A05 !important; }}
+
+/* ventanas flotantes: fondo oscuro garantizado (la base del tema es clara y el cuadro vive fuera de .stApp) */
+[data-testid="stDialog"] [role="dialog"], [data-baseweb="modal"] [role="dialog"], [data-testid="stDialog"] [data-baseweb="modal"] > div > div,
+[data-testid="stDialog"] [data-testid="stDialogContent"] {{ background:#0C1322 !important; background-color:#0C1322 !important; color:#E4E4E7; }}
+[data-testid="stDialog"] :is(h1,h2,h3,header,[data-testid="stDialogTitle"]), [data-testid="stDialog"] :is(h1,h2,h3) * {{ color:#F4F4F2 !important; background:transparent !important; }}
+[data-testid="stDialog"] [role="dialog"] button[aria-label="Close"] {{ background:transparent !important; color:#D4D4D8 !important; }}
+[data-testid="stDialog"] [role="dialog"] button[aria-label="Close"] * {{ color:#D4D4D8 !important; fill:#D4D4D8 !important; }}
+[data-testid="stDialog"] [data-testid="stMarkdownContainer"] :is(p,strong,li) {{ color:#E4E4E7; }}
+[data-testid="stDialog"] .m3k-recibo, [data-testid="stDialog"] .m3k-recibo * {{ color:#0A1A05 !important; background-color:transparent; }}
+[data-testid="stDialog"] .m3k-recibo {{ background:#F4F4F2 !important; }}
+[data-testid="stDialog"] .m3k-recibo .anul {{ color:#B3261E !important; }}
+[data-testid="stDialog"] [data-testid="stCaptionContainer"] * {{ color:#B6BED0 !important; }}
 </style>
 """
 
