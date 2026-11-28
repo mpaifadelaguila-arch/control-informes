@@ -531,6 +531,17 @@ html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid=
 .m3k-modo ul {{ list-style:none; margin:0; padding:0; font-size:.84rem; color:#D4D4D8; line-height:1.7; }}
 .m3k-modo .ej {{ margin-top:.5rem; padding-top:.45rem; border-top:1px dashed var(--borde); font-size:.8rem; color:var(--suave); }}
 .m3k-modo .ej strong {{ color:#B8F53A; }}
+/* Nuevo préstamo: botón principal y tarjetas de modalidad más compactas (3 en una fila) */
+html body .stApp [class*="st-key-np_abrir"] button {{ background:#B8F53A !important; border:1px solid #B8F53A !important; min-height:3rem; box-shadow:0 6px 18px rgba(184,245,58,.22); }}
+html body .stApp [class*="st-key-np_abrir"] button, html body .stApp [class*="st-key-np_abrir"] button * {{ color:#0A1A05 !important; font-weight:700 !important; background:transparent; }}
+html body .stApp [class*="st-key-np_abrir"] button {{ background:#B8F53A !important; }}
+html body .stApp [class*="st-key-np_abrir"] button:hover {{ background:#CBFA66 !important; }}
+.m3k-modos {{ grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.5rem; margin:.1rem 0 .4rem; }}
+.m3k-modo {{ padding:.6rem .75rem; }}
+.m3k-modo .ico {{ width:30px; height:30px; font-size:1rem; margin-bottom:.3rem; border-radius:9px; }}
+.m3k-modo .sub {{ margin:.05rem 0 .3rem; }}
+.m3k-modo ul {{ font-size:.78rem; line-height:1.5; }}
+.m3k-modo .ej {{ margin-top:.35rem; padding-top:.3rem; }}
 
 /* Barra lateral: panel con marca arriba, secciones en mayúsculas, iconos en fichas y la página activa como tarjeta con acento lima */
 html body .stApp [data-testid="stSidebar"], html body .stApp [data-testid="stSidebarContent"] {{ background:linear-gradient(180deg,#151516 0%,#0E0E0F 100%) !important;

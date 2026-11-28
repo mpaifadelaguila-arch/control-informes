@@ -20,7 +20,7 @@ def _proxima(ev: dict) -> str:
 
 def _cartera(db: dict, evals: dict) -> None:
     if not db["prestamos"]:
-        ui.vacio("Aún no hay créditos", "Crea el primero en la pestaña «Nuevo crédito».", "💰")
+        ui.vacio("Aún no hay créditos", "Crea el primero con el botón «Nuevo préstamo».", "💰")
         return
     # filtros con su conteo: sirven también de resumen de la cartera
     conteo = {k: sum(1 for p in db["prestamos"] if v is None or evals[p["id"]]["estado"] == v) for k, v in FILTROS.items()}
@@ -135,25 +135,27 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
     st.session_state.setdefault("nc_monto", 0.0)
     st.session_state.setdefault("nc_tasa", float(db["config"].get("tasa_default", 20.0)))
 
-    izq, der = st.columns([5, 6], gap="large")
+    izq, der = st.columns([3, 2], gap="large")
 
-    # ---------------- izquierda: los datos del crédito ----------------
+    # ---------------- izquierda: los datos del crédito, en horizontal ----------------
     with izq:
         with st.container(border=True):
             _paso(1, "Cliente y monto")
             nombres = {c["id"]: f"{c['nombre']} · DNI {c['dni']}" for c in activos}
-            cliente_id = st.selectbox("Cliente", ids, format_func=nombres.get, key="nc_cliente")
+            c_cli, c_monto, c_tasa = st.columns([5, 3, 2])
+            cliente_id = c_cli.selectbox("Cliente", ids, format_func=nombres.get, key="nc_cliente")
+            monto = c_monto.number_input("Monto (S/)", min_value=0.0, step=50.0, format="%.2f", key="nc_monto")
+            tasa = c_tasa.number_input("Interés %", min_value=0.0, max_value=100.0, step=1.0, key="nc_tasa",
+                                       help="Total del periodo, o por mes si es mensual")
+            atajos = st.columns(len(MONTOS_RAPIDOS))
+            for col, v in zip(atajos, MONTOS_RAPIDOS):
+                col.button(f"S/ {v:,}", key=f"nc_rapido_{v}", on_click=_poner_monto, args=(v,), use_container_width=True)
             vigentes = [p for p in db["prestamos"] if p["cliente_id"] == cliente_id and evals[p["id"]]["estado"] in ("vigente", "vencido")]
             if vigentes:
                 deuda = sum(evals[p["id"]]["saldo"] for p in vigentes)
                 atraso = any(evals[p["id"]]["estado"] == "vencido" for p in vigentes)
                 (st.warning if atraso else st.info)(
                     f"Este cliente ya tiene {len(vigentes)} crédito(s) vigente(s) y debe {ui.soles(deuda)}" + (", con cuotas vencidas." if atraso else "."))
-            monto = st.number_input("Monto del crédito (S/)", min_value=0.0, step=50.0, format="%.2f", key="nc_monto")
-            atajos = st.columns(len(MONTOS_RAPIDOS))
-            for col, v in zip(atajos, MONTOS_RAPIDOS):
-                col.button(f"S/ {v:,}", key=f"nc_rapido_{v}", on_click=_poner_monto, args=(v,), use_container_width=True)
-            tasa = st.number_input("Interés (%): total del periodo, o por mes si es mensual", min_value=0.0, max_value=100.0, step=1.0, key="nc_tasa")
 
         with st.container(border=True):
             _paso(2, "¿Cómo se paga?")
@@ -164,20 +166,25 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
             st.markdown(_tarjetas_modalidades(modalidad, monto if monto > 0 else 1000.0, tasa), unsafe_allow_html=True)
             meses, fin_de_mes = None, False
             if modalidad == "mensual":
-                st.markdown("**¿Cuántos meses?**")
-                meses = int(nav.pestanas(list(calc.MESES_MENSUAL), "nc_meses", etiquetas={m: f"{m} {'mes' if m == 1 else 'meses'}" for m in calc.MESES_MENSUAL},
-                                         ancho_completo=True))
-                st.markdown("**¿Cuándo se cobra?**")
-                fin_de_mes = nav.pestanas(["mismo_dia", "fin_de_mes"], "nc_cuando", ancho_completo=True,
-                                          etiquetas={"mismo_dia": "El mismo día de cada mes", "fin_de_mes": "A fin de mes"},
-                                          iconos={"mismo_dia": ":material/event_repeat:", "fin_de_mes": ":material/event:"}) == "fin_de_mes"
+                c_mes, c_cuando = st.columns(2)
+                with c_mes:
+                    st.markdown("**¿Cuántos meses?**")
+                    meses = int(nav.pestanas(list(calc.MESES_MENSUAL), "nc_meses", etiquetas={m: f"{m} {'mes' if m == 1 else 'meses'}" for m in calc.MESES_MENSUAL},
+                                             ancho_completo=True))
+                with c_cuando:
+                    st.markdown("**¿Cuándo se cobra?**")
+                    fin_de_mes = nav.pestanas(["mismo_dia", "fin_de_mes"], "nc_cuando", ancho_completo=True,
+                                              etiquetas={"mismo_dia": "El mismo día de cada mes", "fin_de_mes": "A fin de mes"},
+                                              iconos={"mismo_dia": ":material/event_repeat:", "fin_de_mes": ":material/event:"}) == "fin_de_mes"
 
         with st.container(border=True):
             _paso(3, "Entrega del dinero")
-            f0 = st.date_input("Fecha de desembolso", value=hoy, format="DD/MM/YYYY", key="nc_fecha")
-            st.markdown("**¿Cómo se entrega?**")
-            entrega = nav.pestanas(list(calc.ENTREGAS), "nc_entrega",
-                                   iconos={"Efectivo": ":material/payments:"}, ancho_completo=True)
+            c_fecha, c_entrega = st.columns([1, 2])
+            f0 = c_fecha.date_input("Fecha de desembolso", value=hoy, format="DD/MM/YYYY", key="nc_fecha")
+            with c_entrega:
+                st.markdown("**¿Cómo se entrega?**")
+                entrega = nav.pestanas(list(calc.ENTREGAS), "nc_entrega",
+                                       iconos={"Efectivo": ":material/payments:"}, ancho_completo=True)
 
     # ---------------- derecha: resumen en vivo y confirmación ----------------
     with der:
@@ -250,8 +257,16 @@ def mostrar() -> None:
     destino = st.session_state.pop("_vista_prestamos", None)
     if destino:
         st.session_state["vista_prestamos"] = destino
-    vista = nav.pestanas(["Cartera", "Nuevo crédito"], "vista_prestamos",
-                         iconos={"Cartera": ":material/list_alt:", "Nuevo crédito": ":material/add_circle:"})
+    vista = st.session_state.get("vista_prestamos", "Cartera")
+    if vista == "Cartera":
+        _, c_boton = st.columns([3, 1])
+        if c_boton.button("Nuevo préstamo", key="np_abrir", icon=":material/add_circle:", use_container_width=True):
+            st.session_state["vista_prestamos"] = "Nuevo crédito"
+            st.rerun()
+    else:
+        if st.button("Volver a la lista", key="np_volver", icon=":material/arrow_back:"):
+            st.session_state["vista_prestamos"] = "Cartera"
+            st.rerun()
     st.divider()
     if vista == "Cartera":
         _cartera(db, evals)
