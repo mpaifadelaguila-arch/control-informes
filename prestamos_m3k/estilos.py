@@ -866,9 +866,12 @@ html body .stApp .m3k-simula li svg.svg {{ color:#B8F53A; margin-right:.2rem; }}
 PALETAS = {
     "Original": None,
     "A · Esmeralda y dorado": {"matiz": 148, "tinte": (-2, 8, 5)},
-    "B · Azul medianoche": {"matiz": None, "tinte": (-1, 4, 16)},
+    "B · Azul medianoche": {"matiz": None, "tinte": (-1, 4, 16), "extra": (
+        ".m3k-hero .barra {{ background:#7C6CF0 !important; }} .m3k-hero .d2 {{ background:#7C6CF0 !important; }} "
+        ".m3k-hero {{ background:radial-gradient(120% 140% at 0% 0%, rgba(76,141,255,.16), rgba(76,141,255,0) 55%), linear-gradient(180deg,#111A2E,#0C1322) !important; border-color:#1F2B47 !important; }}")},
     "C · Grafito cálido y dorado": {"matiz": 42, "tinte": (4, 2, -4)},
 }
+PALETA_POR_DEFECTO = "B · Azul medianoche"  # la elegida
 _CSS_POR_PALETA: dict = {}
 
 
@@ -900,11 +903,12 @@ def _recolorear(css: str, pal: dict) -> str:
     css = re.sub(r"rgba\((\d+),\s*(\d+),\s*(\d+),", rgba, css)
     r, g, b = tono(0x0B, 0x0B, 0x0C)
     fondo = f"#{r:02X}{g:02X}{b:02X}"
-    return css.replace("</style>", f'.stApp, [data-testid="stAppViewContainer"], [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {{ background-color:{fondo} !important; }}</style>')
+    extra = pal.get("extra", "").replace("{{", "{").replace("}}", "}")
+    return css.replace("</style>", f'{extra} .stApp, [data-testid="stAppViewContainer"], [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {{ background-color:{fondo} !important; }}</style>')
 
 
 def aplicar() -> None:
-    nombre = st.session_state.get("paleta", "Original")
+    nombre = st.session_state.get("paleta", PALETA_POR_DEFECTO)
     pal = PALETAS.get(nombre)
     if pal is None:
         st.markdown(CSS, unsafe_allow_html=True)
@@ -922,7 +926,7 @@ def _cambiar_paleta(clave: str) -> None:
 def selector_paleta(clave: str = "paleta_barra") -> None:
     """Para comparar paletas: Original, A, B y C."""
     opciones = list(PALETAS)
-    actual = st.session_state.get("paleta", "Original")
+    actual = st.session_state.get("paleta", PALETA_POR_DEFECTO)
     st.selectbox("Paleta de colores", opciones, index=opciones.index(actual) if actual in opciones else 0,
                  key=clave, on_change=_cambiar_paleta, args=(clave,))
 
