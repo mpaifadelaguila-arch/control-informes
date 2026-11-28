@@ -726,6 +726,37 @@ html body .stApp [class*="st-key-barra_movil"] {{ display:none !important; }}
   html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-vista_prestamos__"]) > [data-testid="stColumn"]:not(:has(button)) {{ display:none !important; }}
   html body .stApp [class*="st-key-filtro_"] button p, html body .stApp [class*="st-key-vista_prestamos__"] button p {{ font-size:.8rem !important; white-space:normal; }}
 }}
+/* ===== Pulido visual (estilo fintech: jerarquía clara, números grandes, bordes suaves, un solo acento) ===== */
+html body .stApp {{ --radio:14px; --linea:#242628; }}
+html body .stApp h1, html body .stApp h2, html body .stApp h3 {{ letter-spacing:-.015em; font-weight:700; }}
+html body .stApp h3 {{ font-size:1.25rem; margin-top:1.4rem; }}
+/* tarjetas de cifras: etiqueta pequeña, número protagonista */
+html body .stApp .m3k-kpis {{ gap:.85rem; margin:.4rem 0 1.4rem; }}
+html body .stApp .m3k-kpi {{ border-radius:var(--radio); border:1px solid var(--linea); border-left:1px solid var(--linea); border-top:3px solid var(--tono, var(--linea)); padding:1rem 1.15rem; background:linear-gradient(180deg,#151617,#101112); }}
+html body .stApp .m3k-kpi.heroe {{ border-color:transparent; box-shadow:0 10px 30px rgba(184,245,58,.18); }}
+html body .stApp .m3k-kpi .e {{ font-size:.72rem; letter-spacing:.07em; font-weight:600; }}
+html body .stApp .m3k-kpi .v {{ font-size:1.9rem; font-weight:800; letter-spacing:-.02em; margin:.25rem 0 .15rem; }}
+html body .stApp .m3k-kpi .nota {{ font-size:.8rem; }}
+/* paneles, filas y contenedores con bordes */
+html body .stApp .m3k-panel, html body .stApp .m3k-fila, html body .stApp .m3k-dia, html body .stApp .m3k-vacio {{ border-radius:var(--radio); border-color:var(--linea); }}
+html body .stApp [data-testid="stVerticalBlockBorderWrapper"] {{ border-radius:var(--radio) !important; border-color:var(--linea) !important; }}
+html body .stApp [data-testid="stExpander"] {{ border-radius:var(--radio) !important; border-color:var(--linea) !important; }}
+html body .stApp .m3k-scroll {{ border-radius:var(--radio); border-color:var(--linea); }}
+html body .stApp .m3k-tabla tbody tr:hover td {{ background:rgba(184,245,58,.05); }}
+/* botones y campos: misma altura, esquinas y foco coherentes */
+html body .stApp .stButton button, html body .stApp [data-testid="stFormSubmitButton"] button {{ border-radius:11px; min-height:2.7rem; font-weight:600; transition:transform .12s ease, background .15s ease, border-color .15s ease; }}
+html body .stApp .stButton button:active {{ transform:scale(.98); }}
+html body .stApp [data-baseweb="input"], html body .stApp [data-baseweb="select"] > div, html body .stApp [data-baseweb="textarea"] {{ border-radius:11px !important; }}
+html body .stApp [data-baseweb="input"]:focus-within, html body .stApp [data-baseweb="select"]:focus-within > div {{ border-color:#B8F53A !important; box-shadow:0 0 0 3px rgba(184,245,58,.16) !important; }}
+/* menú lateral: elementos redondeados */
+html body .stApp [data-testid="stSidebarNav"] a, html body .stApp [data-testid="stSidebar"] a[data-testid="stSidebarNavLink"] {{ border-radius:11px; }}
+/* texto de ayuda más discreto */
+html body .stApp [data-testid="stCaptionContainer"] {{ color:#8E949A; }}
+@media (max-width: 640px) {{
+  html body .stApp .m3k-kpi .v {{ font-size:1.55rem; }}
+  html body .stApp .m3k-kpi {{ padding:.85rem .95rem; }}
+  html body .stApp .stButton button {{ min-height:3rem; }}
+}}
 </style>
 """
 
