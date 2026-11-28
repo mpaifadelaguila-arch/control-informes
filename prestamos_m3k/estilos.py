@@ -897,9 +897,12 @@ _SVG = {
 }
 
 
+USAR_ICONOS_LINEA = False  # los emojis a color gustaron más que los iconos de línea
+
+
 def ico(simbolo: str) -> str:
     """Devuelve el icono de línea que corresponde a un emoji; si no hay equivalente, el mismo texto."""
-    trazos = _SVG.get(simbolo.replace("️", ""))
+    trazos = _SVG.get(simbolo.replace("\ufe0f", "")) if USAR_ICONOS_LINEA else None
     if not trazos:
         return simbolo
     return ('<svg class="svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" '
@@ -908,8 +911,10 @@ def ico(simbolo: str) -> str:
 
 def con_iconos(html: str) -> str:
     """Cambia, dentro de un texto HTML, cada emoji conocido por su icono de línea."""
+    if not USAR_ICONOS_LINEA:
+        return html
     for emoji in _SVG:
-        html = html.replace(emoji + "️", emoji).replace(emoji, ico(emoji))
+        html = html.replace(emoji + "\ufe0f", emoji).replace(emoji, ico(emoji))
     return html
 
 
