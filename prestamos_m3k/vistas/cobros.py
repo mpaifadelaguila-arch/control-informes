@@ -110,88 +110,89 @@ def mostrar() -> None:
          "nota": f"Vence {ui.fecha_dia(prox['vence'])}" if prox else "Crédito cancelado"},
     ])
 
-    col1, col2 = st.columns([1, 2])
-    f_cobro = col1.date_input("Fecha del cobro", value=hoy, max_value=hoy, format="DD/MM/YYYY", key=f"fc_{sel}")
-    with col2:
-        st.markdown('<div style="font-size:.875rem;margin-bottom:.3rem">Medio de pago</div>', unsafe_allow_html=True)
-        metodo = nav.pestanas(list(calc.METODOS_COBRO), f"mp_{sel}", ancho_completo=True,
-                              iconos={"Efectivo": ":material/payments:"})
+    izq, der = st.columns([3, 2], gap="large")
+    with izq:
+        f_cobro = st.date_input("Fecha del cobro", value=hoy, max_value=hoy, format="DD/MM/YYYY", key=f"fc_{sel}")
+        pagos = [p for p in db["pagos"] if not p.get("anulado")]
+        ev_f = calc.evaluar_prestamo(prestamo, pagos, f_cobro, float(db["config"].get("mora_diaria_pct", 0) or 0))
+        pendientes = [c for c in ev_f["cuotas"] if c["saldo"] > 0.004]
+        mora = ev_f["mora_pendiente"]
 
-    pagos = [p for p in db["pagos"] if not p.get("anulado")]
-    ev_f = calc.evaluar_prestamo(prestamo, pagos, f_cobro, float(db["config"].get("mora_diaria_pct", 0) or 0))
-    pendientes = [c for c in ev_f["cuotas"] if c["saldo"] > 0.004]
-    mora = ev_f["mora_pendiente"]
+        # ---- elegir cuotas: se cobran siempre de la más antigua a la más nueva ----
+        st.subheader("¿Qué cuotas se cobran?", anchor=False)
+        _inicializar_seleccion(sel, pendientes)
+        a1, a2, a3 = st.columns(3)
+        a1.button("Vencidas", on_click=_atajo, args=(sel, pendientes, "vencidas"), icon=":material/schedule:", use_container_width=True)
+        a2.button("Próxima", on_click=_atajo, args=(sel, pendientes, "proxima"), icon=":material/looks_one:", use_container_width=True)
+        a3.button("Todas", on_click=_atajo, args=(sel, pendientes, "todas"), icon=":material/done_all:", use_container_width=True)
+        st.caption("Marca una cuota y se marcan también las anteriores, porque siempre se cobra desde la más antigua.")
 
-    # ---- elegir cuotas: se cobran siempre de la más antigua a la más nueva ----
-    st.subheader("¿Qué cuotas se cobran?", anchor=False)
-    _inicializar_seleccion(sel, pendientes)
-    a1, a2, a3, _resto = st.columns([1, 1, 1.15, 2.2])
-    a1.button("Solo las vencidas", on_click=_atajo, args=(sel, pendientes, "vencidas"), icon=":material/schedule:", use_container_width=True)
-    a2.button("Solo la próxima", on_click=_atajo, args=(sel, pendientes, "proxima"), icon=":material/looks_one:", use_container_width=True)
-    a3.button("Todas las pendientes", on_click=_atajo, args=(sel, pendientes, "todas"), icon=":material/done_all:", use_container_width=True)
-    st.caption("Marca una cuota y se marcan también las anteriores, porque siempre se cobra desde la más antigua.")
+        pagadas = [c for c in ev_f["cuotas"] if c["saldo"] <= 0.004]
+        if pagadas:
+            lista = " · ".join(f"Cuota {c['n']} ({ui.fecha_dia(c['vence'])})" for c in pagadas)
+            st.markdown(f'<div class="m3k-pagadas">✅ <b>Ya pagadas:</b> {ui.esc(lista)}</div>', unsafe_allow_html=True)
 
-    pagadas = [c for c in ev_f["cuotas"] if c["saldo"] <= 0.004]
-    if pagadas:
-        lista = " · ".join(f"Cuota {c['n']} ({ui.fecha_dia(c['vence'])})" for c in pagadas)
-        st.markdown(f'<div class="m3k-pagadas">✅ <b>Ya pagadas:</b> {ui.esc(lista)}</div>', unsafe_allow_html=True)
+        for c in pendientes:
+            vence = c["vence"] if not isinstance(c["vence"], str) else calc.fecha(c["vence"])
+            dias = (vence - f_cobro).days
+            if dias < 0:
+                cuando, tono = f"venció hace {-dias} día(s)", ui.TONOS["malo"]
+            elif dias == 0:
+                cuando, tono = "vence hoy", ui.TONOS["aviso"]
+            else:
+                cuando, tono = f"vence en {dias} día(s)", ui.TEXTO_SUAVE
+            with st.container(border=True):
+                fila = st.columns([1.6, 2.6, 2, 1.6], vertical_alignment="center")
+                fila[0].checkbox(f"Cuota {c['n']} de {len(ev_f['cuotas'])}", key=_clave(sel, c["n"]), on_change=_al_marcar, args=(sel, pendientes, c["n"]))
+                fila[1].markdown(f'<b>{ui.fecha_dia(c["vence"])}</b><br><small style="color:{tono};font-weight:600">{cuando}</small>', unsafe_allow_html=True)
+                detalle = f"Pagado {ui.soles(c['pagado'])} de {ui.soles(c['monto'])}" if c["pagado"] > 0.004 else ""
+                fila[2].markdown(f'{ui.chip_cuota(c["estado"])}' + (f'<br><small style="color:{ui.TEXTO_SUAVE}">{ui.esc(detalle)}</small>' if detalle else ""),
+                                 unsafe_allow_html=True)
+                fila[3].markdown(f'<div class="num" style="text-align:right;font-size:1.15rem"><b>{ui.soles(c["saldo"])}</b></div>', unsafe_allow_html=True)
 
-    for c in pendientes:
-        vence = c["vence"] if not isinstance(c["vence"], str) else calc.fecha(c["vence"])
-        dias = (vence - f_cobro).days
-        if dias < 0:
-            cuando, tono = f"venció hace {-dias} día(s)", ui.TONOS["malo"]
-        elif dias == 0:
-            cuando, tono = "vence hoy", ui.TONOS["aviso"]
-        else:
-            cuando, tono = f"vence en {dias} día(s)", ui.TEXTO_SUAVE
-        with st.container(border=True):
-            fila = st.columns([1.6, 2.6, 2, 1.6], vertical_alignment="center")
-            fila[0].checkbox(f"Cuota {c['n']} de {len(ev_f['cuotas'])}", key=_clave(sel, c["n"]), on_change=_al_marcar, args=(sel, pendientes, c["n"]))
-            fila[1].markdown(f'<b>{ui.fecha_dia(c["vence"])}</b><br><small style="color:{tono};font-weight:600">{cuando}</small>', unsafe_allow_html=True)
-            detalle = f"Pagado {ui.soles(c['pagado'])} de {ui.soles(c['monto'])}" if c["pagado"] > 0.004 else ""
-            fila[2].markdown(f'{ui.chip_cuota(c["estado"])}' + (f'<br><small style="color:{ui.TEXTO_SUAVE}">{ui.esc(detalle)}</small>' if detalle else ""),
-                             unsafe_allow_html=True)
-            fila[3].markdown(f'<div class="num" style="text-align:right;font-size:1.15rem"><b>{ui.soles(c["saldo"])}</b></div>', unsafe_allow_html=True)
+        marcadas = [c for c in pendientes if st.session_state.get(_clave(sel, c["n"]))]
+        suma_cuotas = round(sum(c["saldo"] for c in marcadas), 2)
+        total_elegido = round(suma_cuotas + (mora if marcadas or not pendientes else 0.0), 2)
+        deuda_total = round(ev_f["saldo"] + mora, 2)
 
-    marcadas = [c for c in pendientes if st.session_state.get(_clave(sel, c["n"]))]
-    suma_cuotas = round(sum(c["saldo"] for c in marcadas), 2)
-    total_elegido = round(suma_cuotas + (mora if marcadas or not pendientes else 0.0), 2)
-    deuda_total = round(ev_f["saldo"] + mora, 2)
+    with der:
+        with st.container(key="cobro_resumen"):
+            st.markdown('<div style="font-size:.875rem;margin-bottom:.3rem">Medio de pago</div>', unsafe_allow_html=True)
+            metodo = nav.pestanas(list(calc.METODOS_COBRO), f"mp_{sel}", ancho_completo=True,
+                                  iconos={"Efectivo": ":material/payments:"})
+            if mora:
+                st.info(f"Este crédito tiene mora pendiente de {ui.soles(mora)}. Se cobra primero, antes de las cuotas.")
 
-    if mora:
-        st.info(f"Este crédito tiene mora pendiente de {ui.soles(mora)}. Se cobra primero, antes de las cuotas.")
+            # ---- monto: lo calcula la selección; el abono parcial es opcional ----
+            parcial = st.toggle("Cobrar otro monto (abono parcial)", key=f"parcial_{sel}",
+                                help="Úsalo si el cliente paga menos que las cuotas marcadas. El monto se aplica desde la cuota más antigua.")
+            if parcial:
+                monto = st.number_input("Monto cobrado (S/)", min_value=0.0, max_value=float(deuda_total), value=float(min(total_elegido, deuda_total)),
+                                        step=10.0, format="%.2f", key=f"mc_{sel}_{total_elegido}")
+            else:
+                monto = total_elegido
+            nota = st.text_input("Nota (opcional)", key=f"nt_{sel}", placeholder="Ej.: pagó con Yape")
 
-    # ---- monto: lo calcula la selección; el abono parcial es opcional ----
-    parcial = st.toggle("Cobrar otro monto (abono parcial)", key=f"parcial_{sel}",
-                        help="Úsalo si el cliente paga menos que las cuotas marcadas. El monto se aplica desde la cuota más antigua.")
-    if parcial:
-        monto = st.number_input("Monto cobrado (S/)", min_value=0.0, max_value=float(deuda_total), value=float(min(total_elegido, deuda_total)),
-                                step=10.0, format="%.2f", key=f"mc_{sel}_{total_elegido}")
-    else:
-        monto = total_elegido
-    nota = st.text_input("Nota (opcional)", key=f"nt_{sel}", placeholder="Ej.: pagó con Yape")
+            a_mora = min(monto, mora)
+            a_cuotas = round(monto - a_mora, 2)
+            detalle_cuotas = f"{len(marcadas)} cuota(s) marcada(s)" if not parcial else "abono parcial"
+            st.markdown(
+                f'<div class="m3k-fila" style="--tono:{ui.TONOS["ok"] if monto > 0 else ui.TONOS["neutro"]}"><div>'
+                f'<small>Vas a cobrar</small><b class="num" style="font-size:1.5rem">{ui.soles(monto)}</b>'
+                f'<small>{"Mora " + ui.soles(a_mora) + " + " if a_mora else ""}cuotas {ui.soles(a_cuotas)} · {detalle_cuotas}</small></div>'
+                f'<div class="num"><small>Quedará pendiente</small><b style="display:block">{ui.soles(max(0.0, round(deuda_total - monto, 2)))}</b></div></div>',
+                unsafe_allow_html=True,
+            )
 
-    a_mora = min(monto, mora)
-    a_cuotas = round(monto - a_mora, 2)
-    detalle_cuotas = f"{len(marcadas)} cuota(s) marcada(s)" if not parcial else "abono parcial"
-    st.markdown(
-        f'<div class="m3k-fila" style="--tono:{ui.TONOS["ok"] if monto > 0 else ui.TONOS["neutro"]}"><div>'
-        f'<small>Vas a cobrar</small><b class="num" style="font-size:1.5rem">{ui.soles(monto)}</b>'
-        f'<small>{"Mora " + ui.soles(a_mora) + " + " if a_mora else ""}cuotas {ui.soles(a_cuotas)} · {detalle_cuotas}</small></div>'
-        f'<div class="num"><small>Quedará pendiente</small><b style="display:block">{ui.soles(max(0.0, round(deuda_total - monto, 2)))}</b></div></div>',
-        unsafe_allow_html=True,
-    )
-
-    st.markdown('<div style="height:.9rem"></div>', unsafe_allow_html=True)
-    if st.button("Registrar cobro", type="primary", disabled=monto <= 0, icon=":material/check_circle:"):
-        try:
-            pago = ops.registrar_pago(db, sel, f_cobro, monto, metodo, nota, hoy_=hoy)
-        except ValueError as e:
-            st.error(str(e))
-        else:
-            datos.guardar(db)
-            _limpiar_seleccion(sel)
-            st.session_state["ultimo_pago"] = {"id": pago["id"], "folio": pago["folio"], "total": round(pago["monto_cuota"] + pago["monto_mora"], 2)}
-            ui.avisar("ok", f"Cobro {pago['folio']} registrado.")
-            st.rerun()
+            st.markdown('<div style="height:.9rem"></div>', unsafe_allow_html=True)
+            if st.button("Registrar cobro", type="primary", disabled=monto <= 0, icon=":material/check_circle:"):
+                try:
+                    pago = ops.registrar_pago(db, sel, f_cobro, monto, metodo, nota, hoy_=hoy)
+                except ValueError as e:
+                    st.error(str(e))
+                else:
+                    datos.guardar(db)
+                    _limpiar_seleccion(sel)
+                    st.session_state["ultimo_pago"] = {"id": pago["id"], "folio": pago["folio"], "total": round(pago["monto_cuota"] + pago["monto_mora"], 2)}
+                    ui.avisar("ok", f"Cobro {pago['folio']} registrado.")
+                    st.rerun()
