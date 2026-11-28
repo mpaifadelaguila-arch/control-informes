@@ -13,7 +13,7 @@ borderColor = "#26405A"
 dataframeBorderColor = "#26405A"
 dataframeHeaderBackgroundColor = "#1A2D42"
 baseRadius = "10px"
-font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap, sans-serif"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap, sans-serif"
 
 # La barra lateral conserva el azul oscuro del tema.
 [theme.sidebar]

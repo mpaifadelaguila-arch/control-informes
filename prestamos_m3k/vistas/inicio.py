@@ -76,7 +76,7 @@ def mostrar() -> None:
             detalle.append(f"{ui.soles(fila['vencido'])} vencido · {fila['cuotas_vencidas']} cuota(s) · {fila['atraso']} días de atraso")
         if fila["hoy"] > 0:
             detalle.append(f"{ui.soles(fila['hoy'])} vence hoy")
-        with st.container(border=True):
+        with st.container(key=f"tarj_cob_{i}"):
             c1, c2, c3 = st.columns([4, 4, 1.3], vertical_alignment="center")
             c1.markdown(
                 f'<b>{ui.esc(fila["cliente"].get("nombre", "—"))}</b><br><small style="color:{ui.TEXTO_SUAVE}">Préstamo {pr["numero"]:04d} · '

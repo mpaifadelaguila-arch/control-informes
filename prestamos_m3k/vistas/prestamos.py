@@ -156,7 +156,7 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
 
     # ---------------- izquierda: los datos del crédito, en horizontal ----------------
     with izq:
-        with st.container(border=True):
+        with st.container(key="tarj_cliente"):
             _paso(1, "Cliente y monto")
             nombres = {c["id"]: f"{c['nombre']} · DNI {c['dni']}" for c in activos}
             c_cli, c_monto, c_tasa = st.columns([5, 3, 2])
@@ -174,7 +174,7 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
                 (st.warning if atraso else st.info)(
                     f"Este cliente ya tiene {len(vigentes)} crédito(s) vigente(s) y debe {ui.soles(deuda)}" + (", con cuotas vencidas." if atraso else "."))
 
-        with st.container(border=True):
+        with st.container(key="tarj_pago"):
             _paso(2, "¿Cómo se paga?")
             modalidad = nav.pestanas(calc.modalidades_ofrecidas(), "nc_modalidad",
                                      etiquetas={k: calc.MODALIDADES[k]["nombre"] for k in calc.modalidades_ofrecidas()},
@@ -194,7 +194,7 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
                                               etiquetas={"mismo_dia": "Mismo día", "fin_de_mes": "Fin de mes"},
                                               iconos={"mismo_dia": ":material/event_repeat:", "fin_de_mes": ":material/event:"}) == "fin_de_mes"
 
-        with st.container(border=True):
+        with st.container(key="tarj_entrega"):
             _paso(3, "Entrega del dinero")
             c_fecha, c_entrega = st.columns([1, 2])
             f0 = c_fecha.date_input("Fecha de desembolso", value=hoy, format="DD/MM/YYYY", key="nc_fecha")
@@ -250,7 +250,7 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
             forzar = st.checkbox("Entregar de todos modos", key="nc_forzar")
         else:
             st.caption(f"Caja ahora {ui.soles(liquidez)}. Después de entregar quedará {ui.soles(quedara)}.")
-        if st.button(f"Confirmar y entregar {ui.soles(monto)}", type="primary", disabled=not forzar, icon=":material/check_circle:", use_container_width=True):
+        if st.button(f"Confirmar y entregar {ui.soles(monto)}", key="np_confirmar", type="primary", disabled=not forzar, icon=":material/check_circle:", use_container_width=True):
             try:
                 p = ops.crear_prestamo(db, cliente_id, monto, tasa, modalidad, f0, entrega, meses=meses, fin_de_mes=fin_de_mes)
             except ValueError as e:
