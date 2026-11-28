@@ -129,7 +129,7 @@ def _tarjetas_modalidades(elegida: str, monto: float, tasa: float) -> str:
         ejemplo = f"{ui.soles(monto)} → <strong>{cuota}</strong> " + ("al mes" if clave == "mensual" else "por cuota")
         lista = "".join(f"<li>{ui.esc(x)}</li>" for x in puntos)
         sel = " sel" if clave == elegida else ""
-        tarjetas.append(f'<div class="m3k-modo{sel}"><div class="ico">{icono}</div><b>{ui.esc(calc.MODALIDADES[clave]["nombre"])}</b>'
+        tarjetas.append(f'<div class="m3k-modo{sel}"><div class="ico">{ui.ico(icono)}</div><b>{ui.esc(calc.MODALIDADES[clave]["nombre"])}</b>'
                         f'<div class="sub">{ui.esc(sub)}</div><ul>{lista}</ul><div class="ej">{ejemplo}</div></div>')
     return f'<div class="m3k-modos">{"".join(tarjetas)}</div>'
 
@@ -207,10 +207,10 @@ def _nuevo(db: dict, hoy, evals: dict) -> None:
     with der:
         _paso(4, "Resumen del crédito")
         if monto <= 0:
-            st.markdown('<div class="m3k-simula"><div class="gran">🧮</div><b>Aquí verás la simulación</b>'
+            st.markdown(ui.con_iconos('<div class="m3k-simula"><div class="gran">🧮</div><b>Aquí verás la simulación</b>'
                         '<p>Escribe el monto, o elige uno de los atajos, y verás al instante:</p>'
                         '<ul><li>💵 cuánto paga el cliente en cada cuota</li><li>🧾 el total a pagar y el interés</li>'
-                        '<li>📅 las fechas de cobro, antes de confirmar</li></ul></div>', unsafe_allow_html=True)
+                        '<li>📅 las fechas de cobro, antes de confirmar</li></ul></div>'), unsafe_allow_html=True)
             return
 
         plan = calc.generar_cronograma(monto, tasa, modalidad, f0, None, meses, fin_de_mes)
