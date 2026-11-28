@@ -607,6 +607,9 @@ html body .stApp [class*="st-key-nc_entrega__"] button, html body .stApp [class*
 html body .stApp [class*="st-key-nc_entrega__"] button p, html body .stApp [class*="st-key-mp_"][class*="__"] button p {{ white-space:nowrap !important; word-break:normal !important; overflow-wrap:normal !important; hyphens:none !important; font-size:.8rem !important; }}
 html body .stApp [class*="st-key-nc_entrega__"] button [data-testid="stIconMaterial"], html body .stApp [class*="st-key-mp_"][class*="__"] button [data-testid="stIconMaterial"] {{ font-size:1.05rem !important; margin-right:.1rem; }}
 html body .stApp [class*="st-key-nc_entrega__"] button > div, html body .stApp [class*="st-key-mp_"][class*="__"] button > div {{ gap:.25rem; flex-wrap:nowrap; }}
+/* enlace «Recordar por WhatsApp» en la cobranza de Inicio */
+html body .stApp .m3k-recordar {{ display:inline-block; margin:.25rem 0 0 .4rem; padding:.2rem .7rem; border-radius:99px; border:1px solid rgba(184,245,58,.5); background:rgba(184,245,58,.12); color:#D6F58C !important; font-size:.78rem; font-weight:600; text-decoration:none !important; white-space:nowrap; }}
+html body .stApp .m3k-recordar:hover {{ background:rgba(184,245,58,.22); border-color:#B8F53A; }}
 /* animaciones de entrada más cortas: la app se siente más ágil (la pantalla de acceso conserva las suyas) */
 .block-container {{ animation-duration:.2s !important; }}
 .m3k-kpi, .m3k-kpi:nth-child(n), .m3k-panel, .m3k-dia, .m3k-sem.una .col .val {{ animation-duration:.25s !important; animation-delay:0s !important; }}
