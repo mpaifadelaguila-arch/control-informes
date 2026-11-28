@@ -781,6 +781,24 @@ html body .stApp .m3k-hero .mini.ok .v2 {{ color:#B8F53A; }}
   html body .stApp .m3k-hero .der {{ grid-template-columns:1fr 1fr; }}
   html body .stApp .m3k-hero .mini {{ padding:.65rem .75rem; }} html body .stApp .m3k-hero .mini .v2 {{ font-size:1.2rem; }}
 }}
+/* ===== Cartera de préstamos: tarjetas ===== */
+html body .stApp .m3k-creds {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:.9rem; margin:.4rem 0 1rem; }}
+html body .stApp .m3k-cred {{ background:linear-gradient(180deg,#151617,#101112); border:1px solid #242628; border-radius:16px; padding:1rem 1.1rem; transition:transform .15s ease, border-color .15s ease; }}
+html body .stApp .m3k-cred:hover {{ transform:translateY(-2px); border-color:#3A3F32; }}
+html body .stApp .m3k-cred.sel {{ border-color:#B8F53A; box-shadow:0 0 0 1px rgba(184,245,58,.35); }}
+html body .stApp .m3k-cred .cab {{ display:flex; justify-content:space-between; align-items:center; gap:.5rem; }}
+html body .stApp .m3k-cred .cab b {{ font-size:1.02rem; }}
+html body .stApp .m3k-cred .sub {{ color:#8E949A; font-size:.8rem; margin:.15rem 0 .6rem; }}
+html body .stApp .m3k-cred .saldo {{ display:flex; align-items:baseline; gap:.5rem; margin-bottom:.4rem; }}
+html body .stApp .m3k-cred .saldo small {{ color:#8E949A; font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; }}
+html body .stApp .m3k-cred .saldo span {{ font-size:1.7rem; font-weight:800; letter-spacing:-.02em; }}
+html body .stApp .m3k-cred .pie {{ display:flex; justify-content:space-between; gap:.5rem; font-size:.8rem; color:#9AA0A6; margin-top:.35rem; }}
+html body .stApp .m3k-cred .pie b {{ color:#E6E8EA; font-weight:600; }}
+@media (max-width: 640px) {{
+  html body .stApp .m3k-creds {{ grid-template-columns:1fr; gap:.7rem; }}
+  html body .stApp [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] {{ gap:.55rem; }}
+  html body .stApp [data-testid="stVerticalBlockBorderWrapper"] {{ padding:.1rem; }}
+}}
 </style>
 """
 

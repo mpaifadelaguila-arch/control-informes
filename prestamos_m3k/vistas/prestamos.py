@@ -41,14 +41,31 @@ def _cartera(db: dict, evals: dict) -> None:
         ui.vacio("Sin créditos con ese filtro", "Cambia el estado o borra la búsqueda para ver más.", "🔍")
         return
 
-    ui.tabla(
-        ["N.º", "Cliente", "Modalidad", "Desembolso", "Capital", "Próxima cuota", "Cobrado", "Saldo", "Estado"],
-        [[f"{p['numero']:04d}", comun.nombre_cliente(db, p["cliente_id"]),
-          comun.descripcion_credito(p), ui.fecha_txt(p["fecha_desembolso"]),
-          ui.soles(p["monto"]), _proxima(evals[p["id"]]), ui.barra(evals[p["id"]]["avance"]), ui.soles(evals[p["id"]]["saldo"]),
-          ui.chip_prestamo(evals[p["id"]]["estado"])] for p in lista],
-        numericas=(4, 7), sin_corte=(0, 1, 3, 5), etiqueta="Cartera de créditos", apilar=True,
-    )
+    sel_actual = st.session_state.get("prestamo_sel")
+    tarjetas = []
+    for p in lista:
+        ev = evals[p["id"]]
+        pend = "—" if not ev["proxima"] else f"{ui.soles(ev['proxima']['saldo'])} · {ui.fecha_dia(ev['proxima']['vence'])}"
+        tarjetas.append(
+            f'<div class="m3k-cred{" sel" if p["id"] == sel_actual else ""}">'
+            f'<div class="cab"><b>{ui.esc(comun.nombre_cliente(db, p["cliente_id"]))}</b>{ui.chip_prestamo(ev["estado"])}</div>'
+            f'<div class="sub">Préstamo {p["numero"]:04d} · {ui.esc(comun.descripcion_credito(p))}</div>'
+            f'<div class="saldo"><small>Saldo</small><span class="num">{ui.soles(ev["saldo"])}</span></div>'
+            f'{ui.barra(ev["avance"])}'
+            f'<div class="pie"><span>Próxima cuota</span><b class="num">{ui.esc(pend)}</b></div>'
+            f'<div class="pie"><span>Prestado {ui.soles(p["monto"])}</span><span>{ui.fecha_txt(p["fecha_desembolso"])}</span></div>'
+            f'</div>')
+    st.markdown(f'<div class="m3k-creds">{"".join(tarjetas)}</div>', unsafe_allow_html=True)
+    with st.expander("Ver tabla completa", icon=":material/table_rows:"):
+        ui.tabla(
+            ["N.º", "Cliente", "Modalidad", "Desembolso", "Capital", "Próxima cuota", "Cobrado", "Saldo", "Estado"],
+            [[f"{p['numero']:04d}", comun.nombre_cliente(db, p["cliente_id"]),
+              comun.descripcion_credito(p), ui.fecha_txt(p["fecha_desembolso"]),
+              ui.soles(p["monto"]), _proxima(evals[p["id"]]), ui.barra(evals[p["id"]]["avance"]), ui.soles(evals[p["id"]]["saldo"]),
+              ui.chip_prestamo(evals[p["id"]]["estado"])] for p in lista],
+            numericas=(4, 7), sin_corte=(0, 1, 3, 5), etiqueta="Cartera de créditos", apilar=True,
+        )
+
 
     st.subheader("Detalle del crédito", anchor=False)
     ids = [p["id"] for p in lista]
