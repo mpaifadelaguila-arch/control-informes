@@ -812,6 +812,28 @@ html body .stApp .stButton button:active, html body .stApp [data-testid="stFormS
 @media (prefers-reduced-motion: reduce) {{
   html body .stApp *, html body .stApp *::before, html body .stApp *::after {{ transition-duration:.01ms !important; }}
 }}
+/* ===== Fluidez: la página no se apaga ni parpadea al actualizarse ===== */
+/* Streamlit atenúa el contenido mientras recalcula; se mantiene nítido y la carga se indica con una línea fina arriba */
+html body .stApp [data-stale="true"], html body .stApp [data-stale="true"] * {{ opacity:1 !important; transition:none !important; }}
+html body .stApp [data-testid="stStatusWidget"] {{ display:none !important; }}
+@keyframes m3k-carga {{ from {{ transform:translateX(-100%); }} to {{ transform:translateX(100%); }} }}
+html body .stApp[data-teststate="running"]::after {{ content:""; position:fixed; top:0; left:0; right:0; height:2px; z-index:99999; background:linear-gradient(90deg,transparent,#B8F53A,transparent); animation:m3k-carga .9s ease-in-out infinite; pointer-events:none; }}
+@media (prefers-reduced-motion: reduce) {{ html body .stApp[data-teststate="running"]::after {{ animation:none; background:#B8F53A; opacity:.6; }} }}
+/* listas desplegables: los nombres largos se ven completos en vez de cortarse */
+html body [data-baseweb="popover"] li[role="option"], html body [data-baseweb="popover"] li[role="option"] * {{ white-space:normal !important; overflow:visible !important; text-overflow:clip !important; }}
+html body [data-baseweb="popover"] li[role="option"] {{ line-height:1.35; padding-top:.55rem; padding-bottom:.55rem; }}
+html body .stApp [data-baseweb="select"] [data-testid="stSelectboxVirtualDropdown"], html body .stApp [data-baseweb="select"] div[value] {{ white-space:normal; }}
+/* desplazamiento y selección */
+html body .stApp [data-testid="stMain"] {{ scroll-behavior:smooth; overscroll-behavior:contain; }}
+html body .stApp ::selection {{ background:rgba(184,245,58,.3); }}
+@media (max-width: 640px) {{
+  /* objetivos táctiles de al menos 44 px */
+  html body .stApp [data-testid="stCheckbox"] label, html body .stApp [data-testid="stToggle"] label {{ min-height:44px; align-items:center; }}
+  html body .stApp [data-baseweb="input"] input, html body .stApp [data-baseweb="select"] > div {{ min-height:46px; }}
+  html body .stApp [data-testid="stNumberInput"] button {{ min-width:44px; }}
+  html body .stApp [data-testid="stExpander"] summary {{ min-height:48px; }}
+  html body .stApp .block-container {{ padding-bottom:6.5rem; }}
+}}
 </style>
 """
 
