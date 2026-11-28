@@ -531,6 +531,8 @@ html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid=
 .m3k-modo ul {{ list-style:none; margin:0; padding:0; font-size:.84rem; color:#D4D4D8; line-height:1.7; }}
 .m3k-modo .ej {{ margin-top:.5rem; padding-top:.45rem; border-top:1px dashed var(--borde); font-size:.8rem; color:var(--suave); }}
 .m3k-modo .ej strong {{ color:#B8F53A; }}
+/* Registrar cobro: el resumen y el botón quedan a la vista mientras se eligen las cuotas */
+html body .stApp [class*="st-key-cobro_resumen"] {{ position:sticky; top:4.5rem; background:#111213; border:1px solid #2A2C2E; border-radius:14px; padding:.9rem 1rem; }}
 /* Nuevo préstamo: botón principal y tarjetas de modalidad más compactas (3 en una fila) */
 html body .stApp [class*="st-key-np_abrir"] button {{ background:#B8F53A !important; border:1px solid #B8F53A !important; min-height:3rem; box-shadow:0 6px 18px rgba(184,245,58,.22); }}
 html body .stApp [class*="st-key-np_abrir"] button, html body .stApp [class*="st-key-np_abrir"] button * {{ color:#0A1A05 !important; font-weight:700 !important; background:transparent; }}
@@ -651,6 +653,8 @@ html body .stApp [class*="st-key-barra_movil"] {{ display:none !important; }}
   html body .stApp [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [class*="st-key-nc_rapido_"]) > [data-testid="stColumn"] {{ min-width:0 !important; width:auto !important; flex:1 1 30% !important; }}
   html body .stApp [class*="st-key-nc_"] button p, html body .stApp [class*="st-key-mp_"] button p, html body .stApp [class*="st-key-vc_"] button p {{ font-size:.8rem !important; white-space:normal; }}
   html body .stApp [class*="st-key-ficha_"] {{ margin-bottom:.8rem; }}
+  html body .stApp [data-testid="stColumn"]:has([class*="st-key-cobro_resumen"]) {{ order:-1; }}
+  html body .stApp [class*="st-key-cobro_resumen"] {{ position:static; }}
   html body .stApp .f-panel b {{ font-size:.95rem; }}
   /* la animación de entrada del contenido impedía que la barra inferior quedara fija a la pantalla */
   html body .stApp, html body .stApp [data-testid="stAppViewContainer"], html body .stApp [data-testid="stMain"], html body .stApp [data-testid="stMainBlockContainer"], html body .stApp .block-container {{ animation:none !important; transform:none !important; filter:none !important; will-change:auto !important; contain:none !important; perspective:none !important; }}
