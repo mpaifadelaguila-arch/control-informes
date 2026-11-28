@@ -799,6 +799,17 @@ html body .stApp .m3k-cred .pie b {{ color:#E6E8EA; font-weight:600; }}
   html body .stApp [data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] {{ gap:.55rem; }}
   html body .stApp [data-testid="stVerticalBlockBorderWrapper"] {{ padding:.1rem; }}
 }}
+/* ===== Movimiento: rápido, con curva de salida marcada y sin animar lo que se ve muchas veces al día ===== */
+html body .stApp {{ --salida:cubic-bezier(.23,1,.32,1); }}
+html body .stApp .m3k-kpi, html body .stApp .m3k-dia, html body .stApp .m3k-cred, html body .stApp .m3k-hero, html body .stApp .m3k-panel {{ animation-duration:.2s !important; animation-delay:0s !important; animation-timing-function:var(--salida) !important; }}
+html body .stApp .m3k-kpi, html body .stApp .m3k-modo, html body .stApp .m3k-cred, html body .stApp .stButton button {{ transition-property:transform, box-shadow, border-color, background-color; transition-duration:.18s; transition-timing-function:var(--salida); }}
+html body .stApp .stButton button:active, html body .stApp [data-testid="stFormSubmitButton"] button:active {{ transform:scale(.97); transition-duration:.08s; }}
+@media (hover:none) {{
+  html body .stApp .m3k-kpi:hover, html body .stApp .m3k-modo:hover, html body .stApp .m3k-cred:hover {{ transform:none; box-shadow:none; }}
+}}
+@media (prefers-reduced-motion: reduce) {{
+  html body .stApp *, html body .stApp *::before, html body .stApp *::after {{ animation-duration:.01ms !important; animation-delay:0s !important; transition-duration:.01ms !important; }}
+}}
 </style>
 """
 
