@@ -140,28 +140,28 @@ def _detalle(db: dict, reg: dict) -> None:
     """Recibo abierto: vista, descargas, WhatsApp y anulación."""
     sel = reg["id"]
     datos_recibo = _datos_recibo(db, reg["tipo"], reg["r"])
-    st.markdown(f'<div class="m3k-recibo">{_html_recibo(datos_recibo)}</div>', unsafe_allow_html=True)
+    izq, der = st.columns([1.05, 1], gap="large")
+    izq.markdown(f'<div class="m3k-recibo">{_html_recibo(datos_recibo)}</div>', unsafe_allow_html=True)
     png = recibo_imagen.generar(datos_recibo)
     pr_sel = ops.buscar(db["prestamos"], reg["r"]["prestamo_id"] if reg["tipo"] == "pago" else reg["r"]["id"]) or {}
     cli_sel = ops.buscar(db["clientes"], pr_sel.get("cliente_id", "")) or {}
     texto_wa = compartir.mensaje(datos_recibo, cli_sel.get("nombre", ""))
     enlace = compartir.enlace_chat(cli_sel.get("telefono"), texto_wa)
-    b1, b2, b3, b4 = st.columns(4)
-    b1.download_button("Descargar imagen", png, file_name=f"{reg['folio']}.png", mime="image/png", icon=":material/image:", use_container_width=True)
-    b2.download_button("Descargar PDF", _pdf_recibo(datos_recibo), file_name=f"{reg['folio']}.pdf", mime="application/pdf",
+    der.download_button("Descargar imagen", png, file_name=f"{reg['folio']}.png", mime="image/png", icon=":material/image:", use_container_width=True)
+    der.download_button("Descargar PDF", _pdf_recibo(datos_recibo), file_name=f"{reg['folio']}.pdf", mime="application/pdf",
                        icon=":material/picture_as_pdf:", use_container_width=True)
-    with b3:
+    with der:
         componentes.html(compartir.html_compartir(png, f"{reg['folio']}.png", texto_wa), height=70)
-    with b4.container(key="wa_chat"):
+    with der.container(key="wa_chat"):
         if enlace:
             st.link_button("Abrir chat de WhatsApp", enlace, use_container_width=True)
         else:
             st.button("Abrir chat de WhatsApp", disabled=True, use_container_width=True, key="wa_chat_off",
                       help="Este cliente no tiene un teléfono válido. Agrégalo en Clientes.")
-    st.caption("En el celular, «Compartir imagen» abre WhatsApp con el recibo listo. En la computadora, descarga la imagen, abre el chat y adjúntala.")
+    der.caption("En el celular, «Compartir imagen» abre WhatsApp con el recibo listo. En la computadora, descarga la imagen, abre el chat y adjúntala.")
 
     if reg["tipo"] == "pago" and not reg["anulado"]:
-        with st.expander("Anular este cobro"):
+        with der.expander("Anular este cobro"):
             st.caption("El folio se conserva como anulado. El saldo del crédito y la caja se recalculan solos.")
             motivo = st.text_input("Motivo de la anulación", key=f"mot_{sel}")
             if st.button("Anular cobro", key=f"anular_{sel}"):

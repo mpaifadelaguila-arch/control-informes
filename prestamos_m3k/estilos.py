@@ -915,6 +915,20 @@ html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria
 [data-testid="stDialog"] div[role="dialog"] {{ border-radius:18px !important; border:1px solid #2A2A2D; box-shadow:0 24px 60px rgba(0,0,0,.55);
   animation:m3k-ventana .25s cubic-bezier(.23,1,.32,1) both; }}
 [data-testid="stDialog"] > div {{ backdrop-filter:blur(3px); }}
+
+/* ventanas flotantes: tema oscuro propio (el cuadro vive fuera de .stApp y no hereda sus colores) */
+[data-testid="stDialog"] div[role="dialog"] {{ background:#0C1322 !important; border-color:#1F2B47 !important; }}
+[data-testid="stDialog"] [data-testid="stDialogTitle"], [data-testid="stDialog"] div[role="dialog"] h1, [data-testid="stDialog"] div[role="dialog"] h2 {{ color:#F4F4F2 !important; }}
+[data-testid="stDialog"] div[role="dialog"] button[aria-label="Close"], [data-testid="stDialog"] div[role="dialog"] button[aria-label="Close"] svg {{ color:#D4D4D8 !important; fill:#D4D4D8 !important; }}
+[data-testid="stDialog"] label, [data-testid="stDialog"] label *, [data-testid="stDialog"] [data-testid="stWidgetLabel"] * {{ color:#E4E4E7 !important; }}
+[data-testid="stDialog"] [data-testid="stCaptionContainer"], [data-testid="stDialog"] [data-testid="stCaptionContainer"] * {{ color:#A8B0C2 !important; }}
+[data-testid="stDialog"] [data-testid="stExpander"] summary, [data-testid="stDialog"] [data-testid="stExpander"] summary * {{ color:#E4E4E7 !important; }}
+[data-testid="stDialog"] [data-testid="stExpander"] {{ border-color:#1F2B47 !important; }}
+[data-testid="stDialog"] .m3k-recibo {{ zoom:.82; max-width:none; }}
+[data-testid="stDialog"] [data-testid="stDownloadButton"] button {{ background:#16223C !important; color:#F4F4F2 !important; border:1px solid #2B3A5F !important; }}
+[data-testid="stDialog"] [data-testid="stDownloadButton"] button * {{ color:#F4F4F2 !important; }}
+[data-testid="stDialog"] [class*="st-key-wa_chat"] a, [data-testid="stDialog"] [class*="st-key-wa_chat"] a * {{ background:#16223C !important; color:#F4F4F2 !important; border:1px solid #2B3A5F !important; }}
+[data-testid="stDialog"] [data-testid="stFormSubmitButton"] button, [data-testid="stDialog"] [data-testid="stFormSubmitButton"] button * {{ color:#0A1A05 !important; }}
 </style>
 """
 
