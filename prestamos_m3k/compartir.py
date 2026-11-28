@@ -77,3 +77,12 @@ document.getElementById("b").onclick=async()=>{{
   }}catch(e){{if(e.name!=="AbortError")msg.textContent="No se pudo compartir. Usa «Descargar imagen».";}}
 }};
 </script>"""
+
+
+def recordatorio(nombre_cliente: str, monto: str, vencido: bool, numero_prestamo: int | None = None) -> str:
+    """Mensaje corto de recordatorio de pago para mandar por WhatsApp (el monto ya viene con formato, p. ej. «S/ 180.00»)."""
+    primero = (nombre_cliente or "").split()[0].capitalize() if nombre_cliente else ""
+    saludo = f"Hola {primero}, " if primero else "Hola, "
+    credito = f" de tu préstamo {numero_prestamo:04d}" if numero_prestamo else ""
+    cuando = "tienes vencido" if vencido else "te toca pagar hoy"
+    return f"{saludo}te escribo de M3K Préstamos: {cuando} {monto}{credito}. ¿A qué hora puedes pagarlo? Gracias."
