@@ -871,6 +871,28 @@ html body .stApp .m3k-simula li svg.svg {{ color:#B8F53A; margin-right:.2rem; }}
 [data-testid="stPopoverBody"], [data-baseweb="popover"] > div {{ animation:m3k-abre .18s cubic-bezier(.23,1,.32,1) both; }}
 [data-testid="stToast"], [data-testid="stAlert"] {{ animation:m3k-aviso .25s cubic-bezier(.23,1,.32,1) both; }}
 @media (hover:hover) {{ [class*="st-key-tarj_"]:hover {{ transform:translateY(-1px); transition:transform .2s ease; }} }}
+
+/* luz y movimiento: foco que sigue al puntero, barrido de luz, brillo al enfocar */
+@keyframes m3k-barrido {{ from {{ left:-55%; }} to {{ left:125%; }} }}
+.m3k-hero, [class*="st-key-tarj_"], .m3k-kpi, .m3k-panel {{ position:relative; }}
+.m3k-hero {{ overflow:hidden; }}
+.m3k-hero::after {{ content:""; position:absolute; top:0; bottom:0; width:38%; left:-55%; pointer-events:none;
+  background:linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.07), rgba(255,255,255,0)); transform:skewX(-18deg);
+  animation:m3k-barrido .9s .35s cubic-bezier(.23,1,.32,1) both; }}
+[data-baseweb="input"], [data-baseweb="select"] > div, [data-baseweb="textarea"] {{ transition:box-shadow .2s ease, border-color .2s ease; }}
+[data-baseweb="input"]:focus-within, [data-baseweb="select"]:focus-within > div, [data-baseweb="textarea"]:focus-within {{
+  box-shadow:0 0 0 3px rgba(184,245,58,.18) !important; }}
+[data-testid="stSidebarNavLink"][aria-current="page"] {{ box-shadow:inset 3px 0 0 #B8F53A, 0 0 18px rgba(184,245,58,.10); }}
+@media (hover:hover) {{
+  .m3k-hero::before, [class*="st-key-tarj_"]::before, .m3k-kpi::before, .m3k-panel::before {{ content:""; position:absolute; inset:0;
+    border-radius:inherit; pointer-events:none; opacity:0; transition:opacity .3s ease; z-index:1;
+    background:radial-gradient(280px circle at var(--mx,50%) var(--my,50%), rgba(184,245,58,.075), rgba(184,245,58,0) 70%); }}
+  .m3k-hero::before {{ background:radial-gradient(360px circle at var(--mx,50%) var(--my,50%), rgba(76,141,255,.16), rgba(76,141,255,0) 70%); }}
+  .m3k-hero:hover::before, [class*="st-key-tarj_"]:hover::before, .m3k-kpi:hover::before, .m3k-panel:hover::before {{ opacity:1; }}
+  [class*="st-key-tarj_"]:hover, .m3k-kpi:hover {{ box-shadow:0 8px 26px rgba(0,0,0,.35), 0 0 0 1px rgba(184,245,58,.22); }}
+  .stButton button[kind="primary"]:hover, .stFormSubmitButton button[kind="primary"]:hover, .stFormSubmitButton button[kind="primaryFormSubmit"]:hover {{
+    box-shadow:0 0 0 3px rgba(184,245,58,.16), 0 8px 24px rgba(184,245,58,.28) !important; transform:translateY(-1px); }}
+}}
 </style>
 """
 

@@ -26,6 +26,13 @@ if "paleta" not in st.session_state and st.query_params.get("paleta") in estilos
     st.session_state["paleta"] = st.query_params["paleta"]
 estilos.aplicar()
 
+_LUZ_JS = r"""<script>(function(){try{var w=window.parent,d=w.document;
+if(w.__m3kLuz||!w.matchMedia('(hover: hover)').matches||w.matchMedia('(prefers-reduced-motion: reduce)').matches)return;w.__m3kLuz=1;
+var sel='.m3k-hero,[class*="st-key-tarj_"],.m3k-kpi,.m3k-panel',pend=null;
+d.addEventListener('pointermove',function(e){if(pend)return;pend=w.requestAnimationFrame(function(){pend=null;
+var el=e.target&&e.target.closest?e.target.closest(sel):null;if(!el)return;var r=el.getBoundingClientRect();
+el.style.setProperty('--mx',(e.clientX-r.left)+'px');el.style.setProperty('--my',(e.clientY-r.top)+'px');});},{passive:true});}catch(x){}})();</script>"""
+
 
 def _clave_configurada() -> str | None:
     try:
@@ -102,6 +109,7 @@ with st.sidebar:
     if st.button("Cerrar sesión", icon=":material/logout:"):
         st.session_state.clear()
         st.rerun()
+    componentes.html(_LUZ_JS, height=0)
 
 estilos.barra_movil(paginas)
 estilos.mensaje_pendiente()
