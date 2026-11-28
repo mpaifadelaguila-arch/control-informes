@@ -121,10 +121,8 @@ def _pdf_recibo(d: dict) -> bytes:
     return buffer.getvalue()
 
 
-def mostrar() -> None:
-    db = datos.cargar()
-    ui.encabezado("Recibos", "Abre un recibo para guardarlo o imprimirlo. Si un cobro fue un error, anúlalo: la cuota, el saldo y la caja se recalculan.")
-
+def _registros(db: dict) -> list[dict]:
+    """Todos los recibos (cobros y desembolsos) con los datos que usan la lista y la ventana."""
     registros = []
     for p in db["pagos"]:
         pr = ops.buscar(db["prestamos"], p["prestamo_id"]) or {}
@@ -135,34 +133,12 @@ def mostrar() -> None:
         registros.append({"id": pr["id"], "tipo": "desembolso", "folio": pr["folio_desembolso"], "fecha": pr["fecha_desembolso"],
                           "cliente": comun.nombre_cliente(db, pr["cliente_id"]), "monto": pr["monto"], "anulado": pr.get("anulado", False), "r": pr,
                           "detalle": f"Préstamo {pr['numero']:04d}"})
-    if not registros:
-        ui.vacio("Aún no hay recibos", "Se generan solos al registrar un desembolso o un cobro.", "🧾")
-        return
+    return registros
 
-    c1, c2 = st.columns([1, 2])
-    tipo = c1.selectbox("Tipo", ["Todos", "Cobros", "Desembolsos"])
-    buscar = c2.text_input("Buscar", placeholder="Cliente o folio").strip().lower()
-    lista = [r for r in registros
-             if (tipo == "Todos" or (tipo == "Cobros") == (r["tipo"] == "pago"))
-             and (not buscar or buscar in r["cliente"].lower() or buscar in r["folio"].lower())]
-    lista.sort(key=lambda r: (r["fecha"], r["folio"]))  # el más antiguo primero
-    if not lista:
-        ui.vacio("Sin resultados", "Cambia el tipo o la búsqueda.", "🔍")
-        return
 
-    ui.tabla(["Folio", "Fecha", "Cliente", "Crédito", "Monto", "Estado"],
-             [[r["folio"], ui.fecha_dia(r["fecha"]), r["cliente"], r["detalle"], ui.soles(r["monto"]),
-               ui.chip("Anulado", "neutro") if r["anulado"] else ui.chip("Vigente", "ok")] for r in lista[-150:]],
-             numericas=(4,), sin_corte=(0, 1, 2, 3), etiqueta="Recibos", apilar=True)
-    if len(lista) > 150:
-        st.caption(f"Se muestran los 150 más recientes (los anteriores quedan fuera de la lista) de {len(lista)}. Usa la búsqueda para encontrar uno anterior.")
-
-    ids = [r["id"] for r in lista]
-    if st.session_state.get("recibo_sel") not in ids:
-        st.session_state.pop("recibo_sel", None)
-    por_id = {r["id"]: r for r in lista}
-    sel = st.selectbox("Abrir recibo", ids, format_func=lambda i: f"{por_id[i]['folio']} · {por_id[i]['cliente']} · {ui.soles(por_id[i]['monto'])}", key="recibo_sel")
-    reg = por_id[sel]
+def _detalle(db: dict, reg: dict) -> None:
+    """Recibo abierto: vista, descargas, WhatsApp y anulación."""
+    sel = reg["id"]
     datos_recibo = _datos_recibo(db, reg["tipo"], reg["r"])
     st.markdown(f'<div class="m3k-recibo">{_html_recibo(datos_recibo)}</div>', unsafe_allow_html=True)
     png = recibo_imagen.generar(datos_recibo)
@@ -199,3 +175,49 @@ def mostrar() -> None:
                         st.session_state.pop("ultimo_pago")
                     ui.avisar("ok", f"Cobro {reg['folio']} anulado.")
                     st.rerun()
+
+
+@st.dialog("Recibo", width="large")
+def ventana(recibo_id: str) -> None:
+    """Recibo en ventana flotante, sin salir de la pantalla en la que estás."""
+    db = datos.cargar()
+    reg = next((r for r in _registros(db) if r["id"] == recibo_id), None)
+    if reg is None:
+        st.error("No se encontró el recibo.")
+        return
+    _detalle(db, reg)
+
+
+def mostrar() -> None:
+    db = datos.cargar()
+    ui.encabezado("Recibos", "Abre un recibo para guardarlo o imprimirlo. Si un cobro fue un error, anúlalo: la cuota, el saldo y la caja se recalculan.")
+
+    registros = _registros(db)
+    if not registros:
+        ui.vacio("Aún no hay recibos", "Se generan solos al registrar un desembolso o un cobro.", "🧾")
+        return
+
+    c1, c2 = st.columns([1, 2])
+    tipo = c1.selectbox("Tipo", ["Todos", "Cobros", "Desembolsos"])
+    buscar = c2.text_input("Buscar", placeholder="Cliente o folio").strip().lower()
+    lista = [r for r in registros
+             if (tipo == "Todos" or (tipo == "Cobros") == (r["tipo"] == "pago"))
+             and (not buscar or buscar in r["cliente"].lower() or buscar in r["folio"].lower())]
+    lista.sort(key=lambda r: (r["fecha"], r["folio"]))  # el más antiguo primero
+    if not lista:
+        ui.vacio("Sin resultados", "Cambia el tipo o la búsqueda.", "🔍")
+        return
+
+    ui.tabla(["Folio", "Fecha", "Cliente", "Crédito", "Monto", "Estado"],
+             [[r["folio"], ui.fecha_dia(r["fecha"]), r["cliente"], r["detalle"], ui.soles(r["monto"]),
+               ui.chip("Anulado", "neutro") if r["anulado"] else ui.chip("Vigente", "ok")] for r in lista[-150:]],
+             numericas=(4,), sin_corte=(0, 1, 2, 3), etiqueta="Recibos", apilar=True)
+    if len(lista) > 150:
+        st.caption(f"Se muestran los 150 más recientes (los anteriores quedan fuera de la lista) de {len(lista)}. Usa la búsqueda para encontrar uno anterior.")
+
+    ids = [r["id"] for r in lista]
+    por_id = {r["id"]: r for r in lista}
+    c_sel, c_abrir = st.columns([4, 1.4], vertical_alignment="bottom")
+    sel = c_sel.selectbox("Abrir recibo", ids, format_func=lambda i: f"{por_id[i]['folio']} · {por_id[i]['cliente']} · {ui.soles(por_id[i]['monto'])}", key="recibo_sel")
+    if c_abrir.button("Ver recibo", key="np_abrir_recibo", icon=":material/receipt_long:", type="primary", use_container_width=True):
+        ventana(sel)

@@ -7,7 +7,7 @@ import datos
 import estilos as ui
 import navegacion as nav
 import operaciones as ops
-from vistas import comun
+from vistas import comun, recibos
 
 
 def _clave(sel: str, n: int) -> str:
@@ -61,8 +61,7 @@ def mostrar() -> None:
         a, b = st.columns([3, 1], vertical_alignment="center")
         a.success(f"Último cobro registrado: {ultimo['folio']} por {ui.soles(ultimo['total'])}.")
         if b.button("Ver recibo", icon=":material/receipt_long:"):
-            st.session_state["recibo_sel"] = ultimo["id"]
-            comun.ir_a("recibos")
+            recibos.ventana(ultimo["id"])
 
     activos = [p for p in db["prestamos"] if evals[p["id"]]["estado"] in ("vigente", "vencido")]
     if not activos:

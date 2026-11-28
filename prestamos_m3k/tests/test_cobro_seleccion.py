@@ -13,6 +13,12 @@ HOY = date(2026, 11, 15)
 
 def _vista():
     sys.modules.setdefault("streamlit", types.ModuleType("streamlit"))  # en las pruebas puede no estar instalado
+    st_falso = sys.modules["streamlit"]
+    if not hasattr(st_falso, "__path__"):  # es el simulado: añade lo que importan las vistas de recibos
+        st_falso.dialog = lambda *a, **k: (lambda f: f)
+        comp = sys.modules.setdefault("streamlit.components", types.ModuleType("streamlit.components"))
+        comp_v1 = sys.modules.setdefault("streamlit.components.v1", types.ModuleType("streamlit.components.v1"))
+        comp.v1, st_falso.components = comp_v1, comp
     from vistas import cobros
     falso = types.SimpleNamespace(session_state={})
     cobros.st = falso  # la vista solo usa session_state en las funciones de selección

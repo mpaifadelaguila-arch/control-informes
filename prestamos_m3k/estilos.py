@@ -909,6 +909,12 @@ html body .stApp [data-testid="stSidebar"] [data-testid="stSidebarNavLink"][aria
   .stApp::after {{ content:""; position:fixed; inset:0; pointer-events:none; z-index:2;
     background:radial-gradient(520px circle at var(--gx,-400px) var(--gy,-400px), rgba(76,141,255,.085), rgba(76,141,255,0) 70%); }}
 }}
+
+/* ventanas flotantes */
+@keyframes m3k-ventana {{ from {{ opacity:0; transform:translateY(14px) scale(.98); }} to {{ opacity:1; transform:none; }} }}
+[data-testid="stDialog"] div[role="dialog"] {{ border-radius:18px !important; border:1px solid #2A2A2D; box-shadow:0 24px 60px rgba(0,0,0,.55);
+  animation:m3k-ventana .25s cubic-bezier(.23,1,.32,1) both; }}
+[data-testid="stDialog"] > div {{ backdrop-filter:blur(3px); }}
 </style>
 """
 

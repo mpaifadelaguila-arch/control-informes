@@ -35,6 +35,12 @@ def _formulario(db: dict, cliente: dict | None, clave: str) -> None:
                 st.error(str(e))
 
 
+@st.dialog("Nuevo cliente")
+def _ventana_nuevo() -> None:
+    """Alta de cliente en ventana flotante."""
+    _formulario(datos.cargar(), None, "form_nuevo_cliente")
+
+
 def mostrar() -> None:
     db = datos.cargar()
     evals = calc.evaluar_cartera(db, calc.hoy())
@@ -44,12 +50,9 @@ def mostrar() -> None:
     # arriba lo más usado: buscar y registrar un cliente nuevo
     c_busca, c_nuevo = st.columns([4, 1.4], vertical_alignment="bottom")
     buscar = c_busca.text_input("Buscar", placeholder="Buscar por nombre, DNI o teléfono", label_visibility="collapsed")
-    abierto = bool(st.session_state.get("_abrir_nuevo_cliente")) or not db["clientes"]
-    if c_nuevo.button("Cerrar" if abierto and db["clientes"] else "Nuevo cliente", key="np_abrir_cliente",
-                      icon=":material/close:" if abierto and db["clientes"] else ":material/person_add:", use_container_width=True):
-        st.session_state["_abrir_nuevo_cliente"] = not abierto
-        st.rerun()
-    if abierto:
+    if c_nuevo.button("Nuevo cliente", key="np_abrir_cliente", icon=":material/person_add:", use_container_width=True) and db["clientes"]:
+        _ventana_nuevo()
+    if not db["clientes"]:
         with st.container(key="tarj_nuevo_cliente"):
             st.markdown("**Nuevo cliente**")
             _formulario(db, None, "form_nuevo_cliente")
