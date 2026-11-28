@@ -175,7 +175,9 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
   -webkit-mask:radial-gradient(circle closest-side, transparent 91%, #000 92%, #000 98%, transparent 100%);
   mask:radial-gradient(circle closest-side, transparent 91%, #000 92%, #000 98%, transparent 100%);
   animation:m3k-orbita 5s linear 1.2s infinite both; }}
-@media (prefers-reduced-motion: reduce) {{ * {{ animation:none !important; transition:none !important; scroll-behavior:auto !important; }} }}
+@keyframes m3k-fundido {{ from {{ opacity:0; }} }}
+@media (prefers-reduced-motion: reduce) {{ * {{ animation:none !important; transition:none !important; scroll-behavior:auto !important; }}
+  .block-container, .m3k-kpi, .m3k-hero, .m3k-cred, .m3k-panel, .m3k-fila {{ animation:m3k-fundido .2s ease both !important; }} }}
 
 /* Gráficos del inicio y animaciones (se apagan con «reducir movimiento», más abajo) */
 @keyframes m3k-subir {{ from {{ opacity:0; transform:translateY(10px); }} to {{ opacity:1; transform:none; }} }}
@@ -183,21 +185,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 @keyframes m3k-ancho {{ from {{ transform:scaleX(0); }} to {{ transform:scaleX(1); }} }}
 @keyframes m3k-aro {{ from {{ stroke-dasharray:0 var(--c); }} }}
 @keyframes m3k-revela {{ from {{ clip-path:inset(0 100% 0 0); }} to {{ clip-path:inset(0 0 0 0); }} }}
-.m3k-kpi {{ animation:m3k-subir .5s cubic-bezier(.2,.7,.2,1) both; transition:transform .2s ease, box-shadow .2s ease; }}
+.m3k-kpi {{ animation:m3k-subir .2s cubic-bezier(.23,1,.32,1) both; transition:transform .2s ease, box-shadow .2s ease; }}
 .m3k-kpi:nth-child(2) {{ animation-delay:.07s; }} .m3k-kpi:nth-child(3) {{ animation-delay:.14s; }} .m3k-kpi:nth-child(4) {{ animation-delay:.21s; }}
 .m3k-kpi:hover {{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.45); }}
-.m3k-fila {{ animation:m3k-subir .45s ease both; transition:box-shadow .2s ease; }} .m3k-fila:hover {{ box-shadow:0 3px 10px rgba(0,0,0,.4); }}
+.m3k-fila {{ animation:m3k-subir .2s cubic-bezier(.23,1,.32,1) both; transition:box-shadow .2s ease; }} .m3k-fila:hover {{ box-shadow:0 3px 10px rgba(0,0,0,.4); }}
 .m3k-panel {{ background:var(--fondo); border:1px solid var(--borde); border-radius:8px; padding:.85rem 1rem; margin:.2rem 0 1rem;
-  animation:m3k-subir .55s cubic-bezier(.2,.7,.2,1) both; }}
+  animation:m3k-subir .2s cubic-bezier(.23,1,.32,1) both; }}
 .m3k-panel .t {{ font-size:.78rem; letter-spacing:.04em; text-transform:uppercase; color:var(--suave); font-weight:600; margin-bottom:.7rem; }}
 .m3k-panel .pie {{ color:var(--suave); font-size:.78rem; margin-top:.55rem; }}
 .m3k-avance .cab {{ display:flex; justify-content:space-between; align-items:baseline; gap:1rem; margin-bottom:.45rem; flex-wrap:wrap; }}
 .m3k-avance strong {{ font-size:1.4rem; color:var(--ok); }}
 .m3k-avance .pista {{ height:12px; background:#2A2A2D; border-radius:99px; overflow:hidden; }}
 .m3k-avance .pista i {{ display:block; height:100%; background:linear-gradient(90deg,#4FA84A,var(--ok)); border-radius:99px; transform-origin:left;
-  animation:m3k-ancho 1s cubic-bezier(.2,.7,.2,1) .15s both; }}
+  animation:m3k-ancho .45s cubic-bezier(.23,1,.32,1) both; }}
 .m3k-dias {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(125px,1fr)); gap:.6rem; }}
-.m3k-dia {{ border:1px solid var(--borde); border-radius:8px; padding:.6rem .75rem; background:var(--fondo); animation:m3k-subir .5s ease both;
+.m3k-dia {{ border:1px solid var(--borde); border-radius:8px; padding:.6rem .75rem; background:var(--fondo); animation:m3k-subir .2s cubic-bezier(.23,1,.32,1) both;
   transition:transform .2s ease, box-shadow .2s ease; }}
 .m3k-dia:hover {{ transform:translateY(-2px); box-shadow:0 5px 14px rgba(0,0,0,.4); }}
 .m3k-dia.hoy {{ border-color:var(--acento); background:#1F1F21; }} .m3k-dia.vacio {{ opacity:.6; }}
@@ -207,11 +209,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-dia .q {{ display:flex; justify-content:space-between; gap:.4rem; font-size:.76rem; color:#D4D4D8; line-height:1.5; }}
 .m3k-dia .q span {{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }} .m3k-dia .q b {{ color:var(--texto); font-weight:600; }}
 .m3k-dia .nivel {{ height:4px; background:#2A2A2D; border-radius:99px; margin-top:.5rem; overflow:hidden; }}
-.m3k-dia .nivel i {{ display:block; height:100%; background:var(--info); border-radius:99px; transform-origin:left; animation:m3k-ancho .8s ease .2s both; }}
+.m3k-dia .nivel i {{ display:block; height:100%; background:var(--info); border-radius:99px; transform-origin:left; animation:m3k-ancho .4s cubic-bezier(.23,1,.32,1) both; }}
 .m3k-sem {{ display:grid; grid-template-columns:repeat(6,1fr); gap:.5rem; align-items:start; }}
 .m3k-sem .c {{ display:flex; flex-direction:column; align-items:center; gap:.25rem; min-width:0; }}
 .m3k-sem .barras {{ height:120px; width:100%; display:flex; align-items:flex-end; justify-content:center; gap:3px; border-bottom:1px solid var(--borde); }}
-.m3k-sem .barras i {{ display:block; width:36%; max-width:34px; border-radius:3px 3px 0 0; transform-origin:bottom; animation:m3k-alto .75s cubic-bezier(.2,.7,.2,1) both;
+.m3k-sem .barras i {{ display:block; width:36%; max-width:34px; border-radius:3px 3px 0 0; transform-origin:bottom; animation:m3k-alto .4s cubic-bezier(.23,1,.32,1) both;
   transition:filter .2s ease; }}
 .m3k-sem .c:hover .barras i {{ filter:brightness(.92); }}
 .m3k-sem i.esp, .leyenda i.esp {{ background:#4A4A4F; }} .m3k-sem i.cob, .leyenda i.cob {{ background:var(--ok); }}
@@ -221,20 +223,20 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .leyenda i {{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:.35rem; vertical-align:-1px; }}
 .m3k-dona {{ display:flex; align-items:center; gap:1.1rem; flex-wrap:wrap; }}
 .m3k-dona svg {{ flex:none; }} .m3k-dona .dc {{ font-size:13px; font-weight:700; fill:var(--texto); }} .m3k-dona .ds {{ font-size:8px; fill:var(--suave); }}
-.m3k-dona .seg {{ animation:m3k-aro 1s cubic-bezier(.3,.7,.2,1) both; }}
+.m3k-dona .seg {{ animation:m3k-aro .5s cubic-bezier(.23,1,.32,1) both; }}
 .m3k-dona ul {{ list-style:none; margin:0; padding:0; flex:1; min-width:170px; max-width:380px; }}
 .m3k-dona li {{ display:grid; grid-template-columns:12px 1fr auto 38px; gap:.5rem; align-items:center; padding:.3rem 0; border-bottom:1px solid #2A2A2D; font-size:.85rem; }}
 .m3k-dona li:last-child {{ border-bottom:0; }} .m3k-dona li i {{ width:10px; height:10px; border-radius:50%; }}
 .m3k-dona li em {{ font-style:normal; color:var(--suave); text-align:right; font-size:.78rem; }}
-.m3k-panel svg.lin {{ width:100%; height:150px; display:block; }} .m3k-panel .revela {{ animation:m3k-revela 1.3s cubic-bezier(.4,.1,.2,1) both; }}
+.m3k-panel svg.lin {{ width:100%; height:150px; display:block; }} .m3k-panel .revela {{ animation:m3k-revela .6s cubic-bezier(.23,1,.32,1) both; }}
 .extremos {{ display:flex; justify-content:space-between; align-items:flex-start; gap:.5rem; font-size:.76rem; color:var(--suave); margin-top:.35rem; flex-wrap:wrap; }}
 .extremos b {{ display:block; color:var(--texto); font-size:.9rem; }} .extremos .der {{ text-align:right; }} .extremos .mm {{ align-self:center; }}
 
 .m3k-sem.una .barras {{ height:140px; }}
 .m3k-sem.una .col {{ width:70%; max-width:46px; display:flex; flex-direction:column; align-items:center; }}
 .m3k-sem.una .col i {{ width:100%; max-width:none; flex:1; border-radius:3px 3px 0 0; }}
-.m3k-sem.una .col .val {{ font-weight:600; color:var(--texto); font-size:.74rem; white-space:nowrap; line-height:1.5; animation:m3k-subir .6s ease .3s both; }}
-.m3k-reparto .barra {{ display:flex; height:22px; border-radius:99px; overflow:hidden; background:#2A2A2D; animation:m3k-revela 1s cubic-bezier(.4,.1,.2,1) both; }}
+.m3k-sem.una .col .val {{ font-weight:600; color:var(--texto); font-size:.74rem; white-space:nowrap; line-height:1.5; animation:m3k-subir .25s cubic-bezier(.23,1,.32,1) both; }}
+.m3k-reparto .barra {{ display:flex; height:22px; border-radius:99px; overflow:hidden; background:#2A2A2D; animation:m3k-revela .45s cubic-bezier(.23,1,.32,1) both; }}
 .m3k-reparto .barra i {{ display:block; height:100%; }}
 .m3k-reparto ul {{ list-style:none; margin:.7rem 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:.2rem 1.5rem; }}
 .m3k-reparto li {{ display:grid; grid-template-columns:12px 1fr auto 38px; gap:.5rem; align-items:center; padding:.3rem 0; font-size:.88rem; border-bottom:1px solid #2A2A2D; }}
@@ -243,7 +245,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [role="tab"]:
 .m3k-cascada .fila {{ display:grid; grid-template-columns:minmax(120px,190px) 1fr auto; gap:.8rem; align-items:center; padding:.38rem 0; border-bottom:1px solid #2A2A2D; font-size:.9rem; }}
 .m3k-cascada .fila:last-child {{ border-bottom:0; }} .m3k-cascada .fila.total {{ border-top:2px solid var(--borde); margin-top:.2rem; font-weight:700; }}
 .m3k-cascada .pista {{ height:12px; background:#252527; border-radius:99px; overflow:hidden; }}
-.m3k-cascada .pista i {{ display:block; height:100%; border-radius:99px; transform-origin:left; animation:m3k-ancho .9s cubic-bezier(.2,.7,.2,1) both; }}
+.m3k-cascada .pista i {{ display:block; height:100%; border-radius:99px; transform-origin:left; animation:m3k-ancho .45s cubic-bezier(.23,1,.32,1) both; }}
 .m3k-cascada b {{ text-align:right; min-width:92px; }}
 @media (max-width: 640px) {{ .m3k-cascada .fila {{ grid-template-columns:1fr auto; }} .m3k-cascada .pista {{ grid-column:1 / -1; grid-row:2; }} }}
 
@@ -425,7 +427,7 @@ html body [data-baseweb="popover"] [role="option"]:hover, html body [data-basewe
 .m3k-kpi.heroe:hover {{ box-shadow:0 0 30px rgba(184,245,58,.35); }}
 .m3k-vacio {{ background:radial-gradient(ellipse at 50% 0%, rgba(184,245,58,.10), transparent 70%), var(--fondo); border:1.5px dashed #4A4A4F; padding:1.6rem 1.3rem; }}
 .m3k-vacio .gran {{ display:inline-flex; width:68px; height:68px; border-radius:20px; background:#DDF7A8; align-items:center; justify-content:center; font-size:2.1rem;
-  margin-bottom:.7rem; box-shadow:0 0 0 6px rgba(184,245,58,.12); animation:m3k-subir .5s ease both; }}
+  margin-bottom:.7rem; box-shadow:0 0 0 6px rgba(184,245,58,.12); animation:m3k-subir .25s cubic-bezier(.23,1,.32,1) both; }}
 .m3k-vacio b {{ font-size:1.1rem; }}
 .m3k-login h1 span {{ color:#B8F53A; }}
 
@@ -476,15 +478,15 @@ html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid=
 /* Transiciones y movimiento */
 @keyframes m3k-entra {{ from {{ opacity:0; transform:translateY(12px); }} to {{ opacity:1; transform:none; }} }}
 @keyframes m3k-brillo {{ 0%,100% {{ box-shadow:0 0 0 0 rgba(184,245,58,.0); }} 50% {{ box-shadow:0 0 22px 2px rgba(184,245,58,.22); }} }}
-.block-container {{ animation:m3k-entra .5s cubic-bezier(.2,.7,.2,1) both; }}
+.block-container {{ animation:m3k-entra .25s cubic-bezier(.23,1,.32,1) both; }}
 .stButton button, .stDownloadButton button, .stFormSubmitButton button {{ transition:transform .15s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease; }}
 .stButton button:hover, .stDownloadButton button:hover, .stFormSubmitButton button:hover {{ transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.45); }}
 .stButton button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover {{ box-shadow:0 0 22px rgba(184,245,58,.45); }}
 .stButton button:active {{ transform:scale(.98); }}
 [data-testid="stSidebar"] [data-testid="stSidebarNavLink"] {{ transition:background-color .2s ease, padding-left .2s ease; }}
 [data-testid="stSidebar"] [data-testid="stSidebarNavLink"]:hover {{ padding-left:1.1rem; }}
-.m3k-cab {{ animation:m3k-entra .55s cubic-bezier(.2,.7,.2,1) both; }}
-.m3k-kpi.heroe {{ animation:m3k-subir .5s cubic-bezier(.2,.7,.2,1) both, m3k-brillo 3.5s ease-in-out 1s infinite; }}
+.m3k-cab {{ animation:m3k-entra .25s cubic-bezier(.23,1,.32,1) both; }}
+.m3k-kpi.heroe {{ animation:m3k-subir .25s cubic-bezier(.23,1,.32,1) both; }}
 .m3k-modo {{ transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease; }}
 .m3k-modo:hover {{ transform:translateY(-3px); border-color:#B8F53A; box-shadow:0 8px 22px rgba(0,0,0,.45); }}
 .m3k-tabla tbody tr {{ transition:background-color .15s ease; }}
@@ -808,7 +810,7 @@ html body .stApp .stButton button:active, html body .stApp [data-testid="stFormS
   html body .stApp .m3k-kpi:hover, html body .stApp .m3k-modo:hover, html body .stApp .m3k-cred:hover {{ transform:none; box-shadow:none; }}
 }}
 @media (prefers-reduced-motion: reduce) {{
-  html body .stApp *, html body .stApp *::before, html body .stApp *::after {{ animation-duration:.01ms !important; animation-delay:0s !important; transition-duration:.01ms !important; }}
+  html body .stApp *, html body .stApp *::before, html body .stApp *::after {{ transition-duration:.01ms !important; }}
 }}
 </style>
 """
