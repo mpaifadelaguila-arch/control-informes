@@ -862,8 +862,69 @@ html body .stApp .m3k-simula li svg.svg {{ color:#B8F53A; margin-right:.2rem; }}
 """
 
 
+# --- Paletas para comparar: se recolorea el mismo CSS (los tonos neutros ganan un tinte y el lima cambia de matiz) ---
+PALETAS = {
+    "Original": None,
+    "A · Esmeralda y dorado": {"matiz": 148, "tinte": (-2, 8, 5)},
+    "B · Azul medianoche": {"matiz": None, "tinte": (-1, 4, 16)},
+    "C · Grafito cálido y dorado": {"matiz": 42, "tinte": (4, 2, -4)},
+}
+_CSS_POR_PALETA: dict = {}
+
+
+def _recolorear(css: str, pal: dict) -> str:
+    import colorsys
+    import re
+
+    def tono(r: int, g: int, b: int) -> tuple[int, int, int]:
+        mx, mn = max(r, g, b), min(r, g, b)
+        if mx - mn <= 6 and mx <= 0x4A:                      # gris oscuro: se le da el tinte de la paleta
+            k = min(1.0, mx / 0x14)
+            tr, tg, tb = pal["tinte"]
+            return tuple(max(0, min(255, round(v + t * k))) for v, t in zip((r, g, b), (tr, tg, tb)))
+        h, sat, val = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        if pal["matiz"] is not None and 60 <= h * 360 <= 100 and sat > .35:   # el lima pasa al matiz de la paleta
+            r2, g2, b2 = colorsys.hsv_to_rgb(pal["matiz"] / 360, sat, val)
+            return round(r2 * 255), round(g2 * 255), round(b2 * 255)
+        return r, g, b
+
+    def hexa(m):
+        r, g, b = tono(int(m.group(1)[0:2], 16), int(m.group(1)[2:4], 16), int(m.group(1)[4:6], 16))
+        return f"#{r:02X}{g:02X}{b:02X}"
+
+    def rgba(m):
+        r, g, b = tono(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        return f"rgba({r},{g},{b},"
+
+    css = re.sub(r"#([0-9a-fA-F]{6})\b", hexa, css)
+    css = re.sub(r"rgba\((\d+),\s*(\d+),\s*(\d+),", rgba, css)
+    r, g, b = tono(0x0B, 0x0B, 0x0C)
+    fondo = f"#{r:02X}{g:02X}{b:02X}"
+    return css.replace("</style>", f'.stApp, [data-testid="stAppViewContainer"], [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {{ background-color:{fondo} !important; }}</style>')
+
+
 def aplicar() -> None:
-    st.markdown(CSS, unsafe_allow_html=True)
+    nombre = st.session_state.get("paleta", "Original")
+    pal = PALETAS.get(nombre)
+    if pal is None:
+        st.markdown(CSS, unsafe_allow_html=True)
+        return
+    if nombre not in _CSS_POR_PALETA:
+        _CSS_POR_PALETA[nombre] = _recolorear(CSS, pal)
+    st.markdown(_CSS_POR_PALETA[nombre], unsafe_allow_html=True)
+
+
+def _cambiar_paleta(clave: str) -> None:
+    st.session_state["paleta"] = st.session_state[clave]
+    st.query_params["paleta"] = st.session_state["paleta"]
+
+
+def selector_paleta(clave: str = "paleta_barra") -> None:
+    """Para comparar paletas: Original, A, B y C."""
+    opciones = list(PALETAS)
+    actual = st.session_state.get("paleta", "Original")
+    st.selectbox("Paleta de colores", opciones, index=opciones.index(actual) if actual in opciones else 0,
+                 key=clave, on_change=_cambiar_paleta, args=(clave,))
 
 
 # icono y color de cada pantalla (el color agrupa por sección: operación lima, contabilidad celeste, control ámbar)
@@ -1104,6 +1165,7 @@ def barra_movil(paginas: dict) -> None:
             with st.popover("Más", icon="🗂️", use_container_width=True):
                 for clave, etiqueta, icono in mas:
                     st.page_link(paginas[clave], label=etiqueta, icon=icono, use_container_width=True)
+                selector_paleta("paleta_movil")
                 if st.button("Cerrar sesión", icon=":material/logout:", key="salir_movil", use_container_width=True):
                     st.session_state.clear()
                     st.rerun()
