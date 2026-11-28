@@ -45,22 +45,25 @@ def mostrar() -> None:
     if a4.button("Recibos", key="qa_recibos", icon=":material/receipt_long:", use_container_width=True):
         comun.ir_a("recibos")
 
-    # 1) el dinero: cuánto hay para prestar, cuánto está prestado y el total
-    ui.kpis([
-        {"etiqueta": "Para prestar", "valor": ui.soles(caja["liquidez"]), "heroe": True, "tono": "ok" if caja["liquidez"] >= 0 else "malo",
-         "icono": "🏦", "nota": "Dinero disponible en caja"},
-        {"etiqueta": "Prestado en la calle", "valor": ui.soles(ind["capital_en_calle"]), "tono": "aviso", "icono": "💰",
-         "nota": f"{ind['prestamos_activos']} préstamo(s) · te deben {ui.soles(ind['por_cobrar'])} con interés"},
-        {"etiqueta": "Capital total", "valor": ui.soles(caja["liquidez"] + ind["capital_en_calle"]), "tono": "info", "icono": "📊",
-         "nota": "En caja + prestado"},
-    ])
-    # 2) los cobros
-    ui.kpis([
-        {"etiqueta": "Para cobrar hoy", "valor": ui.soles(ind["cobros_hoy_monto"]), "tono": "info", "icono": "📅",
-         "nota": f"{ind['cobros_hoy_n']} cuota(s) vencen hoy"},
-        {"etiqueta": "Vencido", "valor": ui.soles(ind["vencido"]), "tono": "malo" if ind["vencido"] > 0 else "ok",
-         "nota": "Cuotas atrasadas" if ind["vencido"] > 0 else "Nadie atrasado"},
-    ])
+    # el dinero y los cobros del día en una sola tarjeta: lo primero que se necesita saber
+    en_caja = float(caja["liquidez"])
+    en_calle = float(ind["capital_en_calle"])
+    total_cap = en_caja + en_calle
+    pct_caja = round(100 * max(en_caja, 0) / total_cap) if total_cap > 0 and en_caja > 0 else 0
+    vencido_cls = "malo" if ind["vencido"] > 0 else "ok"
+    st.markdown(
+        f'<div class="m3k-hero"><div class="izq">'
+        f'<div class="e">Capital total</div><div class="v num">{ui.esc(ui.soles(total_cap))}</div>'
+        f'<div class="barra"><i style="width:{pct_caja}%"></i></div>'
+        f'<div class="leyenda"><span><b class="d1"></b>Para prestar <strong class="num">{ui.esc(ui.soles(en_caja))}</strong></span>'
+        f'<span><b class="d2"></b>Prestado en la calle <strong class="num">{ui.esc(ui.soles(en_calle))}</strong></span></div>'
+        f'<div class="nota">{ind["prestamos_activos"]} préstamo(s) activo(s) · te deben {ui.esc(ui.soles(ind["por_cobrar"]))} con interés</div></div>'
+        f'<div class="der">'
+        f'<div class="mini"><div class="e">Para cobrar hoy</div><div class="v2 num">{ui.esc(ui.soles(ind["cobros_hoy_monto"]))}</div>'
+        f'<small>{ind["cobros_hoy_n"]} cuota(s) vencen hoy</small></div>'
+        f'<div class="mini {vencido_cls}"><div class="e">Vencido</div><div class="v2 num">{ui.esc(ui.soles(ind["vencido"]))}</div>'
+        f'<small>{"Cuotas atrasadas" if ind["vencido"] > 0 else "Nadie atrasado"}</small></div>'
+        f'</div></div>', unsafe_allow_html=True)
 
     st.subheader("Cobranza", anchor=False)
     cola = calc.cola_cobranza(db, evals, hoy)
