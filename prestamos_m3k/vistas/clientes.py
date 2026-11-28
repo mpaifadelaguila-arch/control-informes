@@ -50,7 +50,7 @@ def mostrar() -> None:
         st.session_state["_abrir_nuevo_cliente"] = not abierto
         st.rerun()
     if abierto:
-        with st.container(border=True):
+        with st.container(key="tarj_nuevo_cliente"):
             st.markdown("**Nuevo cliente**")
             _formulario(db, None, "form_nuevo_cliente")
 

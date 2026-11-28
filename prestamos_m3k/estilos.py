@@ -536,10 +536,10 @@ html body .stApp [data-testid="stTextInput"] svg, html body .stApp [data-testid=
 /* Registrar cobro: el resumen y el botón quedan a la vista mientras se eligen las cuotas */
 html body .stApp [class*="st-key-cobro_resumen"] {{ position:sticky; top:4.5rem; background:#111213; border:1px solid #2A2C2E; border-radius:14px; padding:.9rem 1rem; }}
 /* Nuevo préstamo: botón principal y tarjetas de modalidad más compactas (3 en una fila) */
-html body .stApp [class*="st-key-np_abrir"] button {{ background:#B8F53A !important; border:1px solid #B8F53A !important; min-height:3rem; box-shadow:0 6px 18px rgba(184,245,58,.22); }}
-html body .stApp [class*="st-key-np_abrir"] button, html body .stApp [class*="st-key-np_abrir"] button * {{ color:#0A1A05 !important; font-weight:700 !important; background:transparent; }}
+html body .stApp [class*="st-key-np_abrir"] button, html body .stApp [class*="st-key-np_confirmar"] button:not(:disabled), html body .stApp [class*="st-key-cobro_registrar"] button:not(:disabled) {{ background:#B8F53A !important; border:1px solid #B8F53A !important; min-height:3.1rem; box-shadow:0 6px 18px rgba(184,245,58,.22); }}
+html body .stApp [class*="st-key-np_abrir"] button *, html body .stApp [class*="st-key-np_confirmar"] button:not(:disabled) *, html body .stApp [class*="st-key-cobro_registrar"] button:not(:disabled) * {{ color:#0A1A05 !important; font-weight:700 !important; background:transparent !important; }}
 html body .stApp [class*="st-key-np_abrir"] button {{ background:#B8F53A !important; }}
-html body .stApp [class*="st-key-np_abrir"] button:hover {{ background:#CBFA66 !important; }}
+html body .stApp [class*="st-key-np_abrir"] button:hover, html body .stApp [class*="st-key-np_confirmar"] button:not(:disabled):hover, html body .stApp [class*="st-key-cobro_registrar"] button:not(:disabled):hover {{ background:#CBFA66 !important; }}
 .m3k-modos {{ grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.5rem; margin:.1rem 0 .4rem; }}
 .m3k-modo {{ padding:.6rem .75rem; }}
 .m3k-modo .ico {{ width:30px; height:30px; font-size:1rem; margin-bottom:.3rem; border-radius:9px; }}
@@ -834,6 +834,13 @@ html body .stApp ::selection {{ background:rgba(184,245,58,.3); }}
   html body .stApp [data-testid="stExpander"] summary {{ min-height:48px; }}
   html body .stApp .block-container {{ padding-bottom:6.5rem; }}
 }}
+/* ===== Tarjetas contenedoras: borde suave y fondo propio (reemplazan el borde blanco por defecto) ===== */
+html body .stApp [class*="st-key-tarj_"] {{ background:linear-gradient(180deg,#141516,#101112); border:1px solid #25282A; border-radius:16px; padding:1rem 1.15rem; margin-bottom:.15rem; transition:border-color .18s cubic-bezier(.23,1,.32,1); }}
+html body .stApp [class*="st-key-tarj_"]:hover {{ border-color:#34382E; }}
+html body .stApp [class*="st-key-tarj_cuota_"] {{ padding:.7rem 1rem; }}
+html body .stApp [class*="st-key-tarj_cuota_"]:has(input:checked) {{ border-color:#B8F53A; background:linear-gradient(180deg,#182010,#11160B); }}
+html body .stApp [class*="st-key-tarj_cob_"] {{ padding:.75rem 1rem; }}
+html body .stApp .num, html body .stApp .m3k-hero .v, html body .stApp .m3k-hero .v2, html body .stApp .m3k-kpi .v, html body .stApp .m3k-cred .saldo span {{ font-feature-settings:"tnum" 1, "ss01" 1; }}
 </style>
 """
 

@@ -141,7 +141,7 @@ def mostrar() -> None:
                 cuando, tono = "vence hoy", ui.TONOS["aviso"]
             else:
                 cuando, tono = f"vence en {dias} día(s)", ui.TEXTO_SUAVE
-            with st.container(border=True):
+            with st.container(key=f"tarj_cuota_{c['n']}"):
                 fila = st.columns([1.6, 2.6, 2, 1.6], vertical_alignment="center")
                 fila[0].checkbox(f"Cuota {c['n']} de {len(ev_f['cuotas'])}", key=_clave(sel, c["n"]), on_change=_al_marcar, args=(sel, pendientes, c["n"]))
                 fila[1].markdown(f'<b>{ui.fecha_dia(c["vence"])}</b><br><small style="color:{tono};font-weight:600">{cuando}</small>', unsafe_allow_html=True)
@@ -185,7 +185,7 @@ def mostrar() -> None:
             )
 
             st.markdown('<div style="height:.9rem"></div>', unsafe_allow_html=True)
-            if st.button("Registrar cobro", type="primary", disabled=monto <= 0, icon=":material/check_circle:"):
+            if st.button("Registrar cobro", key="cobro_registrar", type="primary", disabled=monto <= 0, icon=":material/check_circle:", use_container_width=True):
                 try:
                     pago = ops.registrar_pago(db, sel, f_cobro, monto, metodo, nota, hoy_=hoy)
                 except ValueError as e:
