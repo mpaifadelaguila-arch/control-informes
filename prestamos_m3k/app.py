@@ -99,7 +99,6 @@ navegacion = st.navigation({
 db = datos.cargar()
 with st.sidebar:
     estilos.tarjeta_caja(calc.resumen_caja(db)["liquidez"], drive_json.configurado())
-    estilos.selector_paleta("paleta_barra")
     if st.button("Cerrar sesión", icon=":material/logout:"):
         st.session_state.clear()
         st.rerun()
